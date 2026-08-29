@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="pt-BR" data-theme="auto">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Páginas</title>
+<meta name="description" content="Coletânea de páginas HTML avulsas.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%93%84%3C/text%3E%3C/svg%3E">
+<style>
+:root{
+  --paper:#EDEFF3; --card:#FFFFFF; --sunk:#E2E6EC;
+  --ink:#131E2B; --muted:#5D6C7E; --faint:#8A98A8;
+  --line:#CDD5DE; --line-soft:#DDE3EA;
+  --accent:#15697F;
+  --shadow:0 1px 2px rgba(19,30,43,.05), 0 12px 28px -14px rgba(19,30,43,.22);
+  --shadow-lift:0 2px 4px rgba(19,30,43,.06), 0 26px 50px -18px rgba(19,30,43,.34);
+  --sans:'IBM Plex Sans',system-ui,-apple-system,sans-serif;
+  --mono:'IBM Plex Mono',ui-monospace,SFMono-Regular,monospace;
+  --disp:'Bricolage Grotesque',var(--sans);
+  --r:14px;
+}
+:root[data-theme="dark"]{
+  --paper:#0D1218; --card:#151C25; --sunk:#1B242F;
+  --ink:#E8EDF3; --muted:#93A2B4; --faint:#63748A;
+  --line:#26313E; --line-soft:#1F2833;
+  --accent:#4FB3CE;
+  --shadow:0 1px 2px rgba(0,0,0,.4), 0 12px 28px -14px rgba(0,0,0,.7);
+  --shadow-lift:0 2px 4px rgba(0,0,0,.45), 0 26px 50px -18px rgba(0,0,0,.85);
+}
+@media (prefers-color-scheme: dark){
+  :root[data-theme="auto"]{
+    --paper:#0D1218; --card:#151C25; --sunk:#1B242F;
+    --ink:#E8EDF3; --muted:#93A2B4; --faint:#63748A;
+    --line:#26313E; --line-soft:#1F2833;
+    --accent:#4FB3CE;
+    --shadow:0 1px 2px rgba(0,0,0,.4), 0 12px 28px -14px rgba(0,0,0,.7);
+    --shadow-lift:0 2px 4px rgba(0,0,0,.45), 0 26px 50px -18px rgba(0,0,0,.85);
+  }
+}
+
+*{box-sizing:border-box}
+html{color-scheme:light dark}
+body{
+  margin:0; background:var(--paper); color:var(--ink);
+  font-family:var(--sans); font-size:15px; line-height:1.55;
+  -webkit-font-smoothing:antialiased;
+  background-image:radial-gradient(1100px 520px at 78% -8%, color-mix(in srgb, var(--accent) 12%, transparent), transparent 70%);
+  background-repeat:no-repeat;
+}
+a{color:inherit}
+.wrap{max-width:1180px;margin:0 auto;padding:0 22px 90px}
+
+/* ---------- cabeçalho ---------- */
+header{padding:60px 0 26px}
+.eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--faint)}
+h1{
+  font-family:var(--disp);font-weight:800;letter-spacing:-.03em;line-height:1;
+  font-size:clamp(38px,7vw,64px);margin:12px 0 0;
+}
+h1 .dot{color:var(--accent)}
+.lede{color:var(--muted);max-width:56ch;margin:16px 0 0;font-size:16.5px}
+
+/* ---------- barra de ferramentas ---------- */
+.toolbar{
+  position:sticky;top:0;z-index:20;margin-top:34px;
+  padding:14px 0;background:color-mix(in srgb, var(--paper) 88%, transparent);
+  backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);
+  border-bottom:1px solid var(--line-soft);
+  display:flex;gap:12px;align-items:center;flex-wrap:wrap;
+}
+.search{position:relative;flex:1 1 240px;min-width:200px}
+.search > svg{position:absolute;left:13px;top:50%;transform:translateY(-50%);opacity:.45;pointer-events:none}
+.search input{
+  width:100%;font:inherit;font-size:14px;color:var(--ink);
+  padding:10px 44px 10px 36px;border-radius:999px;
+  border:1px solid var(--line);background:var(--card);
+  transition:border-color .16s, box-shadow .16s;
+}
+.search input::placeholder{color:var(--faint)}
+.search input:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px color-mix(in srgb, var(--accent) 22%, transparent)}
+.search kbd{
+  position:absolute;right:13px;top:50%;transform:translateY(-50%);
+  font-family:var(--mono);font-size:10px;color:var(--faint);
+  border:1px solid var(--line);border-radius:5px;padding:2px 6px;pointer-events:none;
+  transition:opacity .16s;
+}
+.search input:focus ~ kbd{opacity:0}
+
+.chips{display:flex;gap:7px;flex-wrap:wrap}
+.chip{
+  font-family:var(--mono);font-size:11px;letter-spacing:.06em;text-transform:uppercase;
+  padding:7px 12px;border-radius:999px;border:1px solid var(--line);
+  background:transparent;color:var(--muted);cursor:pointer;
+  transition:.16s;white-space:nowrap;
+}
+.chip:hover{border-color:var(--accent);color:var(--ink)}
+.chip[aria-pressed="true"]{background:var(--ink);border-color:var(--ink);color:var(--paper)}
+
+.icon-btn{
+  width:38px;height:38px;flex:none;display:grid;place-items:center;
+  border-radius:999px;border:1px solid var(--line);background:var(--card);
+  color:var(--muted);cursor:pointer;transition:.16s;
+}
+.icon-btn:hover{color:var(--ink);border-color:var(--accent)}
+.icon-btn svg{width:17px;height:17px}
+.moon{display:none}
+:root[data-theme="dark"] .sun{display:none}
+:root[data-theme="dark"] .moon{display:block}
+@media (prefers-color-scheme: dark){
+  :root[data-theme="auto"] .sun{display:none}
+  :root[data-theme="auto"] .moon{display:block}
+}
+:root[data-theme="light"] .sun{display:block}
+:root[data-theme="light"] .moon{display:none}
+
+/* ---------- grade ---------- */
+.grid{
+  margin-top:34px;display:grid;gap:22px;
+  grid-template-columns:repeat(auto-fill,minmax(320px,1fr));
+}
+.card{
+  position:relative;display:flex;flex-direction:column;
+  background:var(--card);border:1px solid var(--line-soft);border-radius:var(--r);
+  overflow:hidden;box-shadow:var(--shadow);
+  transition:transform .22s cubic-bezier(.2,.7,.3,1), box-shadow .22s, border-color .22s;
+  --a:var(--accent);
+}
+.card:hover,.card:focus-within{
+  transform:translateY(-4px);box-shadow:var(--shadow-lift);
+  border-color:color-mix(in srgb, var(--a) 45%, var(--line));
+}
+.card::before{
+  content:"";position:absolute;inset:0 0 auto;height:3px;z-index:3;
+  background:var(--a);opacity:0;transition:opacity .22s;
+}
+.card:hover::before,.card:focus-within::before{opacity:1}
+
+/* preview ao vivo da página */
+.shot{
+  position:relative;aspect-ratio:16/10;overflow:hidden;
+  background:var(--sunk);border-bottom:1px solid var(--line-soft);
+}
+.shot iframe,.shot img{position:absolute;inset:0;border:0;display:block;pointer-events:none}
+.shot iframe{width:400%;height:400%;transform:scale(.25);transform-origin:0 0;background:#fff}
+.shot img{width:100%;height:100%;object-fit:cover;object-position:top center}
+.shot::after{
+  content:"";position:absolute;inset:0;pointer-events:none;
+  background:linear-gradient(to bottom, transparent 55%, color-mix(in srgb, var(--card) 78%, transparent));
+}
+.ph{
+  position:absolute;inset:0;display:grid;place-items:center;background:var(--sunk);
+  font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--faint);
+  transition:opacity .4s;
+}
+.shot.ready .ph{opacity:0}
+
+.body{padding:18px 20px 20px;display:flex;flex-direction:column;gap:9px;flex:1}
+.card h2{font-family:var(--disp);font-weight:800;letter-spacing:-.02em;line-height:1.15;font-size:20px;margin:0}
+.card h2 a{text-decoration:none}
+.card h2 a::after{content:"";position:absolute;inset:0;z-index:4}
+.card h2 a:focus-visible{outline:2px solid var(--accent);outline-offset:3px;border-radius:3px}
+.card p{margin:0;color:var(--muted);font-size:14px;line-height:1.5}
+.meta{
+  margin-top:auto;padding-top:12px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;
+  border-top:1px solid var(--line-soft);
+  font-family:var(--mono);font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--faint);
+}
+.tag{
+  padding:3px 8px;border-radius:999px;
+  background:color-mix(in srgb, var(--a) 14%, transparent);
+  color:color-mix(in srgb, var(--a) 78%, var(--ink));
+}
+.when{margin-left:auto}
+.arrow{
+  position:absolute;right:16px;bottom:18px;z-index:5;
+  width:30px;height:30px;border-radius:999px;display:grid;place-items:center;
+  background:var(--a);color:#fff;opacity:0;transform:translateX(-6px);
+  transition:.22s;pointer-events:none;
+}
+.card:hover .arrow,.card:focus-within .arrow{opacity:1;transform:none}
+
+.empty{
+  grid-column:1/-1;text-align:center;padding:70px 20px;color:var(--muted);
+  border:1px dashed var(--line);border-radius:var(--r);
+}
+.empty b{display:block;font-family:var(--disp);font-size:20px;color:var(--ink);margin-bottom:6px}
+.empty code{font-family:var(--mono);font-size:13px;color:var(--ink)}
+
+footer{
+  margin-top:56px;padding-top:22px;border-top:1px solid var(--line-soft);
+  display:flex;gap:12px;flex-wrap:wrap;justify-content:space-between;
+  font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--faint);
+}
+footer a{color:var(--muted)}
+
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+@media (max-width:560px){
+  header{padding-top:40px}
+  .grid{grid-template-columns:1fr}
+  .search kbd{display:none}
+  .search input{padding-right:16px}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div class="eyebrow">Coletânea</div>
+    <h1>Páginas<span class="dot">.</span></h1>
+    <p class="lede">Um lugar só para as páginas HTML soltas que eu vou fazendo. Cada card abre a página inteira.</p>
+  </header>
+
+  <div class="toolbar">
+    <div class="search">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+      <input id="q" type="search" placeholder="Buscar página…" autocomplete="off" aria-label="Buscar página">
+      <kbd>/</kbd>
+    </div>
+    <div class="chips" id="chips"></div>
+    <button class="icon-btn" id="theme" type="button" title="Alternar tema" aria-label="Alternar tema">
+      <svg class="sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4.2"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M19.1 4.9l-1.4 1.4M6.3 17.7l-1.4 1.4"/></svg>
+      <svg class="moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 14.5A8.5 8.5 0 1 1 9.5 4a6.8 6.8 0 0 0 10.5 10.5Z"/></svg>
+    </button>
+  </div>
+
+  <main class="grid" id="grid"></main>
+
+  <footer>
+    <span id="count"></span>
+    <span>GitHub&nbsp;Pages · <a href="https://github.com/Ptedx/pages">código-fonte</a></span>
+  </footer>
+
+</div>
+
+<script src="pages.js"></script>
+<script>
+(function(){
+  "use strict";
+
+  var list  = (typeof PAGES !== "undefined" && Array.isArray(PAGES)) ? PAGES : [];
+  var grid  = document.getElementById("grid");
+  var chips = document.getElementById("chips");
+  var q     = document.getElementById("q");
+  var count = document.getElementById("count");
+  var root  = document.documentElement;
+  var activeTag = null;
+
+  /* ---------- tema ---------- */
+  try {
+    var saved = localStorage.getItem("pages-theme");
+    if (saved === "light" || saved === "dark") root.dataset.theme = saved;
+  } catch (e) {}
+
+  document.getElementById("theme").addEventListener("click", function(){
+    var current = root.dataset.theme;
+    if (current !== "light" && current !== "dark") {
+      current = window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+    }
+    root.dataset.theme = current === "dark" ? "light" : "dark";
+    try { localStorage.setItem("pages-theme", root.dataset.theme); } catch (e) {}
+  });
+
+  /* ---------- utilidades ---------- */
+  function esc(s){
+    return String(s == null ? "" : s).replace(/[&<>"']/g, function(c){
+      return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c];
+    });
+  }
+
+  var MESES = ["jan","fev","mar","abr","mai","jun","jul","ago","set","out","nov","dez"];
+  function human(d){
+    if (!d) return "";
+    var m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(d).trim());
+    return m ? m[3] + " " + MESES[+m[2] - 1] + " " + m[1] : String(d);
+  }
+
+  /* ---------- filtros por tag ---------- */
+  var allTags = [];
+  list.forEach(function(p){
+    (p.tags || []).forEach(function(t){ if (allTags.indexOf(t) === -1) allTags.push(t); });
+  });
+  allTags.sort();
+
+  allTags.forEach(function(t){
+    var b = document.createElement("button");
+    b.className = "chip";
+    b.type = "button";
+    b.textContent = t;
+    b.setAttribute("aria-pressed", "false");
+    b.addEventListener("click", function(){
+      activeTag = (activeTag === t) ? null : t;
+      Array.prototype.forEach.call(chips.children, function(c){
+        c.setAttribute("aria-pressed", String(c.textContent === activeTag));
+      });
+      render();
+    });
+    chips.appendChild(b);
+  });
+
+  /* ---------- card ---------- */
+  function card(p){
+    var el = document.createElement("article");
+    el.className = "card";
+    if (p.accent) el.style.setProperty("--a", p.accent);
+
+    var shot = document.createElement("div");
+    shot.className = "shot";
+    shot.innerHTML = '<div class="ph">preview</div>';
+
+    var media;
+    if (p.thumb) {
+      media = document.createElement("img");
+      media.src = p.thumb;
+      media.alt = "";
+      media.loading = "lazy";
+    } else {
+      media = document.createElement("iframe");
+      media.src = p.file;
+      media.loading = "lazy";
+      media.title = "";
+      media.setAttribute("scrolling", "no");
+      media.setAttribute("tabindex", "-1");
+      media.setAttribute("aria-hidden", "true");
+      media.setAttribute("sandbox", "allow-scripts");
+    }
+    media.addEventListener("load", function(){ shot.classList.add("ready"); });
+    shot.appendChild(media);
+
+    var tags = (p.tags || []).map(function(t){
+      return '<span class="tag">' + esc(t) + "</span>";
+    }).join("");
+
+    var body = document.createElement("div");
+    body.className = "body";
+    body.innerHTML =
+      '<h2><a href="' + esc(p.file) + '">' + esc(p.title || p.file) + "</a></h2>" +
+      (p.desc ? "<p>" + esc(p.desc) + "</p>" : "") +
+      '<div class="meta">' + tags + '<span class="when">' + esc(human(p.date)) + "</span></div>" +
+      '<span class="arrow"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6 18 18 6M9 6h9v9"/></svg></span>';
+
+    el.appendChild(shot);
+    el.appendChild(body);
+    return el;
+  }
+
+  /* ---------- render ---------- */
+  function render(){
+    var term = q.value.trim().toLowerCase();
+
+    var shown = list.filter(function(p){
+      if (activeTag && (p.tags || []).indexOf(activeTag) === -1) return false;
+      if (!term) return true;
+      var hay = [p.title, p.desc, p.file].concat(p.tags || []).filter(Boolean).join(" ");
+      return hay.toLowerCase().indexOf(term) !== -1;
+    });
+
+    grid.textContent = "";
+
+    if (!shown.length) {
+      var e = document.createElement("div");
+      e.className = "empty";
+      e.innerHTML = list.length
+        ? "<b>Nada por aqui</b>Nenhuma página bate com esse filtro."
+        : "<b>Ainda vazio</b>Adicione a primeira página em <code>pages.js</code>.";
+      grid.appendChild(e);
+    } else {
+      shown.forEach(function(p){ grid.appendChild(card(p)); });
+    }
+
+    count.textContent = shown.length + (shown.length === 1 ? " página" : " páginas");
+  }
+
+  q.addEventListener("input", render);
+
+  document.addEventListener("keydown", function(e){
+    if (e.key === "/" && document.activeElement !== q) { e.preventDefault(); q.focus(); }
+    if (e.key === "Escape" && document.activeElement === q) { q.value = ""; render(); q.blur(); }
+  });
+
+  render();
+})();
+</script>
+</body>
+</html>
