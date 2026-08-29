@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Consórcio x Financiamento — cartas de R$ 600 a 900 mil, renda de R$ 13 a 25 mil</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#E9ECF0; --card:#F7F8FA; --ink:#131E2B; --muted:#5D6C7E; --line:#C9D1DA;
+  --fin:#15697F; --con:#6E4A8E; --brass:#B08D18; --red:#9B3B2E;
+  --sans:'IBM Plex Sans',system-ui,sans-serif;
+  --mono:'IBM Plex Mono',ui-monospace,monospace;
+  --disp:'Bricolage Grotesque',var(--sans);
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--sans);font-size:15px;line-height:1.55;-webkit-font-smoothing:antialiased}
+.wrap{max-width:900px;margin:0 auto;padding:0 20px 72px}
+h1,h2{font-family:var(--disp);font-weight:800;letter-spacing:-.02em;line-height:1.05;margin:0}
+h1{font-size:clamp(28px,5.2vw,42px)}
+h2{font-size:19px}
+p{margin:0 0 12px}
+.mono{font-family:var(--mono)}
+.eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+header{padding:42px 0 26px;border-bottom:2px solid var(--ink)}
+.lede{font-size:17px;color:var(--muted);max-width:62ch;margin-top:14px}
+.lede strong{color:var(--ink);font-weight:600}
+section{padding:30px 0;border-bottom:1px solid var(--line)}
+section:last-of-type{border-bottom:none}
+.sechead{display:flex;align-items:baseline;gap:12px;margin-bottom:14px}
+.verdict{display:grid;grid-template-columns:1fr 1fr;gap:2px;background:var(--line);border:1px solid var(--line);margin-top:26px}
+.verdict div{background:var(--card);padding:14px 16px}
+.verdict b{display:block;font-family:var(--mono);font-size:11px;letter-spacing:.1em;text-transform:uppercase;margin-bottom:5px}
+.v-con b{color:var(--con)} .v-fin b{color:var(--fin)}
+.decode{background:var(--card);border:1px solid var(--line);padding:18px 20px;margin:16px 0}
+.decode .eq{font-family:var(--mono);font-size:15px;line-height:2;border-left:3px solid var(--brass);padding-left:14px;margin:12px 0}
+.decode .eq b{color:var(--brass)}
+.sim{background:var(--card);border:1px solid var(--line);padding:20px}
+.sim label{display:block;font-family:var(--mono);font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-bottom:10px}
+input[type=range]{width:100%;accent-color:var(--brass);height:26px}
+input[type=range]:focus-visible{outline:2px solid var(--ink);outline-offset:3px}
+.readout{display:flex;justify-content:space-between;align-items:baseline;font-family:var(--mono);font-size:12px;color:var(--muted)}
+.bars{margin-top:20px;display:grid;gap:10px}
+.bar-row{display:grid;grid-template-columns:150px 1fr;gap:12px;align-items:center}
+.bar-lab{font-family:var(--mono);font-size:11px;text-align:right;line-height:1.3}
+.track{position:relative;height:32px;background:#DDE2E8}
+.fill{height:100%;transition:width .25s ease}
+.fill.fin{background:var(--fin)} .fill.con{background:var(--con)} .fill.red{background:var(--red)}
+.val{position:absolute;right:8px;top:50%;transform:translateY(-50%);font-family:var(--mono);font-size:12px;color:#fff;font-weight:600}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:2px;background:var(--line);border:1px solid var(--line);margin-top:18px}
+.stats div{background:#fff;padding:10px 12px}
+.stats b{display:block;font-family:var(--mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:3px}
+.stats span{font-family:var(--mono);font-size:16px;font-weight:600}
+.verd{margin-top:16px;padding:12px 14px;border-left:3px solid var(--brass);background:#fff;font-size:14px}
+@media(prefers-reduced-motion:reduce){.fill{transition:none}}
+.scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
+table{border-collapse:collapse;width:100%;font-size:13.5px;min-width:520px}
+th,td{padding:7px 9px;text-align:right;border-bottom:1px solid var(--line);white-space:nowrap}
+th:first-child,td:first-child{text-align:left;white-space:normal;min-width:140px}
+thead th{font-family:var(--mono);font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);border-bottom:1.5px solid var(--ink);vertical-align:bottom}
+thead th.grp{text-align:center;border-bottom:1px solid var(--line);color:var(--ink);letter-spacing:.1em}
+tbody td:not(:first-child){font-family:var(--mono)}
+tr.fin td:first-child{border-left:3px solid var(--fin);padding-left:9px}
+tr.con td:first-child{border-left:3px solid var(--con);padding-left:9px}
+tr.best{background:#fff} tr.best td{font-weight:600}
+tr.warn td{color:var(--red)}
+td.no{color:var(--red)} td.ok{font-weight:600}
+td.sep{border-left:1px solid var(--ink)}
+.sub{display:block;font-size:11px;color:var(--muted);font-weight:400}
+caption{caption-side:bottom;text-align:left;font-size:12px;color:var(--muted);padding-top:10px}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:26px}
+.box h3{font-family:var(--mono);font-size:11px;letter-spacing:.12em;text-transform:uppercase;margin:0 0 10px;padding-bottom:6px;border-bottom:1.5px solid currentColor}
+.box.fin h3{color:var(--fin)} .box.con h3{color:var(--con)}
+ul{margin:0;padding-left:17px} li{margin-bottom:7px}
+.note{font-size:13px;color:var(--muted)}
+footer{padding:26px 0 0;font-size:12px;color:var(--muted);border-top:2px solid var(--ink)}
+@media(max-width:700px){.two,.verdict,.stats{grid-template-columns:1fr}.bar-row{grid-template-columns:118px 1fr}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <div class="eyebrow">Simulação · agosto de 2026 · Brasília/DF</div>
+  <h1>Consórcio ou financiamento<br>para cartas de R$ 600 a 900 mil</h1>
+  <p class="lede">Renda de <strong>R$ 13 mil a R$ 25 mil</strong>, com e sem entrada. Os números do consórcio estão calibrados por um plano real de mercado: 240 meses, taxa de administração e fundo de reserva somando <strong>20,62%</strong>, extraídos por engenharia reversa de um anúncio da Bancorbrás. O orçamento de moradia usado é 35% da renda bruta, cobrindo parcela e aluguel.</p>
+  <div class="verdict">
+    <div class="v-fin"><b>O financiamento sempre entrega antes</b>Quando a renda aprova, você recebe as chaves em meses, não em anos. Ele só existe se você já tiver os 20% de entrada, ou renda alta o bastante para juntá-los rápido.</div>
+    <div class="v-con"><b>O consórcio sempre custa menos</b>Entre R$ 100 mil e R$ 150 mil a menos em valor presente na carta de R$ 600 mil. O preço é a espera, e ele é a única porta que abre para renda de R$ 13 a 15 mil.</div>
+  </div>
+</header>
+
+<section>
+  <div class="sechead"><span class="eyebrow">01</span><h2>O anúncio decodificado</h2></div>
+  <p>Aquele "R$ 600 mil por R$ 1.507,81 por mês" é verdadeiro e é metade da parcela. O rodapé diz: Grupo 1607, 240 meses, parcelas com redutor de 50%. Dá para extrair a taxa inteira a partir disso.</p>
+  <div class="decode">
+    <div class="eq">
+      R$ 1.507,81 × 240 meses × 2 (redutor) = <b>R$ 723.748,80</b><br>
+      R$ 723.748,80 ÷ R$ 600.000 = <b>120,62%</b> da carta<br>
+      Taxa de administração + fundo de reserva = <b>20,62%</b><br>
+      Parcela cheia real = <b>R$ 3.015,62</b>
+    </div>
+    <p style="margin-bottom:0"><b>O veredito sobre a taxa:</b> 20,62% está na metade de baixo da faixa de mercado, que vai de 15% a 25% de administração mais 0,5% a 5% de fundo de reserva. Como número, é honesto. O problema não é a taxa, é o que o anúncio não mostra.</p>
+  </div>
+  <div class="scroll">
+  <table>
+    <thead><tr><th>Se a contemplação vier no…</th><th>Parcela antes</th><th>Parcela depois</th><th>Salto</th><th>Renda exigida</th></tr></thead>
+    <tbody>
+      <tr><td>mês 12</td><td>1.672</td><td>3.437</td><td>2,1×</td><td>11.457</td></tr>
+      <tr><td>mês 36</td><td>1.852</td><td>4.035</td><td>2,2×</td><td>13.450</td></tr>
+      <tr><td>mês 60</td><td>2.050</td><td>4.789</td><td>2,3×</td><td>15.963</td></tr>
+      <tr><td>mês 90</td><td>2.392</td><td>5.900</td><td>2,5×</td><td>19.666</td></tr>
+      <tr class="warn"><td>mês 120</td><td>2.646</td><td>7.940</td><td>3,0×</td><td>26.466</td></tr>
+      <tr class="warn"><td>mês 150</td><td>3.087</td><td>10.728</td><td>3,5×</td><td>35.759</td></tr>
+    </tbody>
+    <caption>Plano exato do anúncio. A parcela antes da contemplação sobe só pelo reajuste anual; a de depois carrega o saldo do redutor diluído no prazo que resta. Renda exigida calculada a 30% da parcela nova, próxima da regra da Porto (renda de 3× a parcela) e da Caixa (parcela até 35% da renda).</caption>
+  </table>
+  </div>
+  <p class="note" style="margin-top:14px">Três coisas para perguntar ao vendedor: <b>(1)</b> o redutor vale até a contemplação ou tem prazo-limite, como na Caixa, que corta na 80ª parcela; <b>(2)</b> qual o índice de reajuste do Grupo 1607, INCC, IPCA ou a média; <b>(3)</b> o que exatamente é aceito no lance "Troca de Chaves". No consórcio de veículos da mesma administradora, essa modalidade permite ofertar o valor FIPE do carro atual como lance, sem desembolso e sem alienar o bem. Se o equivalente para imóvel for usar um imóvel que você já tem, isso muda a conta inteira. Se for só uma variação de lance embutido, sai da carta e reduz seu crédito.</p>
+  <p class="note">O redutor custa R$ 124.328 a mais em valor nominal nesta carta: R$ 1.415.227 contra R$ 1.290.898 na parcela cheia, com contemplação no mês 90 nos dois. É o preço de adiar.</p>
+</section>
+
+<section>
+  <div class="sechead"><span class="eyebrow">02</span><h2>A parcela de cada carta, e o que a renda aprova</h2></div>
+  <div class="scroll">
+  <table>
+    <thead><tr><th>Estrutura</th><th>Entrada</th><th>1ª parcela</th><th>% de 13 mil</th><th>% de 18 mil</th><th>% de 25 mil</th></tr></thead>
+    <tbody>
+      <tr><td colspan="6" style="background:var(--card);font-family:var(--mono);font-size:11px;letter-spacing:.1em;text-align:left">CARTA / IMÓVEL DE R$ 600.000</td></tr>
+      <tr class="con"><td>Consórcio 240m, parcela cheia</td><td>—</td><td>3.184</td><td class="ok">24%</td><td class="ok">18%</td><td class="ok">13%</td></tr>
+      <tr class="con"><td>Consórcio 240m, redutor 50%</td><td>—</td><td>1.676</td><td class="ok">13%</td><td class="ok">9%</td><td class="ok">7%</td></tr>
+      <tr class="fin"><td>Financ. MCMV Faixa 4, SAC 420m</td><td>120.000</td><td>5.693</td><td class="no">44%</td><td class="no">32%</td><td class="ok">23%</td></tr>
+      <tr class="fin"><td>Financ. Caixa SAC 360m</td><td>120.000</td><td>6.318</td><td class="no">49%</td><td class="no">35%</td><td class="ok">25%</td></tr>
+      <tr class="fin"><td>Financ. Caixa Price 420m</td><td>120.000</td><td>5.062</td><td class="no">39%</td><td class="ok">28%</td><td class="ok">20%</td></tr>
+      <tr><td colspan="6" style="background:var(--card);font-family:var(--mono);font-size:11px;letter-spacing:.1em;text-align:left">CARTA / IMÓVEL DE R$ 750.000</td></tr>
+      <tr class="con"><td>Consórcio 240m, parcela cheia</td><td>—</td><td>3.979</td><td class="no">31%</td><td class="ok">22%</td><td class="ok">16%</td></tr>
+      <tr class="con"><td>Consórcio 240m, redutor 50%</td><td>—</td><td>2.095</td><td class="ok">16%</td><td class="ok">12%</td><td class="ok">8%</td></tr>
+      <tr class="fin"><td>Financ. Caixa SAC 360m</td><td>150.000</td><td>7.891</td><td class="no">61%</td><td class="no">44%</td><td class="no">32%</td></tr>
+      <tr class="fin"><td>Financ. Caixa Price 420m</td><td>150.000</td><td>6.321</td><td class="no">49%</td><td class="no">35%</td><td class="ok">25%</td></tr>
+      <tr><td colspan="6" style="background:var(--card);font-family:var(--mono);font-size:11px;letter-spacing:.1em;text-align:left">CARTA / IMÓVEL DE R$ 900.000</td></tr>
+      <tr class="con"><td>Consórcio 240m, parcela cheia</td><td>—</td><td>4.775</td><td class="no">37%</td><td class="ok">27%</td><td class="ok">19%</td></tr>
+      <tr class="con"><td>Consórcio 240m, redutor 50%</td><td>—</td><td>2.514</td><td class="ok">19%</td><td class="ok">14%</td><td class="ok">10%</td></tr>
+      <tr class="fin"><td>Financ. Caixa SAC 360m</td><td>180.000</td><td>9.464</td><td class="no">73%</td><td class="no">53%</td><td class="no">38%</td></tr>
+      <tr class="fin"><td>Financ. Caixa Price 420m</td><td>180.000</td><td>7.580</td><td class="no">58%</td><td class="no">42%</td><td class="no">30%</td></tr>
+    </tbody>
+    <caption>Bancos aprovam parcela até 30% da renda bruta. A Caixa Consórcio admite até 35%. Em vermelho, o que não passa na análise. O MCMV Faixa 4 só existe até renda de R$ 13 mil e imóvel de R$ 600 mil, o que o torna inacessível justamente para quem se enquadra nele.</caption>
+  </table>
+  </div>
+  <p class="note" style="margin-top:14px">Leitura direta: <b>nenhum financiamento de R$ 600 mil é aprovado com renda de R$ 13 mil</b>, nem com entrada, nem no prazo máximo, nem na Price. O consórcio compromete 24% da mesma renda. E na carta de R$ 900 mil, só a renda de R$ 25 mil chega ao financiamento, e mesmo assim apenas na Price de 420 meses.</p>
+</section>
+
+<section>
+  <div class="sechead"><span class="eyebrow">03</span><h2>A grade completa: quando você recebe as chaves</h2></div>
+  <p>Simulação mês a mês. O orçamento cobre parcela e aluguel, e tudo que sobra é investido a 10% ao ano. No consórcio, essa reserva vira lance quando passa de 25% da carta. No financiamento, vira entrada quando chega a 23,5% do imóvel <em>e</em> a parcela resultante cabe no orçamento. O número entre parênteses é o valor presente de todo o desembolso.</p>
+
+  <div class="scroll">
+  <table>
+    <thead>
+      <tr><th rowspan="2">Renda<span class="sub">orçamento 35%</span></th><th colspan="3" class="grp">COM ENTRADA DE 20%</th><th colspan="3" class="grp">SEM ENTRADA NENHUMA</th></tr>
+      <tr><th>Cons. cheia</th><th>Cons. redutor</th><th>Melhor financ.</th><th class="sep">Cons. cheia</th><th>Cons. redutor</th><th>Melhor financ.</th></tr>
+    </thead>
+    <tbody>
+      <tr><td colspan="7" style="background:var(--card);font-family:var(--mono);font-size:11px;letter-spacing:.1em;text-align:left">CARTA / IMÓVEL DE R$ 600.000</td></tr>
+      <tr><td>R$ 13.000<span class="sub">4.550</span></td><td class="no">não cabe</td><td class="ok">mês 35<span class="sub">721k</span></td><td class="no">não chega</td><td class="sep no">não cabe</td><td class="no">não chega</td><td class="no">não chega</td></tr>
+      <tr><td>R$ 15.000<span class="sub">5.250</span></td><td class="no">não cabe</td><td class="ok">mês 18<span class="sub">693k</span></td><td>mês 6<span class="sub">829k</span></td><td class="sep no">não cabe</td><td>mês 150<span class="sub">758k</span></td><td class="no">não chega</td></tr>
+      <tr><td>R$ 18.000<span class="sub">6.300</span></td><td>mês 29<span class="sub">727k</span></td><td>mês 9<span class="sub">675k</span></td><td>mês 5<span class="sub">810k</span></td><td class="sep">mês 239<span class="sub">918k</span></td><td class="ok">mês 68<span class="sub">654k</span></td><td>mês 37<span class="sub">709k</span></td></tr>
+      <tr><td>R$ 21.000<span class="sub">7.350</span></td><td>mês 11<span class="sub">683k</span></td><td>mês 7<span class="sub">673k</span></td><td>mês 4<span class="sub">798k</span></td><td class="sep">mês 90<span class="sub">723k</span></td><td class="ok">mês 45<span class="sub">619k</span></td><td>mês 29<span class="sub">693k</span></td></tr>
+      <tr><td>R$ 25.000<span class="sub">8.750</span></td><td>mês 7<span class="sub">676k</span></td><td>mês 5<span class="sub">671k</span></td><td>mês 3<span class="sub">787k</span></td><td class="sep">mês 46<span class="sub">640k</span></td><td class="ok">mês 31<span class="sub">596k</span></td><td>mês 22<span class="sub">680k</span></td></tr>
+
+      <tr><td colspan="7" style="background:var(--card);font-family:var(--mono);font-size:11px;letter-spacing:.1em;text-align:left">CARTA / IMÓVEL DE R$ 750.000</td></tr>
+      <tr><td>R$ 13.000<span class="sub">4.550</span></td><td class="no">não cabe</td><td class="no">não cabe</td><td class="no">não chega</td><td class="sep no">não cabe</td><td class="no">não cabe</td><td class="no">não chega</td></tr>
+      <tr><td>R$ 15.000<span class="sub">5.250</span></td><td class="no">não cabe</td><td class="ok">mês 30<span class="sub">874k</span></td><td class="no">não chega</td><td class="sep no">não cabe</td><td class="no">não chega</td><td class="no">não chega</td></tr>
+      <tr><td>R$ 18.000<span class="sub">6.300</span></td><td>mês 239<span class="sub">1.191k</span></td><td>mês 16<span class="sub">853k</span></td><td class="no">não chega</td><td class="sep no">não cabe</td><td class="ok">mês 106<span class="sub">823k</span></td><td class="no">não chega</td></tr>
+      <tr><td>R$ 21.000<span class="sub">7.350</span></td><td>mês 22<span class="sub">871k</span></td><td>mês 9<span class="sub">837k</span></td><td>mês 4<span class="sub">1.016k</span></td><td class="sep">mês 239<span class="sub">1.041k</span></td><td class="ok">mês 65<span class="sub">775k</span></td><td>mês 36<span class="sub">869k</span></td></tr>
+      <tr><td>R$ 25.000<span class="sub">8.750</span></td><td>mês 10<span class="sub">844k</span></td><td>mês 6<span class="sub">834k</span></td><td>mês 3<span class="sub">998k</span></td><td class="sep">mês 79<span class="sub">833k</span></td><td class="ok">mês 43<span class="sub">744k</span></td><td>mês 28<span class="sub">851k</span></td></tr>
+
+      <tr><td colspan="7" style="background:var(--card);font-family:var(--mono);font-size:11px;letter-spacing:.1em;text-align:left">CARTA / IMÓVEL DE R$ 900.000</td></tr>
+      <tr><td>R$ 13.000<span class="sub">4.550</span></td><td class="no">não cabe</td><td class="no">não chega</td><td class="no">não chega</td><td class="sep no">não cabe</td><td class="no">não cabe</td><td class="no">não chega</td></tr>
+      <tr><td>R$ 15.000<span class="sub">5.250</span></td><td class="no">não cabe</td><td class="ok">mês 47<span class="sub">1.052k</span></td><td class="no">não chega</td><td class="sep no">não cabe</td><td class="no">não cabe</td><td class="no">não chega</td></tr>
+      <tr><td>R$ 18.000<span class="sub">6.300</span></td><td class="no">não cabe</td><td class="ok">mês 20<span class="sub">1.017k</span></td><td class="no">não chega</td><td class="sep no">não cabe</td><td class="no">não cabe</td><td class="no">não chega</td></tr>
+      <tr><td>R$ 21.000<span class="sub">7.350</span></td><td>mês 59<span class="sub">1.104k</span></td><td class="ok">mês 11<span class="sub">1.000k</span></td><td class="no">não chega</td><td class="sep no">não cabe</td><td>mês 91<span class="sub">927k</span></td><td class="no">não chega</td></tr>
+      <tr><td>R$ 25.000<span class="sub">8.750</span></td><td>mês 18<span class="sub">1.028k</span></td><td>mês 8<span class="sub">999k</span></td><td>mês 4<span class="sub">1.217k</span></td><td class="sep">mês 152<span class="sub">1.069k</span></td><td class="ok">mês 56<span class="sub">885k</span></td><td>mês 33<span class="sub">1.026k</span></td></tr>
+    </tbody>
+    <caption>"Não cabe" = a parcela mais o aluguel estouram o orçamento já no primeiro mês. "Não chega" = a entrada nunca é acumulada, ou a parcela resultante nunca cabe no orçamento. Melhor financiamento = o mais rápido entre SAC 360m, SAC 420m e Price 420m, sempre amortizando o excedente.</caption>
+  </table>
+  </div>
+
+  <p style="margin-top:20px"><b>O padrão é consistente nas nove combinações.</b> O financiamento entrega as chaves primeiro, sempre. O consórcio com redutor custa menos em valor presente, sempre. Na carta de R$ 600 mil com renda de R$ 25 mil e sem entrada, a diferença é de R$ 84 mil entre o consórcio com redutor (mês 31) e o financiamento (mês 22): nove meses de espera por R$ 84 mil.</p>
+  <p><b>O redutor é o que abre as portas.</b> Compare as colunas "cheia" e "redutor": com entrada e renda de R$ 18 mil na carta de R$ 600 mil, ele antecipa a posse do mês 29 para o mês 9 e ainda reduz o valor presente. Ele libera caixa para o lance, e o lance é o que corta a espera. Sem plano de lance, ele vira a armadilha do bloco 01.</p>
+  <p><b>R$ 13 mil de renda tem exatamente uma porta.</b> Consórcio de R$ 600 mil com redutor e entrada de R$ 120 mil, contemplação estimada no mês 35. Sem entrada nenhuma, R$ 600 mil não é alcançável nessa renda pagando aluguel. O alvo realista passa a ser uma carta de R$ 340 a 400 mil.</p>
+</section>
+
+<section>
+  <div class="sechead"><span class="eyebrow">04</span><h2>O ponto de virada</h2></div>
+  <p>Carta de R$ 600 mil, sem lance, contra o melhor financiamento com entrada de R$ 180 mil. Arraste o mês da contemplação.</p>
+  <div class="sim">
+    <label for="mes">Mês da contemplação por sorteio</label>
+    <input type="range" id="mes" min="6" max="234" step="6" value="60" aria-describedby="veredito">
+    <div class="readout"><span>mês 6</span><span id="mesLab" style="color:var(--ink);font-weight:600">mês 60</span><span>mês 234</span></div>
+    <div class="bars">
+      <div class="bar-row"><div class="bar-lab">Consórcio 240m<br>parcela cheia</div><div class="track"><div class="fill con" id="bCh"><span class="val" id="vCh"></span></div></div></div>
+      <div class="bar-row"><div class="bar-lab">Consórcio 240m<br>redutor de 50%</div><div class="track"><div class="fill red" id="bRd"><span class="val" id="vRd"></span></div></div></div>
+      <div class="bar-row"><div class="bar-lab">Melhor financiamento<br>SAC 360m + amortização</div><div class="track"><div class="fill fin" style="width:73.5%"><span class="val">R$ 683.009</span></div></div></div>
+    </div>
+    <div class="stats">
+      <div><b>Parcela antes (cheia / redutor)</b><span id="sAntes"></span></div>
+      <div><b>Parcela depois da contemplação</b><span id="sDepois"></span></div>
+      <div><b>Renda exigida na contemplação</b><span id="sRenda"></span></div>
+    </div>
+    <p class="verd" id="veredito" aria-live="polite"></p>
+  </div>
+</section>
+
+<section>
+  <div class="sechead"><span class="eyebrow">05</span><h2>Carta de R$ 600 mil em detalhe</h2></div>
+  <div class="scroll">
+  <table>
+    <thead><tr><th>Cenário</th><th>1ª parcela</th><th>Após contempl.</th><th>Prazo</th><th>Total nominal</th><th>Valor presente</th><th>Custo efetivo</th></tr></thead>
+    <tbody>
+      <tr class="con best"><td>Consórcio 240m, redutor 50% + lance R$ 180 mil no mês 12</td><td>1.680</td><td>2.616</td><td>240m</td><td>1.229.660</td><td>590.415</td><td>8,8%</td></tr>
+      <tr class="con best"><td>Consórcio 240m, lance R$ 180 mil no mês 12, reduzindo parcela</td><td>3.193</td><td>2.528</td><td>240m</td><td>1.214.718</td><td>595.674</td><td>8,9%</td></tr>
+      <tr class="con"><td>Consórcio 240m, lance R$ 180 mil no mês 12, reduzindo prazo</td><td>3.193</td><td>3.317</td><td>184m</td><td>1.084.398</td><td>624.250</td><td>10,0%</td></tr>
+      <tr class="con"><td>Consórcio 240m, sem lance, sorteio no mês 60</td><td>3.904</td><td>4.117</td><td>240m</td><td>1.492.204</td><td>656.414</td><td>—</td></tr>
+      <tr class="con"><td>Consórcio 240m, redutor 50%, sorteio no mês 90</td><td>2.399</td><td>5.918</td><td>240m</td><td>1.724.470</td><td>679.887</td><td>—</td></tr>
+      <tr class="fin best"><td>Financiamento Caixa SAC 360m + R$ 1.500/mês de amortização</td><td>7.040</td><td>—</td><td>158m</td><td>974.529</td><td>683.009</td><td>13,4%</td></tr>
+      <tr class="fin"><td>Financiamento MCMV Faixa 4, SAC 420m</td><td>5.693</td><td>—</td><td>420m</td><td>1.598.349</td><td>692.223</td><td>12,1%</td></tr>
+      <tr class="fin"><td>Financiamento Caixa SAC 240m</td><td>6.123</td><td>—</td><td>240m</td><td>1.158.878</td><td>699.152</td><td>13,4%</td></tr>
+      <tr class="fin"><td>Financiamento Caixa SAC 360m</td><td>5.540</td><td>—</td><td>360m</td><td>1.427.098</td><td>713.922</td><td>13,3%</td></tr>
+      <tr class="con"><td>Consórcio 240m, sem lance, sorteio no mês 90</td><td>4.554</td><td>4.552</td><td>240m</td><td>1.599.769</td><td>715.941</td><td>—</td></tr>
+      <tr class="fin"><td>Financiamento Caixa SAC 420m, entrada 20%</td><td>6.127</td><td>—</td><td>420m</td><td>1.689.803</td><td>731.327</td><td>13,3%</td></tr>
+      <tr class="fin"><td>Financiamento Caixa Price 420m, entrada 20%</td><td>5.062</td><td>—</td><td>420m</td><td>2.252.660</td><td>756.146</td><td>13,2%</td></tr>
+      <tr class="con warn"><td>Consórcio 240m, redutor 50%, sorteio no mês 150</td><td>3.096</td><td>10.761</td><td>240m</td><td>2.084.922</td><td>759.804</td><td>—</td></tr>
+      <tr class="con warn"><td>Consórcio 240m, sem lance, sorteio no mês 150</td><td>5.872</td><td>5.870</td><td>240m</td><td>1.857.981</td><td>815.847</td><td>—</td></tr>
+    </tbody>
+    <caption>Custo efetivo é a taxa anual equivalente do crédito, comparável ao CET do banco. Nos sorteios tardios a métrica perde sentido, porque você está poupando mais do que tomando crédito.</caption>
+  </table>
+  </div>
+  <div class="two" style="margin-top:22px">
+    <div class="box con">
+      <h3>Lance: reduzir parcela ou prazo</h3>
+      <p class="note">Reduzir prazo paga R$ 130 mil a menos em números absolutos e mesmo assim é a escolha pior. Adiar dívida corrigida a 5,5% enquanto seu dinheiro rende 10% é lucro, mas só se você realmente investir a diferença.</p>
+    </div>
+    <div class="box fin">
+      <h3>Prazo: 420 meses é armadilha</h3>
+      <p class="note">R$ 167 a menos por mês custa R$ 134 mil e mais cinco anos de dívida. O prazo máximo serve para caber na análise de crédito, não como escolha financeira. A Price 420m aprova mais fácil e custa R$ 2.252.660 no fim.</p>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="sechead"><span class="eyebrow">06</span><h2>Custos e modalidades</h2></div>
+  <p class="note" style="margin-bottom:16px"><b>Comuns aos dois, à vista, fora da entrada (~3,5%):</b> ITBI no DF de 1% para imóvel novo e 2% nos demais casos (Lei 7.635/2024) · registro da compra e da garantia ~0,8%, com metade do valor no primeiro imóvel pelo SFH · avaliação R$ 3.000 a R$ 3.800 · escritura pública dispensada nos dois. O FGTS não cobre ITBI nem cartório.</p>
+  <div class="two">
+    <div class="box fin">
+      <h3>Financiamento</h3>
+      <ul>
+        <li><b>Juros + TR</b> sobre o saldo devedor. Teto SFH de 12% a.a. até R$ 2,25 milhões · <b>prazo máximo 420 meses</b> · <b>entrada mínima 20%</b></li>
+        <li><b>MIP</b> ~0,03% a.m. do saldo devedor, sobe com a idade · <b>DFI</b> ~0,012% a.m. do valor de avaliação · <b>tarifa</b> ~R$ 25/mês</li>
+        <li><b>Modalidades:</b> MCMV Faixa 4 a 10% (renda até R$ 13 mil, imóvel até R$ 600 mil) · pró-cotista FGTS · SBPE com TR, IPCA, taxa fixa ou poupança · SFI acima de R$ 2,25 milhões</li>
+        <li><b>Portabilidade:</b> se a Selic cair, troca de banco sem pagar ITBI de novo. O consórcio não tem equivalente</li>
+      </ul>
+    </div>
+    <div class="box con">
+      <h3>Consórcio</h3>
+      <ul>
+        <li><b>Administração</b> 15% a 25%, menor em cartas maiores, travada para a vigência do grupo · <b>fundo de reserva</b> 0,5% a 5% · <b>adesão</b> ~2% · <b>seguro</b> ~0,03% a.m. · <b>prazo máximo 240 meses</b> · <b>entrada zero</b></li>
+        <li><b>Reajuste anual</b> por INCC, IPCA ou a média dos dois. É o juro real da operação</li>
+        <li><b>Redutor de parcela:</b> 25%, 30% ou 50% até a contemplação, com o saldo diluído depois. A Caixa limita à 80ª parcela e reduz 30%</li>
+        <li><b>Lances:</b> livre, fixo, embutido (sai da carta, até 30%) e, em algumas administradoras, com o bem atual como lance. O FGTS pode compor</li>
+        <li><b>Uso da carta:</b> imóvel pronto, na planta, usado, terreno, construção, reforma e quitação de financiamento em andamento</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="sechead"><span class="eyebrow">07</span><h2>Riscos</h2></div>
+  <div class="two">
+    <div class="box fin">
+      <h3>Financiamento</h3>
+      <ul>
+        <li><b>Entrada de 20%</b>, a barreira real de acesso</li>
+        <li><b>A entrada é alvo móvel:</b> o imóvel sobe 6% ao ano e o salário 4,5%. Quem tem orçamento apertado nunca alcança</li>
+        <li><b>Taxa travada.</b> Se a Selic cair, depende de portabilidade</li>
+        <li><b>Indexador IPCA:</b> a dívida pode crescer mesmo pagando em dia</li>
+        <li><b>Alienação fiduciária.</b> Retomada extrajudicial e rápida</li>
+        <li><b>MIP encarece</b> com a idade, sem negociação</li>
+      </ul>
+    </div>
+    <div class="box con">
+      <h3>Consórcio</h3>
+      <ul>
+        <li><b>Prazo de contemplação.</b> Não existe garantia. Por sorteio puro, a média é de 5 a 10 anos</li>
+        <li><b>Análise de crédito na contemplação.</b> Ser sorteado não libera a carta, e a renda é avaliada sobre a parcela nova</li>
+        <li><b>Redutor.</b> Salto de até 3,5× e renda exigida de R$ 35.759 no pior caso do plano do anúncio</li>
+        <li><b>Reajuste.</b> Com INCC a 9% a.a., o custo efetivo passa de 14% e o consórcio perde mesmo com contemplação cedo</li>
+        <li><b>Desistência.</b> Devolução por sorteio entre desistentes ou no fim do grupo, sem a taxa de administração já paga</li>
+        <li><b>Carta menor que o imóvel.</b> No sorteio do mês 90 a carta chega a R$ 872.807 e o imóvel de referência vale R$ 928.849</li>
+        <li><b>Saúde do grupo.</b> Inadimplência alta suspende assembleias e atrasa contemplações</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="sechead"><span class="eyebrow">08</span><h2>A melhor escolha, por perfil</h2></div>
+  <div class="scroll">
+  <table>
+    <thead><tr><th>Renda e situação</th><th>Carta viável</th><th>Melhor estrutura</th></tr></thead>
+    <tbody>
+      <tr><td>R$ 13 mil, sem entrada</td><td>R$ 340 a 400 mil</td><td style="text-align:left;white-space:normal">Consórcio com redutor. R$ 600 mil não é alcançável pagando aluguel, por nenhum caminho. Reduza o alvo em vez de reduzir a parcela.</td></tr>
+      <tr><td>R$ 13 mil, com R$ 120 mil</td><td>R$ 600 mil</td><td style="text-align:left;white-space:normal">Consórcio 240m com redutor, contemplação estimada no mês 35. Nenhum banco aprova esse financiamento, nem no prazo máximo, nem na Price.</td></tr>
+      <tr><td>R$ 15 a 18 mil, com entrada</td><td>R$ 600 a 750 mil</td><td style="text-align:left;white-space:normal">Consórcio com redutor se o objetivo é pagar menos (mês 9 a 30), financiamento Price 420m se o objetivo é ter as chaves em meses. A diferença é de R$ 135 mil em valor presente.</td></tr>
+      <tr><td>R$ 18 mil, sem entrada</td><td>R$ 600 mil</td><td style="text-align:left;white-space:normal">Consórcio com redutor, mês 68 e valor presente de R$ 654 mil, o melhor da linha. O financiamento chega no mês 37 custando R$ 55 mil a mais.</td></tr>
+      <tr><td>R$ 21 a 25 mil, com entrada</td><td>até R$ 900 mil</td><td style="text-align:left;white-space:normal">Aqui você escolhe de verdade. Consórcio com redutor e lance imediato entrega no mês 8 a 11 por R$ 1,00 milhão; o financiamento entrega no mês 4 por R$ 1,22 milhão.</td></tr>
+      <tr><td>R$ 25 mil, sem entrada</td><td>R$ 600 a 900 mil</td><td style="text-align:left;white-space:normal">Consórcio com redutor montando lance: mês 31 na carta de R$ 600 mil, com o menor valor presente de todo o estudo, R$ 596 mil.</td></tr>
+      <tr class="warn"><td>Qualquer renda, só contando com sorteio</td><td>—</td><td style="text-align:left;white-space:normal">Redutor sem plano de lance produz as piores linhas do estudo. Se não há caixa para lance, use parcela cheia e uma carta menor.</td></tr>
+    </tbody>
+  </table>
+  </div>
+</section>
+
+<section>
+  <div class="sechead"><span class="eyebrow">09</span><h2>Antes de assinar</h2></div>
+  <ul>
+    <li><b>Regularização do imóvel.</b> Vale para os dois. Nem banco nem administradora liberam recurso sem matrícula individualizada e habite-se.</li>
+    <li><b>O prazo-limite do redutor e o índice de reajuste do grupo</b>, por escrito. Simule com a parcela pós-redutor no mês 90, não com a parcela de entrada.</li>
+    <li><b>As condições do lance "Troca de Chaves"</b> para imóvel: o que é aceito, se há alienação e se o valor sai da carta.</li>
+    <li><b>Histórico de lances vencedores</b> dos últimos 12 meses do grupo específico. E o CET por escrito, no banco.</li>
+  </ul>
+</section>
+
+<footer>
+  <p><b>Premissas:</b> Selic 14,00% a.a. (Copom 05/08/2026) · IPCA 4,44% em 12 meses, projetado a 4,5% · INCC-M 6,56% em 12 meses, reajuste do consórcio projetado a 5,5% · TR 2,05% a.a., projetada a 1,2% · valorização do imóvel 6% a.a. · aluguel de referência R$ 2.700/mês crescendo 5% · orçamento crescendo 4,5% · investimentos a 10% a.a. líquido · taxa de desconto de 10% a.a. · lance considerado vencedor a partir de 25% da carta · consórcio de 240 meses com administração e fundo de reserva somando 20,62%, calibrados pelo plano anunciado.</p>
+  <p>Estimativa para comparação de estruturas, não é recomendação de investimento nem consultoria financeira. Taxas variam por perfil, banco, grupo e administradora. Confirme com simulação oficial antes de decidir.</p>
+</footer>
+
+</div>
+
+<script>
+(function(){
+var CH=[[6,530640,3190,3188],[12,545784,3185,3359],[18,560945,3356,3355],[24,575400,3352,3534],[30,589872,3531,3530],[36,603670,3527,3719],[42,617484,3716,3714],[48,630656,3711,3913],[54,643842,3910,3908],[60,656414,3904,4117],[66,669001,4114,4112],[72,681002,4108,4332],[78,693017,4328,4326],[84,704472,4323,4558],[90,715941,4554,4552],[96,726876,4548,4796],[102,737823,4792,4790],[108,748261,4785,5046],[114,758710,5042,5039],[120,768674,5035,5309],[126,778648,5305,5302],[132,788159,5297,5586],[138,797680,5581,5579],[144,806758,5574,5878],[150,815847,5872,5870],[156,824512,5864,6184],[162,833187,6178,6176],[168,841459,6170,6506],[174,849740,6500,6497],[180,857636,6492,6845],[186,865540,6839,6836],[192,873077,6830,7202],[198,880622,7196,7192],[204,887817,7186,7577],[210,895019,7570,7567],[216,901886,7560,7972],[222,908761,7965,7961],[228,915316,7954,8387],[234,921879,8380,8376]];
+var RD=[[6,527872,1679,3229],[12,540525,1677,3447],[18,552994,1767,3491],[24,565036,1764,3731],[30,576889,1859,3782],[36,588349,1857,4047],[42,599614,1956,4108],[48,610521,1954,4402],[54,621226,2059,4475],[60,631605,2056,4804],[66,641776,2167,4892],[72,651653,2164,5261],[78,661313,2280,5368],[84,670714,2277,5785],[90,679887,2399,5918],[96,688835,2396,6395],[102,697542,2525,6560],[108,706059,2522,7111],[114,714321,2657,7319],[120,722430,2653,7964],[126,730266,2796,8232],[132,737988,2792,9000],[138,745414,2942,9353],[144,752771,2938,10286],[150,759804,3096,10761],[156,766816,3092,11926],[162,773468,3258,12589],[168,780158,3253,14097],[174,786440,3428,15062],[180,792832,3424,17114],[186,798745,3607,18609],[192,804867,3602,21606],[198,810405,3796,24145],[204,816296,3791,29047],[210,821420,3994,34051],[216,827146,3989,43847],[222,831714,4203,57055],[228,837446,4197,88067],[234,840373,4422,171703]];
+var FIN=683009, MAX=930000;
+var el=document.getElementById('mes'), lab=document.getElementById('mesLab'), verd=document.getElementById('veredito');
+function brl(n){return 'R$ '+Math.round(n).toLocaleString('pt-BR');}
+function find(a,m){for(var i=0;i<a.length;i++){if(a[i][0]===m)return a[i];}return a[a.length-1];}
+function setBar(id,vid,v){var b=document.getElementById(id),s=document.getElementById(vid);b.style.width=(v/MAX*100).toFixed(1)+'%';s.textContent=brl(v);}
+function render(){
+  var m=+el.value,c=find(CH,m),r=find(RD,m);
+  lab.textContent='mês '+m;
+  setBar('bCh','vCh',c[1]); setBar('bRd','vRd',r[1]);
+  document.getElementById('sAntes').textContent=c[2].toLocaleString('pt-BR')+' / '+r[2].toLocaleString('pt-BR');
+  document.getElementById('sDepois').textContent=c[3].toLocaleString('pt-BR')+' / '+r[3].toLocaleString('pt-BR');
+  document.getElementById('sRenda').textContent=Math.round(Math.max(c[3],r[3])/0.30).toLocaleString('pt-BR');
+  var d=c[1]-FIN;
+  if(d<-2000){verd.innerHTML='Contemplado no mês '+m+', o consórcio de parcela cheia sai <strong>'+brl(-d)+' mais barato</strong> que o melhor financiamento. Sem entrada, seus R$ 180 mil seguem rendendo o tempo todo.';}
+  else if(d>2000){verd.innerHTML='Contemplado no mês '+m+', o consórcio de parcela cheia já sai <strong>'+brl(d)+' mais caro</strong> que o financiamento, e você passou '+m+' meses pagando sem ter o imóvel.';}
+  else{verd.innerHTML='<strong>Empate por volta do mês '+m+'.</strong> Daqui em diante, cada mês de espera trabalha contra o consórcio.';}
+}
+el.addEventListener('input',render); render();
+})();
+</script>
+</body>
+</html>
