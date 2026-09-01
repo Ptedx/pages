@@ -19,6 +19,14 @@
 
 const PAGES = [
   {
+    file: "conformidade-risco-arquitetura.html",
+    title: "Arquitetura da Plataforma de Conformidade",
+    desc: "Documento de arquitetura da plataforma de conformidade e risco: domínio, fluxo de dados, camadas, segurança e operação.",
+    tags: ["arquitetura", "documentação", "conformidade"],
+    date: "2026-09-01",
+    accent: "#96590A"
+  },
+  {
     file: "consorcio-x-financiamento.html",
     title: "Consórcio × Financiamento",
     desc: "Simulador comparando as duas rotas para cartas de R$ 600 a 900 mil, com renda de R$ 13 a 25 mil.",

@@ -1,0 +1,1802 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Documento de arquitetura da Plataforma de Conformidade e Risco.">
+<meta name="color-scheme" content="light dark">
+<title>Arquitetura da Plataforma de Conformidade</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap">
+
+<style>
+/* ═══════════ TOKENS ═══════════ */
+:root{
+  --bg:#F4F4F2; --surface:#FFFFFF; --surface-2:#EBEBE7; --surface-3:#DFDFD8;
+  --ink:#16181A; --ink-2:#3D4348; --muted:#6A7076; --line:#D2D2CB; --line-2:#B4B4AB;
+  --accent:#96590A; --accent-2:#734404; --wash:#F7EAD3;
+  --ok:#3C6D2A; --err:#A0392A; --info:#2A5F7A;
+  --rail:272px; --r:5px;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0F1012; --surface:#16181B; --surface-2:#1D2024; --surface-3:#272B31;
+    --ink:#E9E9E5; --ink-2:#B6BAB8; --muted:#858B90; --line:#292D32; --line-2:#3D444B;
+    --accent:#E0A24A; --accent-2:#F0C482; --wash:#2A2110;
+    --ok:#85BB66; --err:#E0796A; --info:#79B7D4;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0F1012; --surface:#16181B; --surface-2:#1D2024; --surface-3:#272B31;
+  --ink:#E9E9E5; --ink-2:#B6BAB8; --muted:#858B90; --line:#292D32; --line-2:#3D444B;
+  --accent:#E0A24A; --accent-2:#F0C482; --wash:#2A2110;
+  --ok:#85BB66; --err:#E0796A; --info:#79B7D4;
+}
+
+/* ═══════════ BASE ═══════════ */
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{
+  margin:0; background:var(--bg); color:var(--ink);
+  font-family:"IBM Plex Sans",system-ui,-apple-system,sans-serif;
+  font-size:16px; line-height:1.58; -webkit-font-smoothing:antialiased;
+}
+::selection{background:var(--wash); color:var(--ink)}
+a{color:var(--accent)}
+:focus-visible{outline:2px solid var(--accent); outline-offset:3px; border-radius:2px}
+.skip{position:absolute; left:-9999px; background:var(--accent); color:#fff; padding:10px 18px; z-index:99; font-weight:600}
+.skip:focus{left:0; top:0}
+@keyframes flowdash{to{stroke-dashoffset:-24}}
+@media (prefers-reduced-motion: reduce){
+  html{scroll-behavior:auto}
+  .flow,.flow-s{animation:none!important; stroke-dasharray:none!important}
+  *,*::before,*::after{animation-duration:.01ms!important; transition-duration:.01ms!important}
+}
+
+/* ═══════════ PROGRESSO ═══════════ */
+.prog{position:fixed; top:0; left:0; height:2px; width:0; background:var(--accent); z-index:20; transition:width .12s linear}
+
+/* ═══════════ TRILHA ═══════════ */
+.rail{
+  position:fixed; top:0; left:0; bottom:0; width:var(--rail); z-index:10;
+  background:var(--surface); border-right:1px solid var(--line);
+  overflow-y:auto; overscroll-behavior:contain; padding:26px 0 40px;
+}
+.rail .brand{padding:0 22px 18px; border-bottom:1px solid var(--line); margin-bottom:16px}
+.rail .brand b{display:block; font-size:14.5px; font-weight:600; line-height:1.3; letter-spacing:-.01em}
+.rail .brand span{font-family:"JetBrains Mono",monospace; font-size:10px; letter-spacing:.13em; text-transform:uppercase; color:var(--accent); font-weight:700; display:block; margin-bottom:6px}
+.rail p.h{font-family:"JetBrains Mono",monospace; font-size:9.5px; letter-spacing:.15em; text-transform:uppercase; color:var(--muted); margin:0 0 8px; padding:0 22px; font-weight:700}
+.rail ol{list-style:none; margin:0; padding:0 12px; display:flex; flex-direction:column; gap:1px}
+.rail a{
+  display:grid; grid-template-columns:24px 1fr; gap:9px; align-items:baseline;
+  text-decoration:none; color:var(--ink-2); font-size:13.2px; line-height:1.32;
+  padding:7px 10px; border-radius:4px; border-left:2px solid transparent;
+}
+.rail a:hover{background:var(--surface-2); color:var(--ink)}
+.rail a .n{font-family:"JetBrains Mono",monospace; font-size:10.5px; color:var(--muted); font-variant-numeric:tabular-nums}
+.rail a[aria-current="true"]{background:var(--wash); color:var(--ink); font-weight:600; border-left-color:var(--accent)}
+.rail a[aria-current="true"] .n{color:var(--accent); font-weight:700}
+
+/* ═══════════ MAIN ═══════════ */
+main{margin-left:var(--rail); min-width:0; padding:0 clamp(20px,3vw,56px) 120px}
+.masthead{padding:clamp(36px,5vw,62px) 0 28px; border-bottom:1px solid var(--line); margin-bottom:40px}
+.tagline{font-family:"JetBrains Mono",monospace; font-size:11px; letter-spacing:.16em; text-transform:uppercase; color:var(--accent); margin:0 0 14px; font-weight:700}
+h1{font-weight:700; font-size:clamp(1.8rem,3.6vw,2.7rem); line-height:1.1; letter-spacing:-.026em; margin:0 0 14px; text-wrap:balance; max-width:22ch}
+.abstract{font-size:1.02rem; color:var(--ink-2); max-width:86ch; margin:0 0 24px}
+.chips{display:flex; flex-wrap:wrap; gap:6px}
+.chip{font-family:"JetBrains Mono",monospace; font-size:11.5px; padding:4px 9px; border:1px solid var(--line-2); border-radius:3px; color:var(--ink-2); background:var(--surface)}
+.chip b{color:var(--accent); font-weight:500}
+
+section{margin:0 0 62px; scroll-margin-top:16px}
+.sh{display:grid; grid-template-columns:auto 1fr; gap:12px; align-items:baseline; margin:0 0 18px; padding-bottom:10px; border-bottom:2px solid var(--ink)}
+.sh .n{font-family:"JetBrains Mono",monospace; font-size:12.5px; color:var(--accent); font-weight:700}
+h2{font-weight:600; font-size:clamp(1.3rem,2.4vw,1.62rem); line-height:1.2; letter-spacing:-.018em; margin:0}
+h3{font-weight:600; font-size:1rem; margin:30px 0 9px; letter-spacing:-.005em}
+h4{font-family:"JetBrains Mono",monospace; font-weight:700; font-size:10.5px; letter-spacing:.14em; text-transform:uppercase; color:var(--muted); margin:22px 0 8px}
+p{margin:0 0 13px; max-width:88ch}
+ul,ol{margin:0 0 13px; padding-left:21px; max-width:88ch}
+li{margin:0 0 5px}
+li::marker{color:var(--muted)}
+code{font-family:"JetBrains Mono",monospace; font-size:.855em; background:var(--surface-2); padding:1px 5px; border-radius:3px; overflow-wrap:break-word}
+
+/* ═══════════ CÓDIGO (uso pontual) ═══════════ */
+.code{margin:0 0 20px; border:1px solid var(--line); border-radius:var(--r); overflow:hidden; background:var(--surface); max-width:1100px}
+.code > .lbl{font-family:"JetBrains Mono",monospace; font-size:10.5px; letter-spacing:.1em; text-transform:uppercase; color:var(--muted); font-weight:700; background:var(--surface-2); padding:8px 13px; border-bottom:1px solid var(--line); display:flex; justify-content:space-between; gap:12px}
+.code > .lbl em{font-style:normal; color:var(--accent); letter-spacing:.06em; text-transform:none}
+.code pre{margin:0; padding:14px 16px; overflow-x:auto; font-family:"JetBrains Mono",monospace; font-size:12.6px; line-height:1.66; color:var(--ink); tab-size:2}
+.code pre code{background:none; padding:0; font-size:inherit}
+.c{color:var(--muted)} .k{color:var(--accent); font-weight:500} .s{color:var(--ok)} .t{color:var(--info)}
+
+/* ═══════════ TABELAS ═══════════ */
+.tw{overflow-x:auto; margin:0 0 20px; border:1px solid var(--line); border-radius:var(--r); background:var(--surface)}
+table{border-collapse:collapse; width:100%; min-width:620px; font-size:13.8px}
+caption{text-align:left; padding:9px 13px; font-family:"JetBrains Mono",monospace; font-size:10.5px; letter-spacing:.1em; text-transform:uppercase; color:var(--muted); font-weight:700; border-bottom:1px solid var(--line); background:var(--surface-2)}
+th,td{text-align:left; padding:9px 13px; border-bottom:1px solid var(--line); vertical-align:top}
+thead th{font-family:"JetBrains Mono",monospace; font-size:10px; letter-spacing:.09em; text-transform:uppercase; color:var(--muted); font-weight:700; background:var(--surface-2); white-space:nowrap}
+tbody tr:last-child td,tbody tr:last-child th{border-bottom:0}
+tbody th{font-weight:500; white-space:nowrap}
+td code,th code{background:none; padding:0; font-size:12.4px}
+.mono th[scope=row],.mono td.m{font-family:"JetBrains Mono",monospace; font-size:12.4px; white-space:nowrap}
+.tc{text-align:center; font-family:"JetBrains Mono",monospace}
+.tag{display:inline-block; font-family:"JetBrains Mono",monospace; font-size:10px; font-weight:700; padding:2px 7px; border-radius:3px; border:1px solid currentColor; white-space:nowrap}
+.g-ok{color:var(--ok)} .g-err{color:var(--err)} .g-ac{color:var(--accent)} .g-in{color:var(--info)} .g-mu{color:var(--muted)}
+
+/* ═══════════ NOTA / ADR ═══════════ */
+.note{background:var(--surface); border:1px solid var(--line); border-left:3px solid var(--accent); border-radius:0 var(--r) var(--r) 0; padding:14px 18px; margin:0 0 20px; max-width:96ch}
+.note > :last-child{margin-bottom:0}
+.note b.h{font-family:"JetBrains Mono",monospace; font-size:10.5px; letter-spacing:.12em; text-transform:uppercase; color:var(--accent); display:block; margin-bottom:5px}
+
+.adrs{display:grid; gap:14px; margin:0 0 20px}
+@media (min-width:1000px){.adrs{grid-template-columns:1fr 1fr}}
+@media (min-width:1700px){.adrs{grid-template-columns:1fr 1fr 1fr}}
+.adr{background:var(--surface); border:1px solid var(--line); border-radius:var(--r); padding:16px 18px}
+.adr .id{font-family:"JetBrains Mono",monospace; font-size:10.5px; letter-spacing:.11em; color:var(--accent); font-weight:700}
+.adr h3{margin:5px 0 9px; font-size:.99rem; line-height:1.3}
+.adr p{font-size:14px; margin:0 0 8px; color:var(--ink-2); max-width:none}
+.adr p:last-child{margin:0}
+.adr .alt{font-size:13px; color:var(--muted); border-top:1px dashed var(--line); padding-top:8px; margin-top:10px}
+.adr .alt b{color:var(--ink-2); font-weight:600}
+
+/* ═══════════ FIGURAS ═══════════ */
+figure{margin:22px 0 26px}
+.fw{overflow-x:auto; background:var(--surface); border:1px solid var(--line); border-radius:var(--r); padding:18px 14px}
+figure svg{display:block; width:100%; height:auto; min-width:600px}
+.fw.wide svg{min-width:900px}
+figcaption{font-size:13px; color:var(--muted); margin-top:9px; max-width:96ch; line-height:1.5}
+figcaption b{font-family:"JetBrains Mono",monospace; font-size:10.5px; letter-spacing:.1em; text-transform:uppercase; color:var(--accent); font-weight:700; display:block; margin-bottom:3px}
+
+.box{fill:var(--surface); stroke:var(--line-2); stroke-width:1.2}
+.box-a{fill:var(--surface); stroke:var(--accent); stroke-width:1.8}
+.box-2{fill:var(--surface-2); stroke:var(--line-2); stroke-width:1.2}
+.lbl-t{font-family:"IBM Plex Sans",sans-serif; fill:var(--ink); font-weight:600}
+.lbl-m{font-family:"JetBrains Mono",monospace; fill:var(--muted)}
+.lbl-e{font-family:"JetBrains Mono",monospace; fill:var(--ink-2)}
+.lbl-a{font-family:"JetBrains Mono",monospace; fill:var(--accent)}
+.wire{fill:none; stroke:var(--line-2); stroke-width:1.2}
+.flow{fill:none; stroke:var(--accent); stroke-width:1.6; stroke-dasharray:7 5; animation:flowdash 1.05s linear infinite}
+.flow-s{fill:none; stroke:var(--accent); stroke-width:1.6; stroke-dasharray:7 5; animation:flowdash 2.1s linear infinite}
+marker#ah path{fill:var(--line-2)}
+marker#ah-a path{fill:var(--accent)}
+marker#ah-e path{fill:var(--err)}
+
+/* entidades do ERD */
+.ent{fill:var(--surface); stroke:var(--line-2); stroke-width:1.2}
+.ent-a{fill:var(--surface); stroke:var(--accent); stroke-width:1.8}
+.ent-l{fill:none; stroke:var(--line-2); stroke-width:1}
+.ent-th{font-family:"JetBrains Mono",monospace; font-size:12.5px; font-weight:700; fill:var(--ink)}
+.ent-th-a{font-family:"JetBrains Mono",monospace; font-size:12.5px; font-weight:700; fill:var(--accent)}
+.ent-pk{font-family:"JetBrains Mono",monospace; font-size:9.5px; font-weight:700; fill:var(--accent)}
+.ent-fk{font-family:"JetBrains Mono",monospace; font-size:9.5px; font-weight:700; fill:var(--info)}
+.ent-uq{font-family:"JetBrains Mono",monospace; font-size:9.5px; font-weight:700; fill:var(--ok)}
+.ent-kx{font-family:"JetBrains Mono",monospace; font-size:9.5px; fill:var(--muted)}
+.ent-f{font-family:"JetBrains Mono",monospace; font-size:11px; fill:var(--ink)}
+.ent-ty{font-family:"JetBrains Mono",monospace; font-size:9.5px; fill:var(--muted)}
+.ent-nt{font-family:"JetBrains Mono",monospace; font-size:9.5px; fill:var(--muted)}
+.ent-c{font-family:"JetBrains Mono",monospace; font-size:9.5px; fill:var(--muted)}
+.rel{fill:none; stroke:var(--line-2); stroke-width:1.2}
+.relx{fill:none; stroke:var(--accent); stroke-width:1.3}
+
+/* legenda do ERD */
+.leg{display:flex; flex-wrap:wrap; gap:16px; margin:0 0 14px; font-family:"JetBrains Mono",monospace; font-size:11px; color:var(--muted)}
+.leg span{display:inline-flex; align-items:center; gap:6px}
+.leg i{font-style:normal; font-weight:700}
+
+/* ═══════════ RESPONSIVO ═══════════ */
+@media (max-width:1099px){
+  .rail{
+    position:sticky; top:0; left:auto; bottom:auto; width:auto; height:auto;
+    border-right:0; border-bottom:1px solid var(--line); padding:0; overflow:visible;
+  }
+  .rail .brand{padding:12px 16px; border-bottom:1px solid var(--line); margin:0}
+  .rail p.h{display:none}
+  .rail ol{flex-direction:row; overflow-x:auto; gap:2px; padding:6px 12px; scrollbar-width:thin}
+  .rail a{white-space:nowrap; border-left:0; border-bottom:2px solid transparent; border-radius:3px 3px 0 0; grid-template-columns:auto auto; padding:6px 10px}
+  .rail a[aria-current="true"]{border-left-color:transparent; border-bottom-color:var(--accent); background:var(--wash)}
+  main{margin-left:0; padding:0 clamp(14px,4vw,26px) 90px}
+  .masthead{padding-top:28px}
+}
+
+@media print{
+  .rail,.skip,.prog{display:none} body{background:#fff;color:#000;font-size:10pt}
+  main{margin-left:0;padding:0}
+  figure svg{min-width:0} .flow,.flow-s{animation:none}
+  .code,figure,.tw,.note,.adr{break-inside:avoid} h2,h3{break-after:avoid}
+}
+</style>
+<style>img{max-width:100%}[hidden]{display:none!important}</style>
+</head>
+<body>
+<a class="skip" href="#doc">Ir para o conteúdo</a>
+<div class="prog" id="progresso" aria-hidden="true"></div>
+
+<nav class="rail" aria-label="Sumário do documento">
+  <div class="brand">
+    <span>Arquitetura · rev 2.0</span>
+    <b>Plataforma de Conformidade e Risco</b>
+  </div>
+  <p class="h">Seções</p>
+  <ol>
+    <li><a href="#s1"><span class="n">01</span><span>Visão geral</span></a></li>
+    <li><a href="#s2"><span class="n">02</span><span>Decisões estruturais</span></a></li>
+    <li><a href="#s3"><span class="n">03</span><span>Modelo de domínio</span></a></li>
+    <li><a href="#s4"><span class="n">04</span><span>Rastreabilidade e base normativa</span></a></li>
+    <li><a href="#s5"><span class="n">05</span><span>Máquina de estados</span></a></li>
+    <li><a href="#s6"><span class="n">06</span><span>Regras de negócio</span></a></li>
+    <li><a href="#s7"><span class="n">07</span><span>Fluxo de dados</span></a></li>
+    <li><a href="#s8"><span class="n">08</span><span>Ciclo de vida da demanda</span></a></li>
+    <li><a href="#s9"><span class="n">09</span><span>Camada de apresentação</span></a></li>
+    <li><a href="#s10"><span class="n">10</span><span>Camada de aplicação</span></a></li>
+    <li><a href="#s11"><span class="n">11</span><span>Serviço de inteligência</span></a></li>
+    <li><a href="#s12"><span class="n">12</span><span>Recuperação híbrida</span></a></li>
+    <li><a href="#s13"><span class="n">13</span><span>Segurança e autorização</span></a></li>
+    <li><a href="#s14"><span class="n">14</span><span>Infraestrutura e operação</span></a></li>
+  </ol>
+</nav>
+
+<main id="doc">
+
+<header class="masthead">
+  <p class="tagline">Documento de arquitetura · revisão 2.0</p>
+  <h1>Plataforma de Conformidade e Risco</h1>
+  <p class="abstract">Análise de documentos de contratação pública em fluxo de cinco camadas encadeadas, com auditoria assistida por modelo de linguagem ancorado em base normativa vetorizada. Este documento define a topologia, o modelo de domínio, os fluxos de dados e as políticas operacionais que sustentam a implementação.</p>
+  <div class="chips">
+    <span class="chip"><b>apresentação</b> next 15 · react 19</span>
+    <span class="chip"><b>aplicação</b> spring boot 3.3 · jdk 21</span>
+    <span class="chip"><b>inteligência</b> fastapi · python 3.12</span>
+    <span class="chip"><b>dados</b> postgres 16 · pgvector</span>
+    <span class="chip"><b>infra</b> aws ecs · s3 · sqs · rds</span>
+  </div>
+</header>
+
+<!-- ═══════════ 01 ═══════════ -->
+<section id="s1" aria-labelledby="t1">
+  <div class="sh"><span class="n">01</span><h2 id="t1">Visão geral</h2></div>
+
+  <p>Três processos de execução, um cluster relacional, um repositório de objetos e uma fila. A contenção do número de componentes é requisito arquitetural: cada peça adicional representa custo permanente de operação, de observabilidade e de manutenção.</p>
+
+  <figure>
+    <div class="fw wide">
+      <svg viewBox="0 0 920 528" role="img" aria-label="Topologia de execução. O navegador acessa a aplicação Next.js, que encaminha requisições autenticadas à API Spring Boot, que persiste no cluster PostgreSQL. O arquivo é enviado diretamente ao bucket S3 por URL pré-assinada. A API publica mensagens na fila SQS, consumidas pelo worker Python, que lê o objeto no bucket, consulta o esquema rag e invoca o provedor de modelo de linguagem, devolvendo o resultado à API.">
+        <defs>
+          <marker id="ah" viewBox="0 0 10 10" refX="9.2" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z"/></marker>
+          <marker id="ah-a" viewBox="0 0 10 10" refX="9.2" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z"/></marker>
+          <marker id="ah-e" viewBox="0 0 10 10" refX="9.2" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z"/></marker>
+        </defs>
+        <g class="box">
+          <rect x="26"  y="52"  width="146" height="62" rx="4"/>
+          <rect x="240" y="52"  width="166" height="62" rx="4"/>
+          <rect x="474" y="52"  width="166" height="62" rx="4"/>
+          <rect x="708" y="52"  width="186" height="86" rx="4"/>
+          <rect x="240" y="212" width="166" height="62" rx="4"/>
+          <rect x="474" y="212" width="166" height="62" rx="4"/>
+          <rect x="474" y="446" width="166" height="58" rx="4"/>
+        </g>
+        <rect x="474" y="330" width="166" height="66" rx="4" class="box-a"/>
+        <g class="lbl-t" font-size="13" text-anchor="middle">
+          <text x="99" y="79">Navegador</text>
+          <text x="323" y="79">next-web</text>
+          <text x="557" y="79">api-core</text>
+          <text x="801" y="79">postgres-16</text>
+          <text x="323" y="239">s3://documentos</text>
+          <text x="557" y="239">sqs://analise</text>
+          <text x="557" y="357">ia-worker</text>
+          <text x="557" y="473">provedor LLM</text>
+        </g>
+        <g class="lbl-m" font-size="10.5" text-anchor="middle">
+          <text x="99" y="97">react 19</text>
+          <text x="323" y="97">node 22 · ecs</text>
+          <text x="557" y="97">jdk 21 · ecs</text>
+          <text x="801" y="97">schema dominio</text>
+          <text x="801" y="113">schema rag · pgvector</text>
+          <text x="801" y="129">rds · gp3</text>
+          <text x="323" y="257">sse-kms · versionado</text>
+          <text x="557" y="257">fifo=false · dlq</text>
+          <text x="557" y="375">python 3.12 · ecs</text>
+          <text x="557" y="391">consumidor de fila</text>
+          <text x="557" y="491">https · retenção zero</text>
+        </g>
+        <g marker-end="url(#ah-a)">
+          <path class="flow" d="M172,79 H234"/>
+          <path class="flow" d="M406,79 H468"/>
+          <path class="flow" d="M640,83 H702"/>
+          <path class="flow" d="M99,114 V243 H234"/>
+          <path class="flow" d="M512,114 V206"/>
+          <path class="flow" d="M512,274 V324"/>
+          <path class="flow" d="M406,243 H440 V363 H468"/>
+          <path class="flow" d="M557,396 V440"/>
+          <path class="flow-s" d="M640,345 C 690,338 726,210 780,142"/>
+          <path class="flow-s" d="M640,375 H676 V100 H646"/>
+        </g>
+        <g class="lbl-e" font-size="10.5" text-anchor="middle">
+          <text x="203" y="42">HTTP/2</text>
+          <text x="437" y="42">REST · Bearer</text>
+          <text x="671" y="42">JDBC · pool</text>
+          <text x="557" y="184">SendMessage</text>
+          <text x="557" y="308">ReceiveMessage</text>
+          <text x="352" y="308">GetObject</text>
+          <text x="600" y="424">chat completions</text>
+        </g>
+        <text x="112" y="180" class="lbl-e" font-size="10.5">PUT pré-assinado</text>
+        <g class="lbl-a" font-size="10.5">
+          <text x="748" y="196">SELECT rag.*</text>
+          <text x="682" y="300">POST /callback</text>
+        </g>
+      </svg>
+    </div>
+    <figcaption><b>Diagrama 1 · Topologia de execução</b>O binário do documento não atravessa <code>next-web</code> nem <code>api-core</code>: sobe por URL pré-assinada direto ao repositório e é lido de lá pelo worker. O worker escreve somente no esquema <code>rag</code>; o resultado da análise retorna a <code>api-core</code>, único processo autorizado a escrever no esquema <code>dominio</code>.</figcaption>
+  </figure>
+
+  <div class="tw">
+    <table class="mono">
+      <caption>Responsabilidade e perfil de execução</caption>
+      <thead><tr><th scope="col">Processo</th><th scope="col">Responsabilidade</th><th scope="col">Não responde por</th><th scope="col">Escala</th></tr></thead>
+      <tbody>
+        <tr><th scope="row">next-web</th><td>Renderização, sessão e intermediação segura das chamadas</td><td>Regra de negócio, decisão de fluxo, cálculo</td><td>por CPU</td></tr>
+        <tr><th scope="row">api-core</th><td>Domínio, máquina de estados, autorização, cálculos determinísticos, trilha</td><td>Extração, recuperação semântica, inferência</td><td>por CPU e latência p95</td></tr>
+        <tr><th scope="row">ia-worker</th><td>Extração documental, recuperação, inferência e validação da resposta</td><td>Estado de domínio, fluxo, autorização</td><td>por profundidade da fila</td></tr>
+        <tr><th scope="row">postgres-16</th><td>Persistência do domínio e da base normativa vetorizada</td><td>—</td><td>vertical + réplica de leitura</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- ═══════════ 02 ═══════════ -->
+<section id="s2" aria-labelledby="t2">
+  <div class="sh"><span class="n">02</span><h2 id="t2">Decisões estruturais</h2></div>
+
+  <p>Decisões cuja reversão implica retrabalho significativo. Cada registro apresenta a decisão, o motivo e as alternativas descartadas.</p>
+
+  <div class="adrs">
+    <article class="adr">
+      <span class="id">ADR-01</span>
+      <h3>Monólito modular na camada de aplicação</h3>
+      <p>Uma unidade de implantação organizada por domínio. Cada módulo expõe uma interface pública e mantém suas entidades privadas; a comunicação ocorre por essa interface ou por eventos de domínio, nunca por acesso ao repositório alheio. A fronteira é verificada na esteira de construção.</p>
+      <p class="alt"><b>Descartado:</b> microsserviços por camada — multiplica custo operacional e transação distribuída sem resolver problema existente.</p>
+    </article>
+
+    <article class="adr">
+      <span class="id">ADR-02</span>
+      <h3>Fluxo em cascata como máquina de estados explícita</h3>
+      <p>Um único componente concentra estados, transições e guardas. A interface consulta as ações liberadas para a demanda e apresenta apenas essas; não avalia condição de negócio em nenhum ponto.</p>
+      <p class="alt"><b>Descartado:</b> motor de fluxo de mercado — peso desproporcional a um fluxo linear de nove estados; verificação distribuída na interface — duplica regra e permite divergência.</p>
+    </article>
+
+    <article class="adr">
+      <span class="id">ADR-03</span>
+      <h3>Histórico como registro de eventos imutável</h3>
+      <p>Uma tabela somente-inserção atende de uma vez ao histórico consolidado, à evolução temporal do risco, ao tempo de tratamento por usuário e à trilha de auditoria. O estado corrente permanece nas tabelas de domínio.</p>
+      <p class="alt"><b>Descartado:</b> tabela de histórico por camada — obriga a reconstruir a série temporal por outros meios; versionamento por gatilho — registra o quê, não o porquê nem o autor.</p>
+    </article>
+
+    <article class="adr">
+      <span class="id">ADR-04</span>
+      <h3>Saída de inteligência artificial como sugestão versionada</h3>
+      <p>Nenhuma saída de modelo é gravada em tabela de domínio. Toda proposta é registrada em estrutura própria com modelo, versão de prompt, custo e estado de aceite, com autor e momento da decisão humana.</p>
+      <p class="alt"><b>Descartado:</b> gravação direta com marcação de origem — mistura proposta e decisão na mesma linha e impede reconstituir o que foi sugerido antes da correção.</p>
+    </article>
+
+    <article class="adr">
+      <span class="id">ADR-05</span>
+      <h3>Processamento documental assíncrono</h3>
+      <p>Envio direto ao repositório de objetos por URL pré-assinada; registro do documento e publicação de tarefa em fila; consumo, processamento e retorno pelo serviço de inteligência. O estado de processamento é visível na interface.</p>
+      <p class="alt"><b>Descartado:</b> processamento na requisição — expõe a expiração de conexão e impede escala horizontal; envio pela aplicação — transforma a API em gargalo de banda.</p>
+    </article>
+
+    <article class="adr">
+      <span class="id">ADR-06</span>
+      <h3>Serviço de inteligência em Python, isolado do domínio</h3>
+      <p>A citação rastreável exige extração com posição — página e coordenadas — em documentos de estrutura complexa. As bibliotecas maduras para isso concentram-se no ecossistema Python. O serviço não detém estado de domínio nem decide fluxo.</p>
+      <p class="alt"><b>Descartado:</b> implementação integral em Java — exigiria extração posicional de qualidade inferior, comprometendo o requisito de citação verificável.</p>
+    </article>
+
+    <article class="adr">
+      <span class="id">ADR-07</span>
+      <h3>Banco único com esquemas de propriedade distinta</h3>
+      <p>Uma instância com extensão vetorial, dividida em dois esquemas. A aplicação escreve apenas no domínio; o serviço de inteligência escreve apenas na base normativa. A separação é aplicada por concessão de privilégio, não por convenção.</p>
+      <p class="alt"><b>Descartado:</b> banco vetorial dedicado — componente e sincronização adicionais para volume que a extensão atende com folga; escrita cruzada — torna o esquema contrato implícito entre serviços.</p>
+    </article>
+
+    <article class="adr">
+      <span class="id">ADR-08</span>
+      <h3>Recuperação semântica restrita à base normativa</h3>
+      <p>O documento sob análise é lido integralmente a partir dos trechos extraídos; apenas a base normativa é consultada por similaridade. A verificação de conformidade depende de constatar ausência de elemento obrigatório, e ausência não é recuperável por similaridade.</p>
+      <p class="alt"><b>Descartado:</b> recuperação sobre o documento da demanda — reduziria a análise a fragmentos e tornaria impossível afirmar o que falta.</p>
+    </article>
+  </div>
+</section>
+
+<!-- ═══════════ 03 ═══════════ -->
+<section id="s3" aria-labelledby="t3">
+  <div class="sh"><span class="n">03</span><h2 id="t3">Modelo de domínio</h2></div>
+
+  <p>Cluster único, dois esquemas com donos distintos. <code>api-core</code> conecta com papel que escreve apenas em <code>dominio</code> e lê <code>rag</code>; <code>ia-worker</code> conecta com papel que escreve apenas em <code>rag</code>.</p>
+
+  <div class="leg" aria-hidden="true">
+    <span><i class="ent-pk" style="color:var(--accent)">PK</i> chave primária</span>
+    <span><i class="ent-fk" style="color:var(--info)">FK</i> chave estrangeira</span>
+    <span><i class="ent-uq" style="color:var(--ok)">UQ</i> restrição de unicidade</span>
+    <span>linha tracejada · esquema separado, sem chave estrangeira</span>
+  </div>
+
+  <figure>
+    <div class="fw wide">
+      <svg viewBox="0 0 1210 380" role="img" aria-label="Modelo do núcleo. unidade e usuario referenciam demanda; demanda possui exatamente um documento, e o documento possui vários trechos com página e coordenadas.">
+          <g>
+          <rect x="20" y="60" width="224" height="91" rx="4" class="ent"/>
+          <path d="M20,86 H244" class="ent-l"/>
+          <path d="M60,86 V151" class="ent-l" opacity=".55"/>
+          <text x="31" y="78" class="ent-th">unidade</text>
+          <text x="29" y="100" class="ent-pk">PK</text>
+          <text x="68" y="100" class="ent-f">id</text>
+          <text x="235" y="100" class="ent-ty" text-anchor="end">uuid</text>
+          <text x="68" y="119" class="ent-f">nome</text>
+          <text x="235" y="119" class="ent-ty" text-anchor="end">text</text>
+          <text x="68" y="138" class="ent-f">sigla</text>
+          <text x="235" y="138" class="ent-ty" text-anchor="end">text</text>
+          </g>
+          <g>
+          <rect x="20" y="196" width="224" height="129" rx="4" class="ent"/>
+          <path d="M20,222 H244" class="ent-l"/>
+          <path d="M60,222 V325" class="ent-l" opacity=".55"/>
+          <text x="31" y="214" class="ent-th">usuario</text>
+          <text x="29" y="236" class="ent-pk">PK</text>
+          <text x="68" y="236" class="ent-f">id</text>
+          <text x="235" y="236" class="ent-ty" text-anchor="end">uuid</text>
+          <text x="29" y="255" class="ent-fk">FK</text>
+          <text x="68" y="255" class="ent-f">unidade_id</text>
+          <text x="235" y="255" class="ent-ty" text-anchor="end">uuid</text>
+          <text x="29" y="274" class="ent-uq">UQ</text>
+          <text x="68" y="274" class="ent-f">email</text>
+          <text x="235" y="274" class="ent-ty" text-anchor="end">text</text>
+          <text x="68" y="293" class="ent-f">senha_hash</text>
+          <text x="235" y="293" class="ent-ty" text-anchor="end">text</text>
+          <text x="68" y="312" class="ent-f">perfil</text>
+          <text x="235" y="312" class="ent-ty" text-anchor="end">enum</text>
+          </g>
+          <text x="20" y="341" class="ent-nt">perfil ∈ {ANALISTA, GESTOR, ADMIN}</text>
+          <g>
+          <rect x="316" y="60" width="244" height="186" rx="4" class="ent-a"/>
+          <path d="M316,86 H560" class="ent-l"/>
+          <path d="M356,86 V246" class="ent-l" opacity=".55"/>
+          <text x="327" y="78" class="ent-th-a">demanda</text>
+          <text x="325" y="100" class="ent-pk">PK</text>
+          <text x="364" y="100" class="ent-f">id</text>
+          <text x="551" y="100" class="ent-ty" text-anchor="end">uuid</text>
+          <text x="325" y="119" class="ent-fk">FK</text>
+          <text x="364" y="119" class="ent-f">unidade_id</text>
+          <text x="551" y="119" class="ent-ty" text-anchor="end">uuid</text>
+          <text x="325" y="138" class="ent-fk">FK</text>
+          <text x="364" y="138" class="ent-f">responsavel_id</text>
+          <text x="551" y="138" class="ent-ty" text-anchor="end">uuid</text>
+          <text x="364" y="157" class="ent-f">estado</text>
+          <text x="551" y="157" class="ent-ty" text-anchor="end">enum</text>
+          <text x="364" y="176" class="ent-f">prioridade</text>
+          <text x="551" y="176" class="ent-ty" text-anchor="end">enum</text>
+          <text x="364" y="195" class="ent-f">prazo_analise</text>
+          <text x="551" y="195" class="ent-ty" text-anchor="end">date</text>
+          <text x="364" y="214" class="ent-f">indice_conf</text>
+          <text x="551" y="214" class="ent-ty" text-anchor="end">numeric(5,2)</text>
+          <text x="364" y="233" class="ent-f">versao</text>
+          <text x="551" y="233" class="ent-ty" text-anchor="end">bigint</text>
+          </g>
+          <text x="316" y="262" class="ent-nt">agregado raiz · trava otimista em versao</text>
+          <g>
+          <rect x="632" y="60" width="244" height="167" rx="4" class="ent"/>
+          <path d="M632,86 H876" class="ent-l"/>
+          <path d="M672,86 V227" class="ent-l" opacity=".55"/>
+          <text x="643" y="78" class="ent-th">documento</text>
+          <text x="641" y="100" class="ent-pk">PK</text>
+          <text x="680" y="100" class="ent-f">id</text>
+          <text x="867" y="100" class="ent-ty" text-anchor="end">uuid</text>
+          <text x="641" y="119" class="ent-fk">FK</text>
+          <text x="680" y="119" class="ent-f">demanda_id</text>
+          <text x="867" y="119" class="ent-ty" text-anchor="end">uuid</text>
+          <text x="680" y="138" class="ent-f">s3_key</text>
+          <text x="867" y="138" class="ent-ty" text-anchor="end">text</text>
+          <text x="680" y="157" class="ent-f">sha256</text>
+          <text x="867" y="157" class="ent-ty" text-anchor="end">bytea</text>
+          <text x="680" y="176" class="ent-f">tipo_documento</text>
+          <text x="867" y="176" class="ent-ty" text-anchor="end">text</text>
+          <text x="680" y="195" class="ent-f">extracao</text>
+          <text x="867" y="195" class="ent-ty" text-anchor="end">enum</text>
+          <text x="680" y="214" class="ent-f">qualidade_ocr</text>
+          <text x="867" y="214" class="ent-ty" text-anchor="end">numeric</text>
+          </g>
+          <text x="632" y="243" class="ent-nt">UQ em demanda_id impõe a relação 1:1</text>
+          <g>
+          <rect x="948" y="60" width="244" height="148" rx="4" class="ent"/>
+          <path d="M948,86 H1192" class="ent-l"/>
+          <path d="M988,86 V208" class="ent-l" opacity=".55"/>
+          <text x="959" y="78" class="ent-th">documento_trecho</text>
+          <text x="957" y="100" class="ent-pk">PK</text>
+          <text x="996" y="100" class="ent-f">id</text>
+          <text x="1183" y="100" class="ent-ty" text-anchor="end">uuid</text>
+          <text x="957" y="119" class="ent-fk">FK</text>
+          <text x="996" y="119" class="ent-f">documento_id</text>
+          <text x="1183" y="119" class="ent-ty" text-anchor="end">uuid</text>
+          <text x="996" y="138" class="ent-f">pagina</text>
+          <text x="1183" y="138" class="ent-ty" text-anchor="end">int</text>
+          <text x="996" y="157" class="ent-f">bbox</text>
+          <text x="1183" y="157" class="ent-ty" text-anchor="end">numeric[4]</text>
+          <text x="996" y="176" class="ent-f">secao</text>
+          <text x="1183" y="176" class="ent-ty" text-anchor="end">text</text>
+          <text x="996" y="195" class="ent-f">conteudo</text>
+          <text x="1183" y="195" class="ent-ty" text-anchor="end">text</text>
+          </g>
+          <text x="948" y="224" class="ent-nt">pagina + bbox sustentam a citação clicável</text>
+          <path d="M244,95 H280 V114 H316" class="rel"/>
+          <text x="308" y="108" class="ent-c" text-anchor="end">1:N</text>
+          <path d="M244,231 H280 V133 H316" class="rel"/>
+          <text x="308" y="127" class="ent-c" text-anchor="end">1:N</text>
+          <path d="M560,95 H596 V114 H632" class="rel"/>
+          <text x="624" y="108" class="ent-c" text-anchor="end">1:1</text>
+          <path d="M876,95 H912 V114 H948" class="rel"/>
+          <text x="940" y="108" class="ent-c" text-anchor="end">1:N</text>
+        </svg>
+    </div>
+    <figcaption><b>Diagrama 2 · Núcleo do fluxo</b>A relação 1:1 entre demanda e documento é imposta pela unicidade da chave estrangeira, não por convenção da aplicação. <code>documento_trecho</code> é tabela própria — e não coluna de texto no documento — porque a posição é o que viabiliza destacar no visualizador o trecho citado por um apontamento.</figcaption>
+  </figure>
+
+  <figure>
+    <div class="fw">
+      <svg viewBox="0 0 940 660" role="img" aria-label="Modelo das camadas. demanda possui itens de conformidade, riscos e apontamentos de auditoria; cada risco possui uma classificação vigente e revisões de tratamento.">
+          <g>
+          <rect x="20" y="250" width="200" height="53" rx="4" class="ent-a"/>
+          <path d="M20,276 H220" class="ent-l"/>
+          <path d="M60,276 V303" class="ent-l" opacity=".55"/>
+          <text x="31" y="268" class="ent-th-a">demanda</text>
+          <text x="29" y="290" class="ent-pk">PK</text>
+          <text x="68" y="290" class="ent-f">id</text>
+          <text x="211" y="290" class="ent-ty" text-anchor="end">uuid</text>
+          </g>
+          <g>
+          <rect x="292" y="44" width="250" height="167" rx="4" class="ent"/>
+          <path d="M292,70 H542" class="ent-l"/>
+          <path d="M332,70 V211" class="ent-l" opacity=".55"/>
+          <text x="303" y="62" class="ent-th">conformidade_item</text>
+          <text x="301" y="84" class="ent-pk">PK</text>
+          <text x="340" y="84" class="ent-f">id</text>
+          <text x="533" y="84" class="ent-ty" text-anchor="end">uuid</text>
+          <text x="301" y="103" class="ent-fk">FK</text>
+          <text x="340" y="103" class="ent-f">demanda_id</text>
+          <text x="533" y="103" class="ent-ty" text-anchor="end">uuid</text>
+          <text x="301" y="122" class="ent-fk">FK</text>
+          <text x="340" y="122" class="ent-f">trecho_id</text>
+          <text x="533" y="122" class="ent-ty" text-anchor="end">uuid</text>
+          <text x="340" y="141" class="ent-f">bloco</text>
+          <text x="533" y="141" class="ent-ty" text-anchor="end">enum</text>
+          <text x="340" y="160" class="ent-f">identificacao</text>
+          <text x="533" y="160" class="ent-ty" text-anchor="end">text</text>
+          <text x="340" y="179" class="ent-f">classificacao</text>
+          <text x="533" y="179" class="ent-ty" text-anchor="end">enum</text>
+          <text x="340" y="198" class="ent-f">origem</text>
+          <text x="533" y="198" class="ent-ty" text-anchor="end">enum</text>
+          </g>
+          <text x="292" y="227" class="ent-nt">bloco ∈ {LEI, NORMATIVO, JURISPRUDENCIA, DOUTRINA}</text>
+          <g>
+          <rect x="292" y="268" width="250" height="148" rx="4" class="ent"/>
+          <path d="M292,294 H542" class="ent-l"/>
+          <path d="M332,294 V416" class="ent-l" opacity=".55"/>
+          <text x="303" y="286" class="ent-th">risco</text>
+          <text x="301" y="308" class="ent-pk">PK</text>
+          <text x="340" y="308" class="ent-f">id</text>
+          <text x="533" y="308" class="ent-ty" text-anchor="end">uuid</text>
+          <text x="301" y="327" class="ent-fk">FK</text>
+          <text x="340" y="327" class="ent-f">demanda_id</text>
+          <text x="533" y="327" class="ent-ty" text-anchor="end">uuid</text>
+          <text x="301" y="346" class="ent-fk">FK</text>
+          <text x="340" y="346" class="ent-f">origem_item</text>
+          <text x="533" y="346" class="ent-ty" text-anchor="end">uuid</text>
+          <text x="340" y="365" class="ent-f">tipo</text>
+          <text x="533" y="365" class="ent-ty" text-anchor="end">text</text>
+          <text x="340" y="384" class="ent-f">categoria</text>
+          <text x="533" y="384" class="ent-ty" text-anchor="end">text</text>
+          <text x="340" y="403" class="ent-f">descricao</text>
+          <text x="533" y="403" class="ent-ty" text-anchor="end">text</text>
+          </g>
+          <text x="292" y="432" class="ent-nt">origem_item rastreia o achado que gerou o risco</text>
+          <g>
+          <rect x="292" y="486" width="250" height="148" rx="4" class="ent"/>
+          <path d="M292,512 H542" class="ent-l"/>
+          <path d="M332,512 V634" class="ent-l" opacity=".55"/>
+          <text x="303" y="504" class="ent-th">auditoria_apontamento</text>
+          <text x="301" y="526" class="ent-pk">PK</text>
+          <text x="340" y="526" class="ent-f">id</text>
+          <text x="533" y="526" class="ent-ty" text-anchor="end">uuid</text>
+          <text x="301" y="545" class="ent-fk">FK</text>
+          <text x="340" y="545" class="ent-f">demanda_id</text>
+          <text x="533" y="545" class="ent-ty" text-anchor="end">uuid</text>
+          <text x="301" y="564" class="ent-fk">FK</text>
+          <text x="340" y="564" class="ent-f">trecho_id</text>
+          <text x="533" y="564" class="ent-ty" text-anchor="end">uuid</text>
+          <text x="340" y="583" class="ent-f">severidade</text>
+          <text x="533" y="583" class="ent-ty" text-anchor="end">enum</text>
+          <text x="340" y="602" class="ent-f">titulo</text>
+          <text x="533" y="602" class="ent-ty" text-anchor="end">text</text>
+          <text x="340" y="621" class="ent-f">citacoes</text>
+          <text x="533" y="621" class="ent-ty" text-anchor="end">jsonb</text>
+          </g>
+          <text x="292" y="650" class="ent-nt">CHECK jsonb_array_length(citacoes) ≥ 1</text>
+          <g>
+          <rect x="620" y="236" width="250" height="148" rx="4" class="ent"/>
+          <path d="M620,262 H870" class="ent-l"/>
+          <path d="M660,262 V384" class="ent-l" opacity=".55"/>
+          <text x="631" y="254" class="ent-th">risco_classificacao</text>
+          <text x="629" y="276" class="ent-pk">PK</text>
+          <text x="668" y="276" class="ent-f">id</text>
+          <text x="861" y="276" class="ent-ty" text-anchor="end">uuid</text>
+          <text x="629" y="295" class="ent-fk">FK</text>
+          <text x="668" y="295" class="ent-f">risco_id</text>
+          <text x="861" y="295" class="ent-ty" text-anchor="end">uuid</text>
+          <text x="668" y="314" class="ent-f">probabilidade</text>
+          <text x="861" y="314" class="ent-ty" text-anchor="end">enum</text>
+          <text x="668" y="333" class="ent-f">impacto</text>
+          <text x="861" y="333" class="ent-ty" text-anchor="end">enum</text>
+          <text x="668" y="352" class="ent-f">severidade</text>
+          <text x="861" y="352" class="ent-ty" text-anchor="end">enum</text>
+          <text x="668" y="371" class="ent-f">vigente</text>
+          <text x="861" y="371" class="ent-ty" text-anchor="end">boolean</text>
+          </g>
+          <text x="620" y="400" class="ent-nt">índice único parcial: uma vigente por risco</text>
+          <g>
+          <rect x="620" y="424" width="250" height="129" rx="4" class="ent"/>
+          <path d="M620,450 H870" class="ent-l"/>
+          <path d="M660,450 V553" class="ent-l" opacity=".55"/>
+          <text x="631" y="442" class="ent-th">tratamento</text>
+          <text x="629" y="464" class="ent-pk">PK</text>
+          <text x="668" y="464" class="ent-f">id</text>
+          <text x="861" y="464" class="ent-ty" text-anchor="end">uuid</text>
+          <text x="629" y="483" class="ent-fk">FK</text>
+          <text x="668" y="483" class="ent-f">risco_id</text>
+          <text x="861" y="483" class="ent-ty" text-anchor="end">uuid</text>
+          <text x="668" y="502" class="ent-f">estrategia</text>
+          <text x="861" y="502" class="ent-ty" text-anchor="end">enum</text>
+          <text x="668" y="521" class="ent-f">plano</text>
+          <text x="861" y="521" class="ent-ty" text-anchor="end">jsonb</text>
+          <text x="668" y="540" class="ent-f">revisao</text>
+          <text x="861" y="540" class="ent-ty" text-anchor="end">int</text>
+          </g>
+          <text x="620" y="569" class="ent-nt">UQ (risco_id, revisao) preserva o histórico</text>
+          <path d="M220,285 H256 V98 H292" class="rel"/>
+          <text x="284" y="92" class="ent-c" text-anchor="end">1:N</text>
+          <path d="M220,285 H256 V322 H292" class="rel"/>
+          <text x="284" y="316" class="ent-c" text-anchor="end">1:N</text>
+          <path d="M220,285 H256 V540 H292" class="rel"/>
+          <text x="284" y="534" class="ent-c" text-anchor="end">1:N</text>
+          <path d="M542,303 H584 V290 H620" class="rel"/>
+          <text x="612" y="284" class="ent-c" text-anchor="end">1:1</text>
+          <path d="M542,303 H584 V478 H620" class="rel"/>
+          <text x="612" y="472" class="ent-c" text-anchor="end">1:N</text>
+        </svg>
+    </div>
+    <figcaption><b>Diagrama 3 · Entidades das camadas</b><code>risco_classificacao</code> é separada de <code>risco</code> porque reclassificar é operação esperada e o valor anterior precisa permanecer recuperável; o índice único parcial garante uma única classificação vigente. <code>origem_item</code> liga o risco ao achado de conformidade que o gerou, tornando a cascata rastreável no próprio modelo.</figcaption>
+  </figure>
+
+  <h3>Invariantes aplicadas no banco</h3>
+  <p>Restrições que continuam válidas mesmo diante de defeito na camada de aplicação. Não são validações duplicadas: são a última linha de garantia.</p>
+
+  <div class="tw">
+    <table class="mono">
+      <caption>Restrições estruturais e seu efeito</caption>
+      <thead><tr><th scope="col">Restrição</th><th scope="col">Onde</th><th scope="col">Impede</th></tr></thead>
+      <tbody>
+        <tr><th scope="row">UQ (demanda_id)</th><td><code>documento</code></td><td>Mais de um documento por demanda — impõe a relação 1:1 no esquema</td></tr>
+        <tr><th scope="row">CHECK bytes ≤ 20 MB</th><td><code>documento</code></td><td>Registro de arquivo acima do limite, mesmo se a assinatura for burlada</td></tr>
+        <tr><th scope="row">CHECK jsonb_array_length(citacoes) ≥ 1</th><td><code>auditoria_apontamento</code></td><td>Apontamento sem fundamentação citada</td></tr>
+        <tr><th scope="row">UQ parcial WHERE vigente</th><td><code>risco_classificacao</code></td><td>Duas classificações vigentes para o mesmo risco</td></tr>
+        <tr><th scope="row">UQ (risco_id, revisao)</th><td><code>tratamento</code></td><td>Sobrescrita de revisão anterior do plano</td></tr>
+        <tr><th scope="row">REVOKE UPDATE, DELETE</th><td><code>demanda_evento</code></td><td>Alteração da trilha de auditoria por qualquer caminho da aplicação</td></tr>
+        <tr><th scope="row">CHECK vigente OR revogado_em NOT NULL</th><td><code>rag.documento</code></td><td>Norma marcada como revogada sem data de revogação</td></tr>
+        <tr><th scope="row">Índice único parcial por unidade</th><td>todas</td><td>—<span class="tag g-mu"> coluna presente, segregação inativa na rev. 1</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="note">
+    <b class="h">Índices de acesso</b>
+    <p><code>demanda (responsavel_id, estado)</code> sustenta o quadro do analista; <code>demanda (unidade_id, estado, prazo_analise)</code> sustenta o painel do gestor. Em <code>rag.chunk</code>, HNSW sobre o vetor e GIN sobre o índice textual atendem aos dois ramos da recuperação híbrida descrita na seção 12. <code>demanda_evento</code> nasce particionada por período, antecipando o crescimento monotônico.</p>
+  </div>
+</section>
+
+<!-- ═══════════ 04 ═══════════ -->
+<section id="s4" aria-labelledby="t4">
+  <div class="sh"><span class="n">04</span><h2 id="t4">Rastreabilidade e base normativa</h2></div>
+
+  <p>Duas estruturas sustentam a defensabilidade do parecer: o registro de tudo o que a inteligência artificial propôs, com a decisão humana correspondente, e a base normativa contra a qual cada citação é conferida.</p>
+
+  <figure>
+    <div class="fw">
+      <svg viewBox="0 0 960 504" role="img" aria-label="Rastreabilidade e base normativa. sugestao_ia e demanda_evento pertencem à demanda; rag.documento e rag.chunk formam esquema separado, ligado às citações por identificador validado em tempo de execução, sem chave estrangeira.">
+          <g>
+          <rect x="20" y="190" width="200" height="53" rx="4" class="ent-a"/>
+          <path d="M20,216 H220" class="ent-l"/>
+          <path d="M60,216 V243" class="ent-l" opacity=".55"/>
+          <text x="31" y="208" class="ent-th-a">demanda</text>
+          <text x="29" y="230" class="ent-pk">PK</text>
+          <text x="68" y="230" class="ent-f">id</text>
+          <text x="211" y="230" class="ent-ty" text-anchor="end">uuid</text>
+          </g>
+          <g>
+          <rect x="292" y="40" width="252" height="205" rx="4" class="ent"/>
+          <path d="M292,66 H544" class="ent-l"/>
+          <path d="M332,66 V245" class="ent-l" opacity=".55"/>
+          <text x="303" y="58" class="ent-th">sugestao_ia</text>
+          <text x="301" y="80" class="ent-pk">PK</text>
+          <text x="340" y="80" class="ent-f">id</text>
+          <text x="535" y="80" class="ent-ty" text-anchor="end">uuid</text>
+          <text x="301" y="99" class="ent-fk">FK</text>
+          <text x="340" y="99" class="ent-f">demanda_id</text>
+          <text x="535" y="99" class="ent-ty" text-anchor="end">uuid</text>
+          <text x="340" y="118" class="ent-f">camada</text>
+          <text x="535" y="118" class="ent-ty" text-anchor="end">smallint</text>
+          <text x="340" y="137" class="ent-f">conteudo</text>
+          <text x="535" y="137" class="ent-ty" text-anchor="end">jsonb</text>
+          <text x="340" y="156" class="ent-f">citacoes</text>
+          <text x="535" y="156" class="ent-ty" text-anchor="end">jsonb</text>
+          <text x="340" y="175" class="ent-f">modelo</text>
+          <text x="535" y="175" class="ent-ty" text-anchor="end">text</text>
+          <text x="340" y="194" class="ent-f">prompt_versao</text>
+          <text x="535" y="194" class="ent-ty" text-anchor="end">text</text>
+          <text x="340" y="213" class="ent-f">custo_usd</text>
+          <text x="535" y="213" class="ent-ty" text-anchor="end">numeric</text>
+          <text x="340" y="232" class="ent-f">status</text>
+          <text x="535" y="232" class="ent-ty" text-anchor="end">enum</text>
+          </g>
+          <text x="292" y="261" class="ent-nt">status ∈ {PENDENTE, ACEITA, EDITADA, REJEITADA}</text>
+          <g>
+          <rect x="292" y="300" width="252" height="167" rx="4" class="ent"/>
+          <path d="M292,326 H544" class="ent-l"/>
+          <path d="M332,326 V467" class="ent-l" opacity=".55"/>
+          <text x="303" y="318" class="ent-th">demanda_evento</text>
+          <text x="301" y="340" class="ent-pk">PK</text>
+          <text x="340" y="340" class="ent-f">id</text>
+          <text x="535" y="340" class="ent-ty" text-anchor="end">bigint</text>
+          <text x="301" y="359" class="ent-fk">FK</text>
+          <text x="340" y="359" class="ent-f">demanda_id</text>
+          <text x="535" y="359" class="ent-ty" text-anchor="end">uuid</text>
+          <text x="340" y="378" class="ent-f">tipo</text>
+          <text x="535" y="378" class="ent-ty" text-anchor="end">text</text>
+          <text x="340" y="397" class="ent-f">payload</text>
+          <text x="535" y="397" class="ent-ty" text-anchor="end">jsonb</text>
+          <text x="340" y="416" class="ent-f">ator_id</text>
+          <text x="535" y="416" class="ent-ty" text-anchor="end">uuid</text>
+          <text x="340" y="435" class="ent-f">origem</text>
+          <text x="535" y="435" class="ent-ty" text-anchor="end">enum</text>
+          <text x="340" y="454" class="ent-f">ocorrido_em</text>
+          <text x="535" y="454" class="ent-ty" text-anchor="end">timestamptz</text>
+          </g>
+          <text x="292" y="483" class="ent-nt">somente inserção · particionada por período</text>
+          <g>
+          <rect x="636" y="40" width="246" height="129" rx="4" class="ent" stroke-dasharray="5 4"/>
+          <path d="M636,66 H882" class="ent-l" stroke-dasharray="5 4"/>
+          <path d="M676,66 V169" class="ent-l" opacity=".55"/>
+          <text x="647" y="58" class="ent-th">rag.documento</text>
+          <text x="645" y="80" class="ent-pk">PK</text>
+          <text x="684" y="80" class="ent-f">id</text>
+          <text x="873" y="80" class="ent-ty" text-anchor="end">uuid</text>
+          <text x="684" y="99" class="ent-f">tipo</text>
+          <text x="873" y="99" class="ent-ty" text-anchor="end">text</text>
+          <text x="684" y="118" class="ent-f">identificacao</text>
+          <text x="873" y="118" class="ent-ty" text-anchor="end">text</text>
+          <text x="684" y="137" class="ent-f">vigente</text>
+          <text x="873" y="137" class="ent-ty" text-anchor="end">boolean</text>
+          <text x="684" y="156" class="ent-f">revogado_em</text>
+          <text x="873" y="156" class="ent-ty" text-anchor="end">date</text>
+          </g>
+          <text x="636" y="185" class="ent-nt">esquema rag · escrito apenas pelo ia-worker</text>
+          <g>
+          <rect x="636" y="222" width="246" height="148" rx="4" class="ent" stroke-dasharray="5 4"/>
+          <path d="M636,248 H882" class="ent-l" stroke-dasharray="5 4"/>
+          <path d="M676,248 V370" class="ent-l" opacity=".55"/>
+          <text x="647" y="240" class="ent-th">rag.chunk</text>
+          <text x="645" y="262" class="ent-pk">PK</text>
+          <text x="684" y="262" class="ent-f">id</text>
+          <text x="873" y="262" class="ent-ty" text-anchor="end">uuid</text>
+          <text x="645" y="281" class="ent-fk">FK</text>
+          <text x="684" y="281" class="ent-f">documento_id</text>
+          <text x="873" y="281" class="ent-ty" text-anchor="end">uuid</text>
+          <text x="684" y="300" class="ent-f">dispositivo</text>
+          <text x="873" y="300" class="ent-ty" text-anchor="end">text</text>
+          <text x="684" y="319" class="ent-f">conteudo</text>
+          <text x="873" y="319" class="ent-ty" text-anchor="end">text</text>
+          <text x="684" y="338" class="ent-f">embedding</text>
+          <text x="873" y="338" class="ent-ty" text-anchor="end">halfvec(1536)</text>
+          <text x="684" y="357" class="ent-f">tsv</text>
+          <text x="873" y="357" class="ent-ty" text-anchor="end">tsvector</text>
+          </g>
+          <text x="636" y="386" class="ent-nt">HNSW em embedding · GIN em tsv</text>
+          <path d="M220,225 H258 V94 H292" class="rel"/>
+          <text x="284" y="88" class="ent-c" text-anchor="end">1:N</text>
+          <path d="M220,225 H258 V354 H292" class="rel"/>
+          <text x="284" y="348" class="ent-c" text-anchor="end">1:N</text>
+          <path d="M882,75 H908 V276 H882" class="rel"/>
+          <text x="890" y="270" class="ent-c" text-anchor="start">1:N</text>
+          <path d="M544,151 H598 V257 H636" class="relx" stroke-dasharray="5 4"/>
+          <text x="628" y="251" class="ent-c" text-anchor="end">por id</text>
+        </svg>
+    </div>
+    <figcaption><b>Diagrama 4 · Sugestão, evento e base normativa</b>Não há chave estrangeira entre os esquemas. A ligação entre uma citação e sua fonte é feita por identificador dentro do campo <code>jsonb</code> e conferida em tempo de execução — o que mantém independentes as duas trilhas de migração e permite reindexar a base sem tocar no domínio.</figcaption>
+  </figure>
+
+  <div class="tw">
+    <table class="mono">
+      <caption>Ciclo de vida de uma sugestão</caption>
+      <thead><tr><th scope="col">Estado</th><th scope="col">Origem</th><th scope="col">Efeito no domínio</th></tr></thead>
+      <tbody>
+        <tr><th scope="row"><span class="tag g-mu">PENDENTE</span></th><td>Gravada pelo retorno do worker, após validação</td><td>Nenhum — visível na interface como proposta</td></tr>
+        <tr><th scope="row"><span class="tag g-ok">ACEITA</span></th><td>Analista confirma sem alteração</td><td>Conteúdo copiado para a tabela de domínio, com <code>origem = IA</code></td></tr>
+        <tr><th scope="row"><span class="tag g-ac">EDITADA</span></th><td>Analista altera antes de confirmar</td><td>Conteúdo final gravado com <code>origem = HUMANO</code>; a proposta original permanece</td></tr>
+        <tr><th scope="row"><span class="tag g-err">REJEITADA</span></th><td>Analista descarta</td><td>Nenhum — permanece como registro para avaliação de qualidade</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <p>A razão entre aceitas e emitidas, por camada, é a métrica natural de qualidade do componente de inteligência artificial, obtida sem instrumentação adicional.</p>
+
+  <h3>Curadoria da base normativa</h3>
+  <p>A base é artefato de produto, com responsável formal e processo de atualização. A qualidade da camada de auditoria é limitada pela qualidade desta base e por nenhum outro fator.</p>
+
+  <div class="tw">
+    <table class="mono">
+      <caption>Composição e controle</caption>
+      <thead><tr><th scope="col">Tipo</th><th scope="col">Conteúdo</th><th scope="col">Controle de vigência</th></tr></thead>
+      <tbody>
+        <tr><th scope="row">LEI</th><td>Legislação de contratações, regime vigente e disposições ainda eficazes do anterior</td><td>Revogação por dispositivo, com data</td></tr>
+        <tr><th scope="row">IN</th><td>Instruções normativas do órgão central pertinentes ao ciclo analisado</td><td>Substituição registrada como nova versão</td></tr>
+        <tr><th scope="row">SUMULA</th><td>Súmulas e enunciados do tribunal de contas</td><td>Estável; revisão anual</td></tr>
+        <tr><th scope="row">ACORDAO</th><td>Acórdãos sobre temas recorrentes, priorizados por incidência</td><td>Marcado quando superado por entendimento posterior</td></tr>
+        <tr><th scope="row">NORMA_INTERNA</th><td>Normas da própria instituição</td><td>Vinculada ao ato que a alterou</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="note">
+    <b class="h">Vigência é requisito, não metadado</b>
+    <p>Norma revogada permanece na base — é necessária para analisar documentos anteriores à revogação — mas é excluída da fundamentação de apontamentos sobre documentos posteriores. Base desatualizada representa risco superior ao da ausência de base, pois produz fundamentação aparentemente sólida e materialmente incorreta.</p>
+  </div>
+</section>
+
+<!-- ═══════════ 05 ═══════════ -->
+<section id="s5" aria-labelledby="t5">
+  <div class="sh"><span class="n">05</span><h2 id="t5">Máquina de estados</h2></div>
+
+  <p>A regra de cascata é implementada uma única vez, como tabela de transições no serviço de fluxo. Nenhum outro componente altera o estado da demanda, e a interface consulta as ações liberadas em vez de deduzi-las.</p>
+
+  <figure>
+    <div class="fw wide">
+      <svg viewBox="0 0 920 330" role="img" aria-label="Diagrama de estados da demanda. De RASCUNHO a demanda passa por ATRIBUIDA e PROCESSANDO_DOCUMENTO, de onde segue para FALHA_ANALISE em caso de erro ou para EM_CONFORMIDADE, EM_IDENTIFICACAO, EM_CLASSIFICACAO, EM_TRATAMENTO, EM_AUDITORIA e CONSOLIDADA.">
+        <g class="box">
+          <rect x="26"  y="108" width="152" height="42" rx="21"/>
+          <rect x="196" y="108" width="152" height="42" rx="21"/>
+          <rect x="366" y="108" width="152" height="42" rx="21"/>
+          <rect x="536" y="108" width="164" height="42" rx="21"/>
+          <rect x="718" y="108" width="176" height="42" rx="21"/>
+          <rect x="26"  y="238" width="164" height="42" rx="21"/>
+          <rect x="208" y="238" width="158" height="42" rx="21"/>
+          <rect x="384" y="238" width="152" height="42" rx="21"/>
+          <rect x="554" y="238" width="152" height="42" rx="21"/>
+        </g>
+        <rect x="366" y="26" width="152" height="42" rx="21" fill="var(--surface)" stroke="var(--err)" stroke-width="1.6"/>
+        <g font-family="JetBrains Mono, monospace" font-size="11" font-weight="500" text-anchor="middle" fill="var(--ink)">
+          <text x="102" y="134">RASCUNHO</text>
+          <text x="272" y="134">ATRIBUIDA</text>
+          <text x="442" y="130">PROCESSANDO</text>
+          <text x="442" y="144">_DOCUMENTO</text>
+          <text x="618" y="134">EM_CONFORMIDADE</text>
+          <text x="806" y="134">EM_IDENTIFICACAO</text>
+          <text x="108" y="264">EM_CLASSIFICACAO</text>
+          <text x="287" y="264">EM_TRATAMENTO</text>
+          <text x="460" y="264">EM_AUDITORIA</text>
+          <text x="630" y="264">CONSOLIDADA</text>
+        </g>
+        <text x="442" y="52" font-family="JetBrains Mono, monospace" font-size="11" font-weight="500" text-anchor="middle" fill="var(--err)">FALHA_ANALISE</text>
+        <g class="wire" marker-end="url(#ah)">
+          <path d="M178,129 H190"/><path d="M348,129 H360"/><path d="M518,129 H530"/><path d="M700,129 H712"/>
+          <path d="M806,150 V192 H108 V232"/>
+          <path d="M190,259 H202"/><path d="M366,259 H378"/><path d="M536,259 H548"/>
+        </g>
+        <path class="wire" d="M424,108 V74" marker-end="url(#ah-e)" stroke="var(--err)" stroke-dasharray="5 3"/>
+        <path class="wire" d="M470,68 V102" marker-end="url(#ah)" stroke-dasharray="5 3"/>
+        <g class="lbl-e" font-size="10">
+          <text x="184" y="172" text-anchor="middle">atribuir</text>
+          <text x="354" y="172" text-anchor="middle">confirmarUpload</text>
+          <text x="524" y="172" text-anchor="middle">extracaoOk</text>
+          <text x="706" y="172" text-anchor="middle">encaminhar</text>
+          <text x="457" y="208" text-anchor="middle">encaminhar</text>
+          <text x="196" y="230" text-anchor="middle">encaminhar</text>
+          <text x="372" y="230" text-anchor="middle">encaminhar</text>
+          <text x="542" y="230" text-anchor="middle">consolidar</text>
+          <text x="424" y="84" text-anchor="end">erro</text>
+          <text x="500" y="84">reprocessar</text>
+        </g>
+      </svg>
+    </div>
+    <figcaption><b>Diagrama 5 · Estados da demanda</b><code>FALHA_ANALISE</code> é estado de domínio, não condição de registro: expõe a ação de reprocessamento na interface e é contabilizado como métrica. Uma falha de extração nunca desaparece em log.</figcaption>
+  </figure>
+
+  <div class="tw">
+    <table class="mono">
+      <caption>Tabela de transições e respectivas guardas</caption>
+      <thead><tr><th scope="col">Estado de origem</th><th scope="col">Ação</th><th scope="col">Estado de destino</th><th scope="col">Guarda</th></tr></thead>
+      <tbody>
+        <tr><th scope="row">RASCUNHO</th><td class="m">atribuir</td><td class="m">ATRIBUIDA</td><td>Documento, tipo, responsável, prioridade e prazo preenchidos</td></tr>
+        <tr><th scope="row">ATRIBUIDA</th><td class="m">confirmarUpload</td><td class="m">PROCESSANDO_DOCUMENTO</td><td>Resumo criptográfico confere com o objeto enviado</td></tr>
+        <tr><th scope="row">PROCESSANDO_DOCUMENTO</th><td class="m">extracaoOk</td><td class="m">EM_CONFORMIDADE</td><td>Trechos extraídos e persistidos</td></tr>
+        <tr><th scope="row">PROCESSANDO_DOCUMENTO</th><td class="m">extracaoErro</td><td class="m">FALHA_ANALISE</td><td>Tarefa esgotou as tentativas</td></tr>
+        <tr><th scope="row">FALHA_ANALISE</th><td class="m">reprocessar</td><td class="m">PROCESSANDO_DOCUMENTO</td><td>Sem guarda; reenfileira com novo identificador de tarefa</td></tr>
+        <tr><th scope="row">EM_CONFORMIDADE</th><td class="m">encaminhar</td><td class="m">EM_IDENTIFICACAO</td><td>Os quatro blocos possuem itens classificados</td></tr>
+        <tr><th scope="row">EM_IDENTIFICACAO</th><td class="m">encaminhar</td><td class="m">EM_CLASSIFICACAO</td><td>Ao menos um risco cadastrado</td></tr>
+        <tr><th scope="row">EM_CLASSIFICACAO</th><td class="m">encaminhar</td><td class="m">EM_TRATAMENTO</td><td>Todo risco possui classificação vigente</td></tr>
+        <tr><th scope="row">EM_TRATAMENTO</th><td class="m">encaminhar</td><td class="m">EM_AUDITORIA</td><td>Todo risco possui plano na revisão corrente</td></tr>
+        <tr><th scope="row">EM_AUDITORIA</th><td class="m">consolidar</td><td class="m">CONSOLIDADA</td><td>Relatório emitido e revisado pelo responsável</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="note">
+    <b class="h">Concorrência na transição</b>
+    <p>A aplicação da transição ocorre sob bloqueio da linha da demanda. Duas requisições simultâneas são serializadas: a segunda reavalia a guarda no estado já alterado e é recusada com conflito, em vez de aplicar a mesma transição duas vezes.</p>
+  </div>
+</section>
+
+<!-- ═══════════ 06 ═══════════ -->
+<section id="s6" aria-labelledby="t6">
+  <div class="sh"><span class="n">06</span><h2 id="t6">Regras de negócio</h2></div>
+
+  <p>Cada regra é atribuída a um ponto de aplicação. Regras que protegem invariante de dado descem ao esquema; regras de sequência ficam na máquina de estados; regras de conteúdo ficam no serviço de domínio. A interface nunca é o ponto de aplicação — apenas antecipa a mensagem.</p>
+
+  <div class="tw">
+    <table class="mono">
+      <caption>Regras de negócio e ponto de aplicação</caption>
+      <thead><tr><th scope="col">ID</th><th scope="col">Regra</th><th scope="col">Aplicada em</th><th scope="col">Mecanismo</th></tr></thead>
+      <tbody>
+        <tr><th scope="row">RN-001</th><td>Toda demanda exige um documento anexado</td><td><span class="tag g-ac">máquina de estados</span></td><td>Guarda da transição <code>atribuir</code></td></tr>
+        <tr><th scope="row">RN-002</th><td>Tipo de documento restrito à lista definida</td><td><span class="tag g-ok">esquema</span></td><td><code>CHECK</code> sobre <code>tipo_documento</code></td></tr>
+        <tr><th scope="row">RN-003</th><td>Responsável obrigatório e de perfil analista</td><td><span class="tag g-in">domínio</span></td><td>Validação no serviço de atribuição</td></tr>
+        <tr><th scope="row">RN-004</th><td>Prioridade obrigatória em três níveis</td><td><span class="tag g-ok">esquema</span></td><td>Tipo enumerado <code>nivel</code></td></tr>
+        <tr><th scope="row">RN-005</th><td>Prazo de análise obrigatório e não retroativo</td><td><span class="tag g-in">domínio</span></td><td>Validação na criação; alteração exige justificativa registrada</td></tr>
+        <tr><th scope="row">RN-006</th><td>Demanda pertence a exatamente uma unidade</td><td><span class="tag g-ok">esquema</span></td><td><code>NOT NULL</code> e chave estrangeira</td></tr>
+        <tr><th scope="row">RN-007</th><td>Camadas cumpridas em sequência, sem salto</td><td><span class="tag g-ac">máquina de estados</span></td><td>Tabela de transições — ver seção 05</td></tr>
+        <tr><th scope="row">RN-008</th><td>Classificação de conformidade restrita a três valores</td><td><span class="tag g-ok">esquema</span></td><td>Tipo enumerado <code>classificacao_conf</code></td></tr>
+        <tr><th scope="row">RN-009</th><td>Camada 3 exige ao menos um risco identificado</td><td><span class="tag g-ac">máquina de estados</span></td><td>Guarda da transição a partir de <code>EM_IDENTIFICACAO</code></td></tr>
+        <tr><th scope="row">RN-010</th><td>Probabilidade obrigatória em três níveis</td><td><span class="tag g-ok">esquema</span></td><td>Tipo enumerado; obrigatoriedade verificada na guarda</td></tr>
+        <tr><th scope="row">RN-011</th><td>Impacto obrigatório em três níveis</td><td><span class="tag g-ok">esquema</span></td><td>Tipo enumerado; obrigatoriedade verificada na guarda</td></tr>
+        <tr><th scope="row">RN-012</th><td>Estratégia restrita às quatro da ISO 31000</td><td><span class="tag g-ok">esquema</span></td><td>Tipo enumerado <code>estrategia</code></td></tr>
+        <tr><th scope="row">RN-013</th><td>Histórico consolida as camadas anteriores</td><td><span class="tag g-in">domínio</span></td><td>Projeção do registro de eventos — ver ADR-03</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>Cálculos determinísticos</h3>
+  <p>Executados exclusivamente na camada de aplicação. Nunca na interface, por risco de divergência de exibição; nunca no modelo de linguagem, por ausência de determinismo.</p>
+
+  <div class="tw">
+    <table>
+      <caption>Índice de conformidade — escala por item</caption>
+      <thead><tr><th scope="col">Classificação</th><th scope="col" class="tc">Pontos</th><th scope="col">Interpretação</th></tr></thead>
+      <tbody>
+        <tr><th scope="row"><span class="tag g-ok">CONFORME</span></th><td class="tc">100</td><td>O documento atende integralmente ao fundamento verificado</td></tr>
+        <tr><th scope="row"><span class="tag g-ac">ALERTA</span></th><td class="tc">50</td><td>Atendimento parcial ou com ressalva que não impede o prosseguimento</td></tr>
+        <tr><th scope="row"><span class="tag g-err">NAO_CONFORME</span></th><td class="tc">0</td><td>O documento não atende ao fundamento verificado</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p>O índice é a média por <em>item</em>, e não por bloco: um bloco com dez verificações pesa mais que um bloco com uma única verificação, refletindo o esforço analítico real. É recalculado a cada escrita e materializado na demanda, evitando agregação no caminho do painel.</p>
+
+  <div class="tw">
+    <table>
+      <caption>Matriz probabilidade × impacto — severidade derivada</caption>
+      <thead><tr><th scope="col">Probabilidade ↓ / Impacto →</th><th scope="col" class="tc">BAIXO</th><th scope="col" class="tc">MEDIO</th><th scope="col" class="tc">ALTO</th></tr></thead>
+      <tbody>
+        <tr><th scope="row">ALTO</th><td class="tc"><span class="tag g-ac">MEDIO</span></td><td class="tc"><span class="tag g-err">ALTO</span></td><td class="tc"><span class="tag g-err">ALTO</span></td></tr>
+        <tr><th scope="row">MEDIO</th><td class="tc"><span class="tag g-ok">BAIXO</span></td><td class="tc"><span class="tag g-ac">MEDIO</span></td><td class="tc"><span class="tag g-err">ALTO</span></td></tr>
+        <tr><th scope="row">BAIXO</th><td class="tc"><span class="tag g-ok">BAIXO</span></td><td class="tc"><span class="tag g-ok">BAIXO</span></td><td class="tc"><span class="tag g-ac">MEDIO</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p>A severidade é gravada junto com a classificação, e não recalculada em leitura: alterar a matriz no futuro não deve reescrever silenciosamente pareceres já emitidos. O radar de vulnerabilidade agrega a contagem de severidade alta por categoria de risco, em escala fixa, permitindo comparação entre demandas distintas.</p>
+</section>
+
+<!-- ═══════════ 07 ═══════════ -->
+<section id="s7" aria-labelledby="t7">
+  <div class="sh"><span class="n">07</span><h2 id="t7">Fluxo de dados</h2></div>
+
+  <figure>
+    <div class="fw wide">
+      <svg viewBox="0 0 920 404" role="img" aria-label="Diagrama de fluxo de dados. O analista solicita uma URL ao processo de emissão, que grava o objeto no depósito de documentos. O processo de extração lê o objeto e grava trechos com coordenadas. O processo de recuperação lê esses trechos e a base normativa, alimenta o processo de inferência, cuja saída passa pelo processo de validação, que descarta objetos inválidos e envia os válidos ao processo de gravação.">
+        <g class="box">
+          <rect x="30"  y="64"  width="150" height="56" rx="4"/>
+          <rect x="200" y="64"  width="150" height="56" rx="16"/>
+          <rect x="540" y="64"  width="150" height="56" rx="16"/>
+          <rect x="30"  y="244" width="150" height="56" rx="16"/>
+          <rect x="200" y="244" width="150" height="56" rx="16"/>
+          <rect x="370" y="244" width="150" height="56" rx="16"/>
+          <rect x="540" y="244" width="150" height="56" rx="16"/>
+        </g>
+        <g class="box-2">
+          <rect x="370" y="64"  width="150" height="56"/>
+          <rect x="710" y="64"  width="180" height="56"/>
+          <rect x="30"  y="334" width="150" height="56"/>
+          <rect x="710" y="244" width="180" height="56"/>
+        </g>
+        <g class="wire">
+          <path d="M400,64 V120"/><path d="M740,64 V120"/><path d="M60,334 V390"/><path d="M740,244 V300"/>
+        </g>
+        <g class="lbl-t" font-size="12.5" text-anchor="middle">
+          <text x="105" y="88">Analista</text>
+          <text x="275" y="88">1.0 emitir URL</text>
+          <text x="615" y="88">2.0 extrair</text>
+          <text x="105" y="268">3.0 recuperar</text>
+          <text x="275" y="268">4.0 inferir</text>
+          <text x="445" y="268">5.0 validar</text>
+          <text x="615" y="268">6.0 gravar</text>
+        </g>
+        <g class="lbl-m" font-size="10" text-anchor="middle">
+          <text x="105" y="106">entidade externa</text>
+          <text x="275" y="106">api-core</text>
+          <text x="615" y="106">ia-worker · docling</text>
+          <text x="105" y="286">ia-worker · rrf</text>
+          <text x="275" y="286">ia-worker · llm</text>
+          <text x="445" y="286">ia-worker · schema</text>
+          <text x="615" y="286">api-core</text>
+        </g>
+        <g class="lbl-a" font-size="11" font-weight="700" text-anchor="middle">
+          <text x="385" y="97">D1</text><text x="725" y="97">D2</text>
+          <text x="45"  y="367">D3</text><text x="725" y="277">D4</text>
+        </g>
+        <g class="lbl-e" font-family="JetBrains Mono, monospace" font-size="11" text-anchor="middle">
+          <text x="461" y="88">s3://documentos</text>
+          <text x="816" y="88">documento_trecho</text>
+          <text x="121" y="358">rag.chunk</text>
+          <text x="816" y="268">auditoria_apontamento</text>
+        </g>
+        <g class="lbl-m" font-size="9.5" text-anchor="middle">
+          <text x="461" y="106">objeto binário</text>
+          <text x="816" y="106">texto · página · bbox</text>
+          <text x="121" y="376">dispositivo · embedding</text>
+          <text x="816" y="286">e sugestao_ia</text>
+        </g>
+        <g marker-end="url(#ah-a)">
+          <path class="flow" d="M180,92 H194"/>
+          <path class="flow" d="M350,92 H364"/>
+          <path class="flow" d="M526,92 H534"/>
+          <path class="flow" d="M690,92 H704"/>
+          <path class="flow" d="M800,120 V184 H105 V238"/>
+          <path class="flow" d="M105,334 V306"/>
+          <path class="flow" d="M180,272 H194"/>
+          <path class="flow" d="M350,272 H364"/>
+          <path class="flow" d="M520,272 H534"/>
+          <path class="flow" d="M690,272 H704"/>
+        </g>
+        <path class="wire" d="M445,300 V344" stroke="var(--err)" stroke-dasharray="5 3" marker-end="url(#ah-e)"/>
+        <text x="452" y="330" font-family="JetBrains Mono, monospace" font-size="10" fill="var(--err)">descarte</text>
+        <g class="lbl-e" font-family="JetBrains Mono, monospace" font-size="10" text-anchor="middle">
+          <text x="187" y="56">pedido</text>
+          <text x="357" y="56">PUT</text>
+          <text x="530" y="56">GetObject</text>
+          <text x="697" y="56">INSERT</text>
+          <text x="470" y="176">trechos do documento</text>
+          <text x="187" y="236">contexto</text>
+          <text x="357" y="236">json bruto</text>
+          <text x="527" y="236">válidos</text>
+          <text x="697" y="236">INSERT</text>
+        </g>
+      </svg>
+    </div>
+    <figcaption><b>Diagrama 6 · Fluxo de dados (nível 1)</b>Processos em cápsula, depósitos identificados por <code>D<i>n</i></code>. O processo 4.0 recebe o texto integral do documento vindo de D2 e apenas os trechos recuperados de D3 — a base normativa é consultada por similaridade, o documento sob análise é lido por completo.</figcaption>
+  </figure>
+</section>
+
+<!-- ═══════════ 08 ═══════════ -->
+<section id="s8" aria-labelledby="t8">
+  <div class="sh"><span class="n">08</span><h2 id="t8">Ciclo de vida da demanda</h2></div>
+
+  <figure>
+    <div class="fw wide">
+      <svg viewBox="0 0 920 580" role="img" aria-label="Diagrama de sequência do processamento de um documento entre a aplicação web, a API, o repositório de objetos, o worker de inteligência artificial e o provedor de modelo de linguagem.">
+        <g class="box">
+          <rect x="20"  y="16" width="132" height="40" rx="4"/>
+          <rect x="196" y="16" width="132" height="40" rx="4"/>
+          <rect x="378" y="16" width="120" height="40" rx="4"/>
+          <rect x="556" y="16" width="132" height="40" rx="4"/>
+          <rect x="768" y="16" width="120" height="40" rx="4"/>
+        </g>
+        <g class="lbl-e" font-family="JetBrains Mono, monospace" font-size="11.5" text-anchor="middle">
+          <text x="86"  y="41">next-web</text>
+          <text x="262" y="41">api-core</text>
+          <text x="438" y="41">s3</text>
+          <text x="622" y="41">ia-worker</text>
+          <text x="828" y="41">llm</text>
+        </g>
+        <g stroke="var(--line-2)" stroke-width="1" stroke-dasharray="3 5" opacity=".8">
+          <path d="M86,56 V558"/><path d="M262,56 V558"/><path d="M438,56 V558"/><path d="M622,56 V558"/><path d="M828,56 V558"/>
+        </g>
+        <g class="wire" marker-end="url(#ah)">
+          <path d="M86,96 H256"/>
+          <path d="M86,168 H459"/>
+          <path d="M86,210 H256"/>
+          <path d="M270,254 H659"/>
+          <path d="M665,298 H444"/>
+          <path d="M665,450 H844"/>
+          <path d="M665,546 H276"/>
+        </g>
+        <g class="wire" marker-end="url(#ah)" stroke-dasharray="5 3">
+          <path d="M262,140 H92"/>
+          <path d="M828,490 H628"/>
+        </g>
+        <g class="wire" marker-end="url(#ah)">
+          <path d="M665,334 H722 V362 H671"/>
+          <path d="M665,386 H722 V414 H671"/>
+          <path d="M665,502 H722 V526 H671"/>
+        </g>
+        <g class="lbl-e" font-family="JetBrains Mono, monospace" font-size="10.5">
+          <text x="94" y="90">1 · solicita URL assinada de envio</text>
+          <text x="94" y="134">2 · URL assinada e identificador do documento</text>
+          <text x="94" y="162">3 · envia o arquivo diretamente (até 20 MB)</text>
+          <text x="94" y="204">4 · confirma a conclusão do envio</text>
+          <text x="278" y="248">5 · publica tarefa de extração na fila</text>
+          <text x="480" y="292">6 · lê o arquivo</text>
+          <text x="730" y="344">7 · extrai texto,</text>
+          <text x="730" y="358">página e coordenadas</text>
+          <text x="730" y="396">8 · recupera trechos</text>
+          <text x="730" y="410">da base normativa</text>
+          <text x="672" y="444">9 · envia prompt e esquema</text>
+          <text x="842" y="484" text-anchor="end">10 · objeto estruturado</text>
+          <text x="730" y="522">11 · valida esquema</text>
+          <text x="730" y="536">e confere as fontes</text>
+          <text x="658" y="540" text-anchor="end">12 · devolve o resultado validado</text>
+        </g>
+      </svg>
+    </div>
+    <figcaption><b>Diagrama 7 · Sequência do processamento</b>A partir da mensagem 5 o processamento sai do ciclo de requisição do usuário. A interface acompanha o estado por consulta periódica, com intervalo de três segundos, ativa apenas enquanto a demanda estiver em processamento ou em auditoria.</figcaption>
+  </figure>
+
+  <div class="note">
+    <b class="h">Publicação após confirmação da transação</b>
+    <p>A mensagem da etapa 5 só é enviada depois que a transação da etapa 4 é confirmada. Publicar dentro da transação produz mensagem órfã quando ela é revertida — o worker processaria uma demanda cujo registro não existe. O caso inverso, transação confirmada e envio falho, é coberto pela tarefa persistida, reprocessada por varredura periódica.</p>
+  </div>
+</section>
+
+<!-- ═══════════ 09 ═══════════ -->
+<section id="s9" aria-labelledby="t9">
+  <div class="sh"><span class="n">09</span><h2 id="t9">Camada de apresentação</h2></div>
+
+  <p>A aplicação Next.js opera também como intermediário de segurança. O par de tokens emitido pela API é guardado em identificador de sessão cifrado, inacessível ao JavaScript da página; a renovação ocorre no servidor, transparente ao cliente. Em um sistema que renderiza conteúdo proveniente de documentos enviados por terceiros, essa separação neutraliza uma classe inteira de vetores de ataque.</p>
+
+  <div class="tw">
+    <table class="mono">
+      <caption>Composição das telas</caption>
+      <thead><tr><th scope="col">Rota</th><th scope="col">Renderização</th><th scope="col">Interação no cliente</th></tr></thead>
+      <tbody>
+        <tr><th scope="row">/painel</th><td>Servidor, com revalidação periódica</td><td>Série temporal, radar, exportação</td></tr>
+        <tr><th scope="row">/usuarios</th><td>Servidor + ação de servidor</td><td>Formulário validado, tabela ordenável</td></tr>
+        <tr><th scope="row">/conformidade/[id]</th><td>Casca no servidor, edição no cliente</td><td>Visualizador de documento, itens por bloco</td></tr>
+        <tr><th scope="row">/riscos/[id]</th><td>Servidor + cliente</td><td>Tabela editável</td></tr>
+        <tr><th scope="row">/classificacao/[id]</th><td>Servidor</td><td>Matriz 3×3, radar</td></tr>
+        <tr><th scope="row">/tratamento/[id]</th><td>Cliente</td><td>Editor de texto estruturado, histórico</td></tr>
+        <tr><th scope="row">/auditoria/[id]</th><td>Servidor + consulta periódica</td><td>Apontamentos com âncora no documento</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>Cadeia da citação</h3>
+  <p>O elo que torna o apontamento verificável atravessa as três aplicações. Se qualquer ponta faltar, o recurso mais distintivo do sistema deixa de existir.</p>
+
+  <figure>
+    <div class="fw wide">
+      <svg viewBox="0 0 920 216" role="img" aria-label="Cadeia da citação em quatro etapas. O worker extrai página e coordenadas; o banco persiste em documento_trecho; a API expõe a referência no objeto de transferência; a interface desenha o destaque sobre o documento renderizado.">
+        <g class="box">
+          <rect x="20"  y="44" width="200" height="86" rx="4"/>
+          <rect x="250" y="44" width="200" height="86" rx="4"/>
+          <rect x="480" y="44" width="200" height="86" rx="4"/>
+          <rect x="710" y="44" width="200" height="86" rx="4"/>
+        </g>
+        <g class="lbl-m" font-size="10" letter-spacing="1.1">
+          <text x="34" y="66">PYTHON</text>
+          <text x="264" y="66">POSTGRES</text>
+          <text x="494" y="66">JAVA</text>
+          <text x="724" y="66">TYPESCRIPT</text>
+        </g>
+        <g class="lbl-t" font-size="12.5">
+          <text x="34" y="90">ia-worker · extract</text>
+          <text x="264" y="90">documento_trecho</text>
+          <text x="494" y="90">ApontamentoDto</text>
+          <text x="724" y="90">PdfViewer</text>
+        </g>
+        <g class="lbl-e" font-family="JetBrains Mono, monospace" font-size="10.5">
+          <text x="34" y="110">pagina, bbox[4]</text>
+          <text x="264" y="110">int, numeric[4]</text>
+          <text x="494" y="110">trecho{pagina,bbox}</text>
+          <text x="724" y="110">overlay sobre canvas</text>
+        </g>
+        <g class="lbl-m" font-size="9.5">
+          <text x="34" y="124">coordenadas normalizadas</text>
+          <text x="264" y="124">persistência posicional</text>
+          <text x="494" y="124">serialização do contrato</text>
+          <text x="724" y="124">coordenadas × escala</text>
+        </g>
+        <g marker-end="url(#ah-a)">
+          <path class="flow" d="M220,87 H244"/>
+          <path class="flow" d="M450,87 H474"/>
+          <path class="flow" d="M680,87 H704"/>
+        </g>
+        <text x="20" y="176" class="lbl-e" font-size="11">A extração posicional é a única etapa sem substituto: sem página e coordenadas na origem, nenhuma etapa</text>
+        <text x="20" y="192" class="lbl-e" font-size="11">seguinte consegue reconstruir a âncora, e o apontamento passa a ser apenas texto.</text>
+      </svg>
+    </div>
+    <figcaption><b>Diagrama 8 · Cadeia da citação</b>É esta cadeia que justifica a decisão ADR-06. A escolha de Python não é preferência de ecossistema: é o requisito de extração posicional confiável, do qual depende toda a verificabilidade do parecer.</figcaption>
+  </figure>
+
+  <h3>Acessibilidade</h3>
+  <p>Critério de aceitação no nível AA das diretrizes de acessibilidade para conteúdo web, verificado na esteira de construção sobre as sete rotas. Componentes construídos sobre primitivas acessíveis, o que resolve foco, papéis e navegação por teclado nas estruturas compostas. Contraste conferido nos dois temas; a matriz de probabilidade e impacto não codifica severidade apenas por cor — cada célula exibe rótulo textual.</p>
+</section>
+
+<!-- ═══════════ 10 ═══════════ -->
+<section id="s10" aria-labelledby="t10">
+  <div class="sh"><span class="n">10</span><h2 id="t10">Camada de aplicação</h2></div>
+
+  <p>Estrutura organizada por domínio, não por artefato técnico. Cada módulo expõe tipos e serviços públicos e mantém entidades e repositórios privados. A verificação da fronteira é automatizada: uma referência a tipo interno de outro módulo reprova a construção.</p>
+
+  <figure>
+    <div class="fw wide">
+      <svg viewBox="0 0 920 352" role="img" aria-label="Mapa de módulos da camada de aplicação. Os módulos de conformidade, risco, tratamento e auditoria dependem do módulo de demanda; risco também depende de conformidade e tratamento depende de risco. Todos os módulos dependem do módulo compartilhado de infraestrutura.">
+        <g class="box">
+          <rect x="40"  y="40"  width="170" height="52" rx="4"/>
+          <rect x="460" y="40"  width="170" height="52" rx="4"/>
+          <rect x="670" y="40"  width="170" height="52" rx="4"/>
+          <rect x="40"  y="150" width="170" height="52" rx="4"/>
+          <rect x="250" y="150" width="170" height="52" rx="4"/>
+          <rect x="460" y="150" width="170" height="52" rx="4"/>
+          <rect x="670" y="150" width="170" height="52" rx="4"/>
+        </g>
+        <rect x="250" y="40" width="170" height="52" rx="4" class="box-a"/>
+        <rect x="40" y="262" width="800" height="48" rx="4" class="box-2"/>
+
+        <g class="lbl-e" font-family="JetBrains Mono, monospace" font-size="12.5" text-anchor="middle">
+          <text x="125" y="64">identidade</text>
+          <text x="545" y="64">arquivo</text>
+          <text x="755" y="64">painel</text>
+          <text x="125" y="174">conformidade</text>
+          <text x="335" y="174">risco</text>
+          <text x="545" y="174">tratamento</text>
+          <text x="755" y="174">auditoria</text>
+        </g>
+        <text x="335" y="64" class="lbl-a" font-family="JetBrains Mono, monospace" font-size="13" font-weight="700" text-anchor="middle">demanda</text>
+        <g class="lbl-m" font-size="9.5" text-anchor="middle">
+          <text x="125" y="80">usuários · perfis</text>
+          <text x="335" y="80">fluxo · estados · guardas</text>
+          <text x="545" y="80">URL assinada · hash</text>
+          <text x="755" y="80">projeções · agregações</text>
+          <text x="125" y="190">blocos · índice</text>
+          <text x="335" y="190">tipo · categoria · matriz</text>
+          <text x="545" y="190">ISO 31000 · revisões</text>
+          <text x="755" y="190">apontamentos · callback</text>
+        </g>
+        <text x="60" y="284" class="lbl-e" font-family="JetBrains Mono, monospace" font-size="12.5">shared</text>
+        <text x="60" y="300" class="lbl-m" font-size="9.5">tratamento de erro · publicação de eventos · segurança · acesso JDBC</text>
+
+        <g class="wire" marker-end="url(#ah)">
+          <path d="M125,150 V128 H320 V98"/>
+          <path d="M335,150 V98"/>
+          <path d="M755,150 V116 H350 V98"/>
+          <path d="M250,176 H216"/>
+          <path d="M460,176 H426"/>
+          <path d="M545,40 V22 H360 V36"/>
+        </g>
+        <g class="wire" stroke-dasharray="4 4" opacity=".7" marker-end="url(#ah)">
+          <path d="M125,202 V256"/><path d="M335,202 V256"/><path d="M545,202 V256"/><path d="M755,202 V256"/>
+        </g>
+        <text x="856" y="290" class="lbl-m" font-size="9.5" text-anchor="end">todos os módulos dependem de shared</text>
+      </svg>
+    </div>
+    <figcaption><b>Diagrama 9 · Mapa de módulos</b>As dependências apontam sempre para <code>demanda</code>, nunca a partir dele: o agregado raiz não conhece as camadas que o consomem. <code>painel</code> não depende dos módulos de camada — lê projeções do registro de eventos por consulta direta, o que evita acoplar o relatório à estrutura interna de cada camada.</figcaption>
+  </figure>
+
+  <div class="tw">
+    <table class="mono">
+      <caption>Módulos e requisitos atendidos</caption>
+      <thead><tr><th scope="col">Módulo</th><th scope="col">Escopo</th><th scope="col">Requisitos</th></tr></thead>
+      <tbody>
+        <tr><th scope="row">identidade</th><td>Usuários, perfis, autenticação e autorização</td><td>RF-016, RF-027 a RF-029</td></tr>
+        <tr><th scope="row">demanda</th><td>Atribuição, prioridade, prazo, estado e máquina de fluxo</td><td>RF-012 a RF-026</td></tr>
+        <tr><th scope="row">arquivo</th><td>URL assinada, registro do documento e estado de extração</td><td>RF-017, RF-018</td></tr>
+        <tr><th scope="row">conformidade</th><td>Blocos de fundamentação, classificação e índice</td><td>RF-030 a RF-042</td></tr>
+        <tr><th scope="row">risco</th><td>Identificação, classificação, matriz e radar</td><td>RF-043 a RF-065</td></tr>
+        <tr><th scope="row">tratamento</th><td>Estratégias, planos e histórico consolidado</td><td>RF-066 a RF-073</td></tr>
+        <tr><th scope="row">auditoria</th><td>Disparo da análise, apontamentos e relatório</td><td>RF-074 a RF-076</td></tr>
+        <tr><th scope="row">painel</th><td>Agregações, séries temporais e exportação</td><td>RF-001 a RF-011</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="note">
+    <b class="h">Persistência híbrida deliberada</b>
+    <p>Mapeamento objeto-relacional para a manutenção das entidades; consultas escritas diretamente em SQL para as agregações do painel. Agregação analítica expressa em linguagem de consulta orientada a objetos produz código de difícil leitura e desempenho imprevisível, sem benefício correspondente. A evolução do esquema é controlada por migrações versionadas; a geração automática a partir das entidades permanece desativada em todos os ambientes.</p>
+  </div>
+</section>
+
+<!-- ═══════════ 11 ═══════════ -->
+<section id="s11" aria-labelledby="t11">
+  <div class="sh"><span class="n">11</span><h2 id="t11">Serviço de inteligência</h2></div>
+
+  <p>O serviço não emite texto livre em nenhum ponto. Toda invocação declara um esquema de resposta, e a saída atravessa três estágios de validação antes de existir como dado.</p>
+
+  <figure>
+    <div class="fw wide">
+      <svg viewBox="0 0 920 336" role="img" aria-label="Pipeline de inferência. O contexto montado é enviado ao modelo com esquema de saída; a resposta passa por validação estrutural, verificação de existência da fonte e verificação de vigência antes de seguir para o retorno. Falha em qualquer estágio leva ao descarte com registro.">
+        <g class="box">
+          <rect x="24"  y="60" width="152" height="62" rx="4"/>
+          <rect x="212" y="60" width="152" height="62" rx="4"/>
+          <rect x="400" y="60" width="152" height="62" rx="4"/>
+          <rect x="588" y="60" width="152" height="62" rx="4"/>
+          <rect x="776" y="60" width="120" height="62" rx="4"/>
+        </g>
+        <g class="lbl-t" font-size="12.5" text-anchor="middle">
+          <text x="100" y="86">montar contexto</text>
+          <text x="288" y="86">invocar modelo</text>
+          <text x="476" y="86">validar esquema</text>
+          <text x="664" y="86">conferir fontes</text>
+          <text x="836" y="86">retorno</text>
+        </g>
+        <g class="lbl-m" font-size="10" text-anchor="middle">
+          <text x="100" y="104">documento + top-k</text>
+          <text x="100" y="117">+ prompt versionado</text>
+          <text x="288" y="104">esquema de resposta</text>
+          <text x="288" y="117">temperatura 0</text>
+          <text x="476" y="104">tipos e cardinalidade</text>
+          <text x="476" y="117">erro → 1 reprocessamento</text>
+          <text x="664" y="104">identificador existe</text>
+          <text x="664" y="117">e norma vigente</text>
+          <text x="836" y="104">HTTP mútuo</text>
+        </g>
+        <g marker-end="url(#ah-a)">
+          <path class="flow" d="M176,91 H206"/>
+          <path class="flow" d="M364,91 H394"/>
+          <path class="flow" d="M552,91 H582"/>
+          <path class="flow" d="M740,91 H770"/>
+        </g>
+        <rect x="400" y="216" width="340" height="52" rx="4" class="box" stroke="var(--err)"/>
+        <text x="570" y="238" font-size="12.5" text-anchor="middle" fill="var(--err)" font-family="IBM Plex Sans, sans-serif" font-weight="600">descarte com registro</text>
+        <text x="570" y="256" class="lbl-m" font-size="10" text-anchor="middle">contabilizado por motivo · indicador de qualidade</text>
+        <g stroke="var(--err)" fill="none" stroke-width="1.3" stroke-dasharray="5 3" marker-end="url(#ah-e)">
+          <path d="M476,122 V210"/>
+          <path d="M664,122 V180 H600 V210"/>
+        </g>
+        <g font-family="JetBrains Mono, monospace" font-size="10" fill="var(--err)">
+          <text x="484" y="160">malformado</text>
+          <text x="672" y="150">fonte inexistente</text>
+          <text x="672" y="164">ou revogada</text>
+        </g>
+        <text x="24" y="300" class="lbl-m" font-size="10.5">Nenhum objeto atinge o retorno sem citação existente e vigente. O contador de descarte é indicador de qualidade da base e do prompt.</text>
+      </svg>
+    </div>
+    <figcaption><b>Diagrama 10 · Estágios de validação</b>A instrução textual reduz a probabilidade de fabricação de fonte; a conferência programática contra a base normativa a elimina como possibilidade de persistência. Prompt pede, validação garante.</figcaption>
+  </figure>
+
+  <div class="tw">
+    <table class="mono">
+      <caption>Contrato de saída da análise de auditoria</caption>
+      <thead><tr><th scope="col">Campo</th><th scope="col">Tipo</th><th scope="col">Restrição</th></tr></thead>
+      <tbody>
+        <tr><th scope="row">severidade</th><td>enumeração</td><td>INFO · ALERTA · CRITICO</td></tr>
+        <tr><th scope="row">titulo</th><td>texto</td><td>entre 8 e 180 caracteres</td></tr>
+        <tr><th scope="row">fundamento</th><td>texto</td><td>mínimo de 40 caracteres</td></tr>
+        <tr><th scope="row">citacoes[]</th><td>lista</td><td><b>mínimo de 1 item</b>, sem identificadores repetidos</td></tr>
+        <tr><th scope="row">citacoes[].norma</th><td>texto</td><td>obrigatório</td></tr>
+        <tr><th scope="row">citacoes[].dispositivo</th><td>texto</td><td>obrigatório — artigo, inciso ou item</td></tr>
+        <tr><th scope="row">citacoes[].fonte_id</th><td>identificador</td><td><b>deve existir na base normativa e estar vigente</b></td></tr>
+        <tr><th scope="row">trecho_documento</th><td>referência</td><td>opcional — página e coordenadas no documento analisado</td></tr>
+        <tr><th scope="row">sem_evidencia[]</th><td>lista de texto</td><td>o que o modelo não pôde sustentar; alimenta a métrica de recusa</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>Governança de prompts</h3>
+  <ul>
+    <li><strong>Prompt é código.</strong> Reside em arquivo versionado, e sua versão é gravada em cada sugestão produzida. Sem isso, a divergência entre análises realizadas em momentos diferentes torna-se inexplicável.</li>
+    <li><strong>Uma tarefa por prompt.</strong> Instruções curtas e específicas são mais baratas, mais testáveis e menos propensas a fabricação do que instruções abrangentes.</li>
+    <li><strong>Conteúdo do documento é dado, nunca instrução.</strong> O texto analisado entra delimitado e rotulado como material a examinar. A validação de esquema atua como segunda barreira, independente do texto do prompt.</li>
+    <li><strong>Modelo por tarefa.</strong> Classe econômica para extração e classificação; classe de alta capacidade para a camada de auditoria e para redação. A seleção é parâmetro, não constante de código.</li>
+  </ul>
+
+  <div class="tw">
+    <table class="mono">
+      <caption>Indicadores de qualidade e limiares de reprovação</caption>
+      <thead><tr><th scope="col">Indicador</th><th scope="col">Definição</th><th scope="col" class="tc">Limiar</th><th scope="col">Falha que revela</th></tr></thead>
+      <tbody>
+        <tr><th scope="row">fidelidade</th><td>Apontamentos com todas as citações válidas ÷ total emitido</td><td class="tc">≥ 0,98</td><td>Fabricação de fundamentação</td></tr>
+        <tr><th scope="row">cobertura</th><td>Achados esperados identificados ÷ achados esperados</td><td class="tc">≥ 0,70</td><td>Recuperação insuficiente ou prompt restritivo</td></tr>
+        <tr><th scope="row">recusa correta</th><td>Casos sem evidência em que a abstenção é declarada</td><td class="tc">≥ 0,90</td><td>Preenchimento de lacuna por inferência</td></tr>
+        <tr><th scope="row">recall@k</th><td>Trechos relevantes no top-k, medido isoladamente</td><td class="tc">≥ 0,80</td><td>Distingue erro de busca de erro de geração</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p>A apuração isolada do último indicador é o que separa falha de recuperação de falha de geração. Sem ela, uma queda de cobertura não indica qual componente regrediu, e o esforço de correção recai sobre o errado.</p>
+</section>
+
+<!-- ═══════════ 12 ═══════════ -->
+<section id="s12" aria-labelledby="t12">
+  <div class="sh"><span class="n">12</span><h2 id="t12">Recuperação híbrida</h2></div>
+
+  <p>Busca vetorial e busca lexical executadas em paralelo e fundidas por posição recíproca, com filtro de vigência aplicado antes do corte. A fusão ocorre em uma única consulta ao banco: não há reordenação em memória no serviço.</p>
+
+  <figure>
+    <div class="fw wide">
+      <svg viewBox="0 0 920 380" role="img" aria-label="Pipeline da base normativa em duas faixas. Na ingestão, as fontes curadas passam por normalização, segmentação por dispositivo, enriquecimento com metadados e vigência, geração de vetores e indexação. Na consulta, a solicitação dispara busca vetorial e busca lexical em paralelo, fundidas por posição recíproca, filtradas por vigência e entregues como trechos citáveis.">
+        <text x="24" y="22" class="lbl-m" font-size="10.5" letter-spacing="1.3">INGESTÃO · FORA DO CICLO DE ANÁLISE</text>
+        <g class="box">
+          <rect x="24"  y="36" width="126" height="58" rx="4"/>
+          <rect x="174" y="36" width="126" height="58" rx="4"/>
+          <rect x="324" y="36" width="126" height="58" rx="4"/>
+          <rect x="474" y="36" width="126" height="58" rx="4"/>
+          <rect x="624" y="36" width="126" height="58" rx="4"/>
+          <rect x="774" y="36" width="122" height="58" rx="4"/>
+        </g>
+        <g class="lbl-t" font-size="11.5" text-anchor="middle">
+          <text x="87"  y="60">fontes curadas</text>
+          <text x="237" y="60">normalizar</text>
+          <text x="387" y="60">segmentar</text>
+          <text x="537" y="60">metadados</text>
+          <text x="687" y="60">vetorizar</text>
+          <text x="835" y="60">indexar</text>
+        </g>
+        <g class="lbl-m" font-size="9.5" text-anchor="middle">
+          <text x="87"  y="78">pdf · html</text>
+          <text x="237" y="78">unicode · hifenização</text>
+          <text x="387" y="78">por dispositivo</text>
+          <text x="537" y="78">vigência · órgão</text>
+          <text x="687" y="78">1536 dimensões</text>
+          <text x="835" y="78">vetorial + textual</text>
+        </g>
+        <g marker-end="url(#ah-a)">
+          <path class="flow" d="M150,65 H168"/><path class="flow" d="M300,65 H318"/>
+          <path class="flow" d="M450,65 H468"/><path class="flow" d="M600,65 H618"/>
+          <path class="flow" d="M750,65 H768"/>
+        </g>
+        <text x="24" y="120" class="lbl-e" font-size="10.5">segmentação por artigo · inciso · parágrafo · item — nunca por contagem fixa de caracteres</text>
+        <path d="M24,146 H896" stroke="var(--line)" stroke-width="1"/>
+        <text x="24" y="186" class="lbl-m" font-size="10.5" letter-spacing="1.3">CONSULTA · DURANTE A ANÁLISE</text>
+        <g class="box">
+          <rect x="24"  y="228" width="150" height="58" rx="4"/>
+          <rect x="214" y="200" width="158" height="46" rx="4"/>
+          <rect x="214" y="268" width="158" height="46" rx="4"/>
+          <rect x="412" y="228" width="132" height="58" rx="4"/>
+          <rect x="584" y="228" width="140" height="58" rx="4"/>
+          <rect x="764" y="228" width="132" height="58" rx="4"/>
+        </g>
+        <g class="lbl-t" font-size="11.5" text-anchor="middle">
+          <text x="99"  y="252">consulta</text>
+          <text x="293" y="228">busca vetorial</text>
+          <text x="293" y="296">busca lexical</text>
+          <text x="478" y="252">fusão</text>
+          <text x="654" y="252">filtro de vigência</text>
+          <text x="830" y="252">trechos citáveis</text>
+        </g>
+        <g class="lbl-m" font-size="9.5" text-anchor="middle">
+          <text x="99"  y="270">texto + filtros</text>
+          <text x="293" y="242">cosseno · 50 candidatos</text>
+          <text x="293" y="310">termos · 50 candidatos</text>
+          <text x="478" y="270">posição recíproca</text>
+          <text x="654" y="270">apenas norma em vigor</text>
+          <text x="830" y="270">k = 12</text>
+        </g>
+        <g marker-end="url(#ah-a)">
+          <path class="flow" d="M174,247 H194 V222 H208"/>
+          <path class="flow" d="M174,267 H194 V292 H208"/>
+          <path class="flow" d="M372,222 H392 V247 H406"/>
+          <path class="flow" d="M372,292 H392 V267 H406"/>
+          <path class="flow" d="M544,257 H578"/>
+          <path class="flow" d="M724,257 H758"/>
+        </g>
+        <text x="24" y="352" class="lbl-e" font-size="10.5">busca lexical preserva referência exata a dispositivo · busca vetorial preserva alcance semântico</text>
+      </svg>
+    </div>
+    <figcaption><b>Diagrama 11 · Indexação e recuperação</b>A segmentação por unidade normativa é o que torna a citação verificável: cada trecho recuperado corresponde a um dispositivo identificável, com identificador conferível contra a base.</figcaption>
+  </figure>
+
+  <p>A fusão por posição recíproca soma, para cada candidato, o inverso da sua posição em cada ranking somado a uma constante de amortecimento. Isso combina as duas ordenações sem exigir que suas escalas de pontuação sejam comparáveis — que é exatamente o problema de fundir similaridade de cosseno com relevância lexical.</p>
+
+  <div class="code">
+    <div class="lbl"><span>Fusão em consulta única</span><em>a única decisão algorítmica do documento</em></div>
+<pre><code><span class="k">WITH</span> vetorial <span class="k">AS</span> (
+  <span class="k">SELECT</span> c.id, row_number() <span class="k">OVER</span> (<span class="k">ORDER BY</span> c.embedding &lt;=&gt; $1) <span class="k">AS</span> pos
+    <span class="k">FROM</span> rag.chunk c <span class="k">JOIN</span> rag.documento d <span class="k">ON</span> d.id = c.documento_id
+   <span class="k">WHERE</span> d.vigente <span class="k">ORDER BY</span> c.embedding &lt;=&gt; $1 <span class="k">LIMIT</span> 50
+), lexical <span class="k">AS</span> (
+  <span class="k">SELECT</span> c.id, row_number() <span class="k">OVER</span> (<span class="k">ORDER BY</span> ts_rank_cd(c.tsv, q) <span class="k">DESC</span>) <span class="k">AS</span> pos
+    <span class="k">FROM</span> rag.chunk c <span class="k">JOIN</span> rag.documento d <span class="k">ON</span> d.id = c.documento_id,
+         websearch_to_tsquery(<span class="s">'portuguese'</span>, $2) q
+   <span class="k">WHERE</span> d.vigente <span class="k">AND</span> c.tsv @@ q <span class="k">ORDER BY</span> ts_rank_cd(c.tsv, q) <span class="k">DESC LIMIT</span> 50
+)
+<span class="k">SELECT</span> ch.id, d.identificacao, ch.dispositivo, ch.conteudo,
+       coalesce(1.0/(60 + v.pos), 0) + coalesce(1.0/(60 + l.pos), 0) <span class="k">AS</span> rrf
+  <span class="k">FROM</span> vetorial v <span class="k">FULL OUTER JOIN</span> lexical l <span class="k">USING</span> (id)
+  <span class="k">JOIN</span> rag.chunk ch    <span class="k">ON</span> ch.id = coalesce(v.id, l.id)
+  <span class="k">JOIN</span> rag.documento d <span class="k">ON</span> d.id = ch.documento_id
+ <span class="k">ORDER BY</span> rrf <span class="k">DESC LIMIT</span> 12;</code></pre>
+  </div>
+
+  <div class="tw">
+    <table class="mono">
+      <caption>Parâmetros de recuperação</caption>
+      <thead><tr><th scope="col">Parâmetro</th><th scope="col" class="tc">Valor</th><th scope="col">Racional</th></tr></thead>
+      <tbody>
+        <tr><th scope="row">constante de amortecimento</th><td class="tc">60</td><td>Reduz o peso de posições muito altas em qualquer dos rankings</td></tr>
+        <tr><th scope="row">candidatos por ramo</th><td class="tc">50</td><td>Recall suficiente sem inflar o custo da junção</td></tr>
+        <tr><th scope="row">top-k final</th><td class="tc">12</td><td>Ajustado pelo conjunto de avaliação; acima disso o ganho não compensa o custo de contexto</td></tr>
+        <tr><th scope="row">parâmetro de busca do índice</th><td class="tc">80</td><td>Definido por transação; equilíbrio entre recall e latência</td></tr>
+        <tr><th scope="row">dicionário textual</th><td class="tc">português</td><td>Aceita aspas e operadores, útil para referência exata a dispositivo</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="note">
+    <b class="h">Assimetria deliberada — ADR-08</b>
+    <p>A recuperação por similaridade se aplica somente à base normativa. O documento sob análise é lido integralmente a partir dos trechos extraídos, sem etapa de recuperação: a verificação de conformidade depende de constatar ausência de elemento obrigatório, e ausência não é recuperável por similaridade.</p>
+  </div>
+</section>
+
+<!-- ═══════════ 13 ═══════════ -->
+<section id="s13" aria-labelledby="t13">
+  <div class="sh"><span class="n">13</span><h2 id="t13">Segurança e autorização</h2></div>
+
+  <figure>
+    <div class="fw wide">
+      <svg viewBox="0 0 920 224" role="img" aria-label="Autorização em três barreiras. A requisição passa pela verificação do token, pela verificação de perfil no método e pelo predicado de escopo aplicado na consulta ao banco antes de retornar dados.">
+        <g class="box">
+          <rect x="24"  y="52" width="152" height="70" rx="4"/>
+          <rect x="216" y="52" width="180" height="70" rx="4"/>
+          <rect x="436" y="52" width="180" height="70" rx="4"/>
+          <rect x="656" y="52" width="180" height="70" rx="4"/>
+        </g>
+        <g class="lbl-m" font-size="9.5" letter-spacing="1.1">
+          <text x="38" y="72">ENTRADA</text>
+          <text x="230" y="72">BARREIRA 1</text>
+          <text x="450" y="72">BARREIRA 2</text>
+          <text x="670" y="72">BARREIRA 3</text>
+        </g>
+        <g class="lbl-t" font-size="12.5">
+          <text x="38" y="94">requisição</text>
+          <text x="230" y="94">token de acesso</text>
+          <text x="450" y="94">perfil no método</text>
+          <text x="670" y="94">escopo na consulta</text>
+        </g>
+        <g class="lbl-m" font-size="9.5">
+          <text x="38" y="112">com identificador de sessão</text>
+          <text x="230" y="112">assinatura e validade</text>
+          <text x="450" y="112">ANALISTA · GESTOR · ADMIN</text>
+          <text x="670" y="112">predicado no repositório</text>
+        </g>
+        <g marker-end="url(#ah-a)">
+          <path class="flow" d="M176,87 H210"/>
+          <path class="flow" d="M396,87 H430"/>
+          <path class="flow" d="M616,87 H650"/>
+        </g>
+        <text x="24" y="164" class="lbl-e" font-size="11">A barreira 2 protege a <tspan font-weight="700">operação</tspan>; a barreira 3 protege o <tspan font-weight="700">registro</tspan>. Anotação de perfil sozinha autoriza o acesso ao</text>
+        <text x="24" y="180" class="lbl-e" font-size="11">endpoint e permite que um analista recupere demanda alheia informando o identificador — o predicado de escopo é</text>
+        <text x="24" y="196" class="lbl-e" font-size="11">o que impede isso, e por decisão de projeto o resultado é indistinguível de recurso inexistente.</text>
+      </svg>
+    </div>
+    <figcaption><b>Diagrama 12 · Barreiras de autorização</b>As três barreiras são independentes e cumulativas. Nenhum caminho de leitura do sistema contorna a barreira 3, porque o predicado é aplicado no repositório e não no controlador.</figcaption>
+  </figure>
+
+  <div class="tw">
+    <table class="mono">
+      <caption>Matriz de competências por perfil</caption>
+      <thead><tr><th scope="col">Operação</th><th scope="col" class="tc">ANALISTA</th><th scope="col" class="tc">GESTOR</th><th scope="col" class="tc">ADMIN</th></tr></thead>
+      <tbody>
+        <tr><th scope="row">Executar as camadas da demanda atribuída</th><td class="tc"><span class="tag g-ok">sim</span></td><td class="tc"><span class="tag g-ok">sim</span></td><td class="tc"><span class="tag g-mu">não</span></td></tr>
+        <tr><th scope="row">Visualizar demandas de outros analistas</th><td class="tc"><span class="tag g-mu">não</span></td><td class="tc"><span class="tag g-ok">sim</span></td><td class="tc"><span class="tag g-ok">sim</span></td></tr>
+        <tr><th scope="row">Criar e redistribuir atribuições</th><td class="tc"><span class="tag g-mu">não</span></td><td class="tc"><span class="tag g-ok">sim</span></td><td class="tc"><span class="tag g-ok">sim</span></td></tr>
+        <tr><th scope="row">Definir prioridade e prazo</th><td class="tc"><span class="tag g-mu">não</span></td><td class="tc"><span class="tag g-ok">sim</span></td><td class="tc"><span class="tag g-ok">sim</span></td></tr>
+        <tr><th scope="row">Acessar o painel consolidado da unidade</th><td class="tc"><span class="tag g-mu">parcial</span></td><td class="tc"><span class="tag g-ok">sim</span></td><td class="tc"><span class="tag g-ok">sim</span></td></tr>
+        <tr><th scope="row">Gerenciar usuários e perfis</th><td class="tc"><span class="tag g-mu">não</span></td><td class="tc"><span class="tag g-mu">não</span></td><td class="tc"><span class="tag g-ok">sim</span></td></tr>
+        <tr><th scope="row">Acompanhar a curadoria da base normativa</th><td class="tc"><span class="tag g-mu">não</span></td><td class="tc"><span class="tag g-mu">não</span></td><td class="tc"><span class="tag g-ok">sim</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>Proteção de dados</h3>
+  <div class="tw">
+    <table class="mono">
+      <caption>Controles por superfície</caption>
+      <thead><tr><th scope="col">Superfície</th><th scope="col">Controle</th></tr></thead>
+      <tbody>
+        <tr><th scope="row">documentos</th><td>Repositório privado, cifragem em repouso por chave gerenciada, acesso apenas por URL assinada de curta duração. Não há vínculo permanente para arquivo</td></tr>
+        <tr><th scope="row">credenciais</th><td>Derivação resistente a hardware dedicado; limite de taxa com bloqueio progressivo na autenticação</td></tr>
+        <tr><th scope="row">trilha</th><td>Somente inserção, com autor, endereço de origem e momento; alteração impossibilitada por privilégio, não por convenção</td></tr>
+        <tr><th scope="row">segredos</th><td>Serviço gerenciado; nenhuma credencial estática em imagem ou variável versionada</td></tr>
+        <tr><th scope="row">conteúdo enviado ao modelo</th><td>Contrato de retenção zero como pré-requisito de produção; registro do que foi submetido, associado à demanda</td></tr>
+        <tr><th scope="row">injeção por documento</th><td>Conteúdo delimitado e rotulado como dado; validação de esquema como segunda barreira independente do prompt</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="note">
+    <b class="h">Recomendações de revisão de requisito</b>
+    <p>O RF-028 estabelece comprimento mínimo de seis caracteres com exigência de composição. Exigências de composição induzem padrões previsíveis, enquanto o comprimento é o fator que resiste a ataque de força bruta — recomenda-se comprimento mínimo de doze, sem exigência de composição, com verificação contra listas de credenciais expostas. O RF-029 prevê coleta de documento pessoal: se a identificação já é assegurada pelo endereço institucional, a retenção configura tratamento sem finalidade determinada.</p>
+  </div>
+</section>
+
+<!-- ═══════════ 14 ═══════════ -->
+<section id="s14" aria-labelledby="t14">
+  <div class="sh"><span class="n">14</span><h2 id="t14">Infraestrutura e operação</h2></div>
+
+  <div class="tw">
+    <table class="mono">
+      <caption>Dimensionamento por cenário</caption>
+      <thead><tr><th scope="col">Componente</th><th scope="col">Setorial — 50 a 300 usuários</th><th scope="col">Institucional — acima de 1.000</th></tr></thead>
+      <tbody>
+        <tr><th scope="row">apresentação</th><td>Serviço gerenciado de hospedagem</td><td>Contêiner em escala automática, atrás de rede de distribuição</td></tr>
+        <tr><th scope="row">aplicação</th><td>Duas instâncias balanceadas</td><td>Escala automática de quatro a doze, em múltiplas zonas</td></tr>
+        <tr><th scope="row">serviço de inteligência</th><td>Uma instância de API e uma de consumo</td><td>Escala do consumo pela profundidade da fila</td></tr>
+        <tr><th scope="row">banco de dados</th><td>Instância única de porte médio</td><td>Alta disponibilidade, réplica de leitura para o painel, particionamento do registro de eventos</td></tr>
+        <tr><th scope="row">repositório de objetos</th><td>Cifrado, versionado, privado</td><td>Acrescido de ciclo de vida e verificação antivírus no envio</td></tr>
+        <tr><th scope="row">fila</th><td>Fila padrão com fila de descarte</td><td>Filas segregadas por prioridade</td></tr>
+        <tr><th scope="row">cache</th><td>Não utilizado</td><td>Cache distribuído para agregações e limite de taxa</td></tr>
+        <tr><th scope="row">observabilidade</th><td>Registros estruturados e métricas gerenciadas</td><td>Rastreamento distribuído e painel de custo por demanda</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>Onde o tempo é consumido</h3>
+  <p>Distribuição de uma análise de auditoria completa, com o documento já enviado. A leitura orienta onde investir esforço de otimização — e onde não investir.</p>
+
+  <figure>
+    <div class="fw wide">
+      <svg viewBox="0 0 920 336" role="img" aria-label="Distribuição de tempo de uma análise de auditoria. A invocação do modelo de linguagem consome 17402 dos 18342 milissegundos totais; leitura do objeto, extração, recuperação, validações e retorno somam menos de mil milissegundos.">
+        <text x="20" y="26" class="lbl-m" font-size="10" letter-spacing="1.2">SPAN</text>
+        <text x="308" y="26" class="lbl-m" font-size="10" letter-spacing="1.2">DURAÇÃO RELATIVA</text>
+        <text x="900" y="26" class="lbl-m" font-size="10" letter-spacing="1.2" text-anchor="end">MS</text>
+        <path d="M20,36 H900" stroke="var(--line)" stroke-width="1"/>
+
+        <g class="lbl-e" font-family="JetBrains Mono, monospace" font-size="11">
+          <text x="20" y="62">POST /demandas/{id}/auditoria</text>
+          <text x="20" y="90">sqs.publish</text>
+          <text x="20" y="118">analise.auditoria</text>
+          <text x="34" y="146">s3.get_object</text>
+          <text x="34" y="174">extract.load_trechos</text>
+          <text x="34" y="202">rag.buscar</text>
+          <text x="34" y="230">llm.complete</text>
+          <text x="34" y="258">validate.schema</text>
+          <text x="34" y="286">validate.fontes</text>
+          <text x="34" y="314">callback.post</text>
+        </g>
+
+        <g fill="var(--line-2)">
+          <rect x="308" y="52"  width="3"   height="14" rx="1.5"/>
+          <rect x="308" y="80"  width="3"   height="14" rx="1.5"/>
+        </g>
+        <rect x="308" y="108" width="532" height="14" rx="2" fill="var(--surface-3)"/>
+        <g fill="var(--line-2)">
+          <rect x="308" y="136" width="9"   height="14" rx="2"/>
+          <rect x="317" y="164" width="3"   height="14" rx="1.5"/>
+          <rect x="320" y="192" width="6"   height="14" rx="2"/>
+        </g>
+        <rect x="324" y="220" width="505" height="14" rx="2" fill="var(--accent)"/>
+        <g fill="var(--line-2)">
+          <rect x="829" y="248" width="3"   height="14" rx="1.5"/>
+          <rect x="832" y="276" width="3"   height="14" rx="1.5"/>
+          <rect x="835" y="304" width="7"   height="14" rx="2"/>
+        </g>
+
+        <g class="lbl-m" font-family="JetBrains Mono, monospace" font-size="10.5" text-anchor="end">
+          <text x="900" y="63">12</text>
+          <text x="900" y="91">8</text>
+          <text x="900" y="119">18 342</text>
+          <text x="900" y="147">310</text>
+          <text x="900" y="175">44</text>
+          <text x="900" y="203">186</text>
+          <text x="900" y="231">17 402</text>
+          <text x="900" y="259">6</text>
+          <text x="900" y="287">31</text>
+          <text x="900" y="315">212</text>
+        </g>
+        <text x="576" y="231" font-family="JetBrains Mono, monospace" font-size="10.5" text-anchor="middle" fill="var(--bg)" font-weight="700">94,9% do tempo total</text>
+      </svg>
+    </div>
+    <figcaption><b>Diagrama 13 · Distribuição de tempo</b>A inferência responde por praticamente todo o tempo de parede. Otimizar extração, recuperação ou validação não produz efeito perceptível; a alavanca real é reduzir o número de invocações e o tamanho do contexto enviado. É também o motivo de o processamento ser assíncrono: nenhum ajuste torna essa espera aceitável dentro de uma requisição.</figcaption>
+  </figure>
+
+  <div class="tw">
+    <table class="mono">
+      <caption>Métricas de aplicação</caption>
+      <thead><tr><th scope="col">Métrica</th><th scope="col">Rótulos</th><th scope="col">Uso operacional</th></tr></thead>
+      <tbody>
+        <tr><th scope="row">demanda_transicao_total</th><td>de · para · acao</td><td>Vazão por camada; identifica gargalo de fluxo</td></tr>
+        <tr><th scope="row">demanda_permanencia_segundos</th><td>estado</td><td>Tempo de permanência; alimenta o indicador por usuário</td></tr>
+        <tr><th scope="row">demanda_falha_total</th><td>etapa</td><td>Alerta acima de 5% das demandas do dia</td></tr>
+        <tr><th scope="row">job_duracao_segundos</th><td>tipo · ocr</td><td>Calibra o tempo de visibilidade da fila e a escala do consumo</td></tr>
+        <tr><th scope="row">ia_tokens_total</th><td>modelo · direcao</td><td>Custo por demanda e projeção de escala</td></tr>
+        <tr><th scope="row">ia_custo_total</th><td>modelo · camada</td><td>Alerta em desvio acima de 30% da média móvel</td></tr>
+        <tr><th scope="row">ia_apontamento_descartado_total</th><td>motivo</td><td>Qualidade do prompt e da base normativa</td></tr>
+        <tr><th scope="row">sugestao_taxa_aceite</th><td>camada</td><td>Aceitas ÷ emitidas; qualidade percebida da assistência</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>Política de falha</h3>
+  <div class="tw">
+    <table class="mono">
+      <caption>Tratamento por classe de falha</caption>
+      <thead><tr><th scope="col">Falha</th><th scope="col">Ação</th><th scope="col">Efeito visível</th></tr></thead>
+      <tbody>
+        <tr><th scope="row">tempo esgotado no provedor</th><td>Três tentativas com espera exponencial e dispersão</td><td>Nenhum, se resolvido</td></tr>
+        <tr><th scope="row">limite de taxa do provedor</th><td>Respeita o cabeçalho de espera; disjuntor abre após cinco falhas em um minuto</td><td>Fila acumula; escala automática não dispara</td></tr>
+        <tr><th scope="row">resposta fora do esquema</th><td>Um reprocessamento com instrução de correção; depois descarta</td><td>Contador de descarte por motivo</td></tr>
+        <tr><th scope="row">documento sem camada de texto</th><td>Reconhecimento óptico e marcação de qualidade reduzida</td><td>Selo de qualidade na interface</td></tr>
+        <tr><th scope="row">extração impossível</th><td>Mensagem à fila de descarte na terceira tentativa</td><td>Demanda em falha, com ação de reprocessamento</td></tr>
+        <tr><th scope="row">retorno recusado</th><td>Retentativa por quinze minutos; resultado persistido localmente até confirmação</td><td>Nenhum, se resolvido</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>Ambiente de desenvolvimento</h3>
+  <p>Nenhum componente de infraestrutura é substituído por equivalente diferente. Bancos em memória não implementam documento JSON, busca textual em português nem índice vetorial — precisamente os recursos de que o sistema depende. A divergência apareceria apenas em produção.</p>
+
+  <div class="code">
+    <div class="lbl"><span>compose.dev.yaml</span><em>paridade com produção</em></div>
+<pre><code><span class="t">services</span>:
+  <span class="t">db</span>:
+    <span class="t">image</span>: pgvector/pgvector:pg16     <span class="c"># mesma extensão e versão de produção</span>
+    <span class="t">environment</span>: [ POSTGRES_DB=plataforma ]
+  <span class="t">objetos</span>:
+    <span class="t">image</span>: minio/minio                <span class="c"># exercita a URL pré-assinada de fato</span>
+  <span class="t">fila</span>:
+    <span class="t">image</span>: softwaremill/elasticmq     <span class="c"># inclui a fila de descarte</span>
+  <span class="t">otel</span>:
+    <span class="t">image</span>: otel/opentelemetry-collector
+
+<span class="c"># make dev   → sobe a infraestrutura e aplica as migrações</span>
+<span class="c"># make seed  → 1 demanda percorrendo as 5 camadas + 200 trechos</span>
+<span class="c">#              normativos de exemplo: o caminho feliz em dados reais</span></code></pre>
+  </div>
+</section>
+
+</main>
+
+<script>
+(function () {
+  var rail = document.querySelector('.rail');
+  if (!rail) return;
+  var links = Array.prototype.slice.call(rail.querySelectorAll('a[href^="#s"]'));
+  var secs = links.map(function (a) { return document.getElementById(a.getAttribute('href').slice(1)); });
+  var barra = document.getElementById('progresso');
+  var atual = null, agendado = false;
+
+  function marcar(sec) {
+    if (atual === sec) return;
+    atual = sec;
+    links.forEach(function (a, i) {
+      if (secs[i] === sec) {
+        a.setAttribute('aria-current', 'true');
+        var r = a.getBoundingClientRect(), p = rail.getBoundingClientRect();
+        if (r.top < p.top || r.bottom > p.bottom) a.scrollIntoView({ block: 'nearest' });
+      } else {
+        a.removeAttribute('aria-current');
+      }
+    });
+  }
+
+  function atualizar() {
+    agendado = false;
+    var limite = window.innerHeight * 0.25, escolhida = secs[0];
+    for (var i = 0; i < secs.length; i++) {
+      if (secs[i] && secs[i].getBoundingClientRect().top <= limite) escolhida = secs[i];
+    }
+    if (escolhida) marcar(escolhida);
+    if (barra) {
+      var d = document.documentElement, max = d.scrollHeight - d.clientHeight;
+      barra.style.width = (max > 0 ? (d.scrollTop / max) * 100 : 0) + '%';
+    }
+  }
+
+  function aoRolar() { if (!agendado) { agendado = true; requestAnimationFrame(atualizar); } }
+  window.addEventListener('scroll', aoRolar, { passive: true });
+  window.addEventListener('resize', aoRolar, { passive: true });
+  atualizar();
+})();
+</script>
+</body>
+</html>
