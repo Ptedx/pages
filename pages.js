@@ -19,6 +19,14 @@
 
 const PAGES = [
   {
+    file: "guiarag.html",
+    title: "Guia de RAG aplicado",
+    desc: "Guia de estudo sobre RAG, embeddings, busca híbrida, prompt engineering, validação e avaliação, com experimentos ao vivo pela API do Gemini.",
+    tags: ["IA", "RAG", "estudo", "interativo"],
+    date: "2026-09-04",
+    accent: "#0E7C7B"
+  },
+  {
     file: "conformidade-risco-arquitetura.html",
     title: "Arquitetura da Plataforma de Conformidade",
     desc: "Documento de arquitetura da plataforma de conformidade e risco: domínio, fluxo de dados, camadas, segurança e operação.",
