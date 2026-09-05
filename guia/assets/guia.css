@@ -253,6 +253,8 @@ label.chip{display:inline-flex;align-items:center;gap:6px}
 .diff{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:10px 14px;margin:10px 0;font-size:.88rem}
 .diff ins{background:var(--green-soft);text-decoration:none;padding:0 2px;border-radius:3px}
 .diff del{background:var(--red-soft);padding:0 2px;border-radius:3px}
+.mtx th{text-align:left}
+.mtx td{font-weight:600}
 .tokens{line-height:2;font-size:1rem}
 .tokens span{display:inline-block;border-radius:4px;padding:0 3px;margin:0 1px}
 .map{width:100%;border-collapse:collapse;font-size:.88rem}
