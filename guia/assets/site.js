@@ -94,15 +94,16 @@
   });
 
   /* botões de copiar */
-  $$('pre').forEach((pre) => { const b = document.createElement('button'); b.className = 'copy'; b.type = 'button'; b.textContent = 'Copiar'; b.setAttribute('aria-label', 'Copiar código'); b.addEventListener('click', async () => { try { await navigator.clipboard.writeText(pre.querySelector('code').innerText); b.textContent = 'Copiado'; setTimeout(() => (b.textContent = 'Copiar'), 1500); } catch { b.textContent = 'Selecione e copie'; } }); pre.appendChild(b); });
+  $$('pre:not(.raw):not(.out):not(.anat)').forEach((pre) => { const b = document.createElement('button'); b.className = 'copy'; b.type = 'button'; b.textContent = 'Copiar'; b.setAttribute('aria-label', 'Copiar código'); b.addEventListener('click', async () => { try { await navigator.clipboard.writeText(pre.querySelector('code').innerText); b.textContent = 'Copiado'; setTimeout(() => (b.textContent = 'Copiar'), 1500); } catch { b.textContent = 'Selecione e copie'; } }); pre.appendChild(b); });
 
   /* diagramas passo a passo: legendas em data-caps (JSON) na figure */
   $$('[data-stepper]').forEach((btn) => {
     const key = btn.dataset.stepper; const fig = btn.closest('figure'); const stages = $$(`[data-stage^="${key}-"]`, fig); const cap = $(`#${key}-cap`);
     let caps = []; try { caps = JSON.parse(fig.dataset.caps || '[]'); } catch {}
+    const idx = (s) => +s.dataset.stage.split('-').pop(); const n = stages.length ? Math.max(...stages.map(idx)) + 1 : 0; // o mesmo passo pode marcar vários elementos
     let i = -1; const all = () => stages.forEach((s) => s.classList.add('on'));
-    const apply = () => { stages.forEach((s, j) => s.classList.toggle('on', j <= i)); if (cap) cap.textContent = i >= 0 ? `${i + 1}/${stages.length} · ${caps[i] || ''}` : ''; btn.textContent = i >= stages.length - 1 ? 'Recomeçar' : (i < 0 ? 'Passo a passo' : 'Próximo passo'); };
-    all(); btn.addEventListener('click', () => { i = i >= stages.length - 1 ? 0 : i + 1; apply(); });
+    const apply = () => { stages.forEach((s) => s.classList.toggle('on', idx(s) <= i)); if (cap) cap.textContent = i >= 0 ? `${i + 1}/${n} · ${caps[i] || ''}` : ''; btn.textContent = i >= n - 1 ? 'Recomeçar' : (i < 0 ? 'Passo a passo' : 'Próximo passo'); };
+    all(); btn.addEventListener('click', () => { i = i >= n - 1 ? 0 : i + 1; apply(); });
     const r = $(`[data-stepper-reset="${key}"]`, fig); if (r) r.addEventListener('click', () => { i = -1; all(); if (cap) cap.textContent = ''; btn.textContent = 'Passo a passo'; });
   });
 

@@ -1,0 +1,1475 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dados e Python para RAG · Guia RAG aplicado</title>
+<meta name="description" content="PDF, limpeza, regex, JSONL, pandas, Pydantic, psycopg.">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/guia.css">
+</head>
+<body data-page="p9">
+<a class="skip" href="#main">Pular para o conteúdo</a>
+<header class="topbar">
+  <button class="iconbtn" id="menu" aria-expanded="false" aria-controls="sidenav" aria-label="Abrir navegação">☰ Páginas</button>
+  <a class="brand" href="index.html">Guia de estudo · RAG aplicado<small>Plataforma de Conformidade e Risco · trilha dos exercícios VIN-5 a VIN-12</small></a>
+  <button class="iconbtn" id="theme" aria-pressed="false">Tema escuro</button>
+</header>
+<div class="scrim"></div>
+<div class="shell">
+  <nav class="side" id="sidenav" aria-label="Páginas do guia">
+    <div class="progress"><span id="prog-text">0 capítulos concluídos</span><div class="bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" aria-label="Progresso do estudo"><i id="prog-bar"></i></div></div>
+    <div class="group">Trilha</div><ol><li><a href="index.html" data-page="p0"><span class="num">0</span><span>Início</span><span class="done-mark" aria-hidden="true"></span></a></li><li><a href="01-modelos.html" data-page="p1"><span class="num">1</span><span>Modelos de linguagem</span><span class="done-mark" aria-hidden="true"></span></a></li><li><a href="02-embeddings.html" data-page="p2"><span class="num">2</span><span>Embeddings</span><span class="done-mark" aria-hidden="true"></span></a></li><li><a href="03-busca-vetorial.html" data-page="p3"><span class="num">3</span><span>Busca vetorial e índices</span><span class="done-mark" aria-hidden="true"></span></a></li><li><a href="04-busca-lexical-hibrida.html" data-page="p4"><span class="num">4</span><span>Busca lexical e híbrida</span><span class="done-mark" aria-hidden="true"></span></a></li><li><a href="05-rag.html" data-page="p5"><span class="num">5</span><span>RAG e ingestão</span><span class="done-mark" aria-hidden="true"></span></a></li><li><a href="06-prompt.html" data-page="p6"><span class="num">6</span><span>Prompt engineering</span><span class="done-mark" aria-hidden="true"></span></a></li><li><a href="07-validacao.html" data-page="p7"><span class="num">7</span><span>Validação e guardrails</span><span class="done-mark" aria-hidden="true"></span></a></li><li><a href="08-avaliacao.html" data-page="p8"><span class="num">8</span><span>Avaliação</span><span class="done-mark" aria-hidden="true"></span></a></li><li><a href="09-dados-python.html" data-page="p9" aria-current="page"><span class="num">9</span><span>Dados e Python</span><span class="done-mark" aria-hidden="true"></span></a></li><li><span class="soon" title="Tokens, cache, limites de taxa, retentativa, observabilidade, escolha de modelo."><span class="num">10</span><span>Custo e operação</span><span class="tag">em breve</span></span></li></ol><div class="group">Referência rápida</div><ol><li><a href="glossario.html" data-page="glossario"><span class="num">•</span><span>Glossário</span><span class="done-mark" aria-hidden="true"></span></a></li><li><span class="soon" title="Os oito exercícios com roteiro completo."><span class="num">•</span><span>Exercícios</span><span class="tag">em breve</span></span></li><li><a href="prompts.html" data-page="prompts"><span class="num">•</span><span>Biblioteca de prompts</span><span class="done-mark" aria-hidden="true"></span></a></li></ol>
+  </nav>
+  <main id="main" tabindex="-1"><div class="page-in">
+    <div class="toc-inline" ><label for="toc-select">Nesta página</label><select id="toc-select"><option value="">ir para o capítulo…</option></select></div>
+    <div id="keybanner" hidden><div class="callout warn"><span class="t">Sem chave do Gemini configurada</span><p>Os experimentos ao vivo desta página ficam desativados. Configure a chave na <a href="index.html#chave">página inicial</a>; os experimentos de brinquedo funcionam sem ela.</p></div></div>
+    <div class="page-head">
+  <div class="kicker">Página 9 · Caixa de ferramentas</div>
+  <h1>Dados e Python para RAG</h1>
+  <p class="lead">Oitenta por cento do trabalho de um RAG não é modelo: é transformar um PDF em trechos limpos, bem cortados, com identificador, validados e carregados no banco. Esta página é o Ex. 2 em profundidade: o que há dentro de um PDF e como tirar o texto dele; a linha de limpeza, regra a regra, com os caracteres invisíveis que estragam a busca; expressões regulares como gramática da lei; o segmentador como máquina de estados; JSONL como formato de trabalho; pandas para olhar antes de confiar; Pydantic como contrato; psycopg para carregar sem duplicar e sem reembutir o que não mudou.</p>
+  <div class="meta"><a class="exlink" href="https://linear.app/vinicius-costa/issue/VIN-6" target="_blank" rel="noopener">VIN-6 · Ex. 2</a><span>·</span><span>10 capítulos · leitura ativa de 80 a 100 minutos · 14 experimentos, 13 sem chave</span></div>
+</div>
+
+<div class="goals">
+  <h3>Ao terminar esta página você consegue</h3>
+  <ul>
+    <li>Explicar por que um PDF não contém "parágrafos" e escolher a ferramenta de extração certa (pymupdf, pdfplumber, OCR) para cada tipo de arquivo, controlando a ordem de leitura.</li>
+    <li>Escrever a linha de limpeza na ordem certa (cabeçalho e rodapé, Unicode, hifenização, quebras de linha, espaços) e reconhecer os caracteres invisíveis que fazem uma busca falhar.</li>
+    <li>Ler e escrever expressões regulares com grupos nomeados, âncoras e flags, e conhecer as armadilhas dos marcadores de uma lei brasileira (Art. 1º contra Art. 10., º contra °, travessões, Parágrafo único, 75-A).</li>
+    <li>Implementar o segmentador como máquina de estados que emite um trecho por dispositivo com identificador natural, e iterar a regex até o Art. 75 sair inteiro.</li>
+    <li>Gravar e inspecionar JSONL, usar pandas para achar os erros de segmentação (maiores, menores, duplicados, vazios) e validar cada linha com um modelo Pydantic.</li>
+    <li>Carregar no PostgreSQL com psycopg usando parâmetros, transações e <code>ON CONFLICT</code> por chave natural, reembutindo só o que mudou.</li>
+  </ul>
+</div>
+
+<!-- ============================================================ 1 -->
+<section class="chapter" id="c1" data-ch="p9-c1">
+  <div class="ch-head"><span class="n">Capítulo 1</span><h2>A regra dos 80%: o dado antes do modelo</h2><label class="donebox"><input type="checkbox" data-done> Capítulo concluído</label></div>
+
+  <p>Todas as páginas anteriores partiram de um corpus pronto: 48 trechos com <code>id</code>, <code>dispositivo</code> e <code>conteudo</code>. Esse arquivo é a parte mais trabalhosa do sistema, e a que mais define a qualidade. Um trecho cortado no lugar errado vira uma citação impossível de conferir; um cabeçalho de página que sobrou vira "Presidência da República" dentro de um inciso; um hífen de quebra de linha que ficou vira uma palavra que a busca lexical nunca encontra ("automo-tores"). Nenhum modelo conserta isso depois. Por isso o Ex. 2 é o exercício de dados, e por isso ele é o mais longo.</p>
+  <p>O caminho do PDF ao banco tem sete estações, e cada uma tem um artefato que dá para abrir e olhar. Essa é a regra de trabalho da página: <strong>nunca passe para a próxima estação sem olhar o artefato da anterior</strong>. O texto bruto se lê num editor; o limpo se compara com o bruto; os dispositivos se contam; o JSONL se inspeciona com pandas; o modelo Pydantic rejeita linha por linha; o banco se consulta. O que não foi olhado está errado até prova em contrário.</p>
+
+  <figure class="diagram" data-caps='["O PDF da Lei 14.133 no Planalto: 120 páginas, com cabeçalho e rodapé em cada uma, hifenização de fim de linha e duas colunas em alguns trechos. O arquivo guarda posições de glifos, não parágrafos.","pymupdf extrai o texto bruto: uma linha por linha visual da página, com cabeçalhos repetidos, palavras cortadas por hífen e frases quebradas no meio. Salvo em data/lei14133.txt para ser lido com os olhos.","A limpeza aplica regras em ordem: remove cabeçalho e rodapé, normaliza Unicode, desfaz hifenização, junta linhas quebradas, normaliza espaços. O resultado é um texto contínuo com um dispositivo por linha.","O segmentador percorre as linhas reconhecendo marcadores (Art., §, inciso, alínea), mantém a hierarquia numa pilha e emite um trecho por dispositivo com id natural: L14133-art75-p1-incI.","Cada trecho vira uma linha JSON em data/trechos.jsonl. Uma linha por registro: dá para abrir no editor, contar com wc -l, ler linha a linha e versionar no git.","pandas abre o JSONL para inspeção (quantos, tamanho médio, maiores, menores, duplicados) e Pydantic valida cada linha contra o contrato: id no padrão, conteúdo mínimo, campos obrigatórios.","psycopg carrega no PostgreSQL com parâmetros e transação, ON CONFLICT (id) para não duplicar, e hash do conteúdo para embutir só o que mudou. O banco é o índice das páginas 3 e 4."]' aria-label="Sete estações do PDF ao banco">
+    <div class="dtools"><button class="btn small" data-stepper="dp">Passo a passo</button><button class="btn small ghost" data-stepper-reset="dp">Reiniciar</button><span class="mini" id="dp-cap"></span></div>
+    <svg viewBox="0 0 760 210" role="img" aria-labelledby="dpt"><title id="dpt">Do PDF ao banco</title>
+      <defs><marker id="ar10" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="var(--muted)"/></marker></defs>
+      <g class="node ext stage" data-stage="dp-0"><rect x="10" y="30" width="96" height="54" rx="8"/><text x="58" y="52" text-anchor="middle" class="t">PDF</text><text x="58" y="70" text-anchor="middle">glifos e posições</text></g>
+      <path class="edge" d="M106 57H126" marker-end="url(#ar10)"/>
+      <g class="node stage" data-stage="dp-1"><rect x="128" y="30" width="96" height="54" rx="8"/><text x="176" y="52" text-anchor="middle" class="t">texto bruto</text><text x="176" y="70" text-anchor="middle">lei14133.txt</text></g>
+      <path class="edge" d="M224 57H244" marker-end="url(#ar10)"/>
+      <g class="node stage" data-stage="dp-2"><rect x="246" y="30" width="96" height="54" rx="8"/><text x="294" y="52" text-anchor="middle" class="t">limpo</text><text x="294" y="70" text-anchor="middle">5 regras em ordem</text></g>
+      <path class="edge" d="M342 57H362" marker-end="url(#ar10)"/>
+      <g class="node ia stage" data-stage="dp-3"><rect x="364" y="30" width="96" height="54" rx="8"/><text x="412" y="52" text-anchor="middle" class="t">dispositivos</text><text x="412" y="70" text-anchor="middle">regex + pilha</text></g>
+      <path class="edge" d="M460 57H480" marker-end="url(#ar10)"/>
+      <g class="node stage" data-stage="dp-4"><rect x="482" y="30" width="96" height="54" rx="8"/><text x="530" y="52" text-anchor="middle" class="t">JSONL</text><text x="530" y="70" text-anchor="middle">trechos.jsonl</text></g>
+      <path class="edge" d="M578 57H598" marker-end="url(#ar10)"/>
+      <g class="node gate stage" data-stage="dp-5"><rect x="600" y="30" width="150" height="54" rx="8"/><text x="675" y="52" text-anchor="middle" class="t">inspeção + contrato</text><text x="675" y="70" text-anchor="middle">pandas · Pydantic</text></g>
+      <path class="edge" d="M675 84V112" marker-end="url(#ar10)"/>
+      <g class="node ok stage" data-stage="dp-6"><rect x="600" y="114" width="150" height="54" rx="8"/><text x="675" y="136" text-anchor="middle" class="t">PostgreSQL</text><text x="675" y="154" text-anchor="middle">psycopg · upsert · hash</text></g>
+      <path class="edge" d="M600 141H540" marker-end="url(#ar10)"/><text class="lbl" x="420" y="145">rejeitados voltam para a regex (laço de volta)</text>
+      <text class="lbl" x="10" y="120">artefato de cada estação: abra e olhe antes de seguir</text>
+      <text class="lbl" x="10" y="140">.pdf → .txt bruto → .txt limpo → lista → .jsonl → relatório → tabela</text>
+      <text class="lbl" x="10" y="195">capítulos: 2 · 3 · 4–5 · 6 · 7–8 · 9</text>
+    </svg>
+    <figcaption>Sete estações, sete artefatos. O laço de volta (rejeitados → regex) é onde o Ex. 2 gasta a maior parte do tempo: "achar os erros de segmentação (vai ter) e corrigir a regex".</figcaption>
+  </figure>
+
+  <p>Antes de qualquer código, vale olhar o texto bruto com atenção. O experimento abaixo mostra uma página da lei como o pymupdf a entrega, com os problemas marcados por categoria. Cada categoria tem uma regra de limpeza no capítulo 3; a categoria "marcadores" não é problema, é o que o segmentador do capítulo 5 vai procurar, e por isso precisa sobreviver intacta à limpeza.</p>
+
+  <div class="lab">
+    <header><h4>Experimento · Raio-X do texto bruto</h4><span class="badge toy">roda no navegador</span></header>
+    <div class="body">
+      <p>Texto de uma página da lei como sai de <code>page.get_text()</code>. Clique numa categoria para destacar só ela e ler o que a causa e o que a conserta. Os caracteres invisíveis aparecem com o código Unicode.</p>
+      <div class="chips" id="rx-filter" style="margin-bottom:10px"></div>
+      <pre class="raw" id="rx-text"></pre>
+      <div class="callout" id="rx-info"><span class="t">Clique numa categoria</span><p>Cada cor é uma família de problema. Os marcadores (verde) não são problema: são a estrutura que a limpeza precisa preservar.</p></div>
+    </div>
+  </div>
+
+  <div class="doit"><span class="ic">faça agora</span><p>Conte, no texto acima, quantas linhas terminam no meio de uma frase. Agora imagine a lei inteira: 120 páginas, cerca de 5.000 linhas, e a maioria quebrada. Nenhuma busca lexical acha "automotores" enquanto o texto tiver "automo-" numa linha e "tores" na seguinte. É esse o tamanho do problema que a limpeza resolve, e é por isso que ela vem antes de qualquer embedding.</p></div>
+
+  <div class="faq">
+    <h3>Perguntas que aparecem aqui</h3>
+    <details><summary>Não dá para pular a limpeza e mandar o texto bruto para o modelo de embeddings?</summary><p>Dá, e o embedding até tolera bastante ruído. O que não tolera é a busca lexical (página 4), que procura palavras inteiras: "automo-tores" não casa com "automotores". E o pior não é a busca, é a citação: se o trecho contém "Presidência da República" no meio, a evidência literal que a página 7 exige fica contaminada e o auditor lê lixo. A limpeza protege a parte do sistema que precisa ser exata.</p><p class="why">Embedding perdoa; busca lexical e citação literal, não.</p></details>
+    <details><summary>Por que segmentar por dispositivo e não por 500 tokens?</summary><p>Porque a citação precisa ser conferível: "Art. 75, I" é algo que o auditor abre e lê. "Trecho 37, tokens 18.500 a 19.000" não é. A página 5 tratou o porquê; esta página trata o como: reconhecer os marcadores e cortar exatamente neles. O corte por tamanho é o que se faz quando o documento não tem estrutura; uma lei tem.</p><p class="why">Corte por unidade normativa é o que torna a citação verificável.</p></details>
+    <details><summary>Quanto tempo o Ex. 2 leva de verdade?</summary><p>Mais do que os outros. A extração é rápida; a limpeza e a regex são iterativas: você roda, olha o pandas, acha um artigo quebrado, ajusta, roda de novo. O laço "achar erro → corrigir regex" costuma rodar dez ou mais vezes. A página 5 sugeriu começar pelo Art. 75; o critério de parada é "o Art. 75 sai com todos os incisos e parágrafos certos, e os dez maiores e dez menores trechos fazem sentido".</p><p class="why">O trabalho é o laço de volta, não a primeira passada.</p></details>
+    <details><summary>Preciso de notebook (Jupyter) ou script?</summary><p>Os dois, em papéis diferentes. O segmentador é um script (<code>ex2_segmentar.py</code>): roda do início ao fim, sem estado escondido, e é versionado. A inspeção é onde um notebook ajuda: você carrega o JSONL uma vez e faz dez perguntas ao pandas sem recarregar. Se não quiser Jupyter, um <code>inspecionar.py</code> com as mesmas perguntas em sequência serve, e é o que o capítulo 10 traz.</p><p class="why">Script para produzir; notebook (ou script de inspeção) para olhar.</p></details>
+  </div>
+
+  <div class="notes"><label for="n-p9-c1">Caderno · com as suas palavras</label><p class="hint">Liste as sete estações e o artefato de cada uma. Escreva por que a busca lexical e a citação literal são as partes que a limpeza protege.</p><textarea class="prose" id="n-p9-c1" data-note="p9-c1"></textarea><div class="saved"></div></div>
+</section>
+
+<!-- ============================================================ 2 -->
+<section class="chapter" id="c2" data-ch="p9-c2">
+  <div class="ch-head"><span class="n">Capítulo 2</span><h2>Extrair texto de PDF: o que há dentro e como tirar</h2><label class="donebox"><input type="checkbox" data-done> Capítulo concluído</label></div>
+
+  <p>Um PDF não guarda texto do jeito que um <code>.txt</code> guarda. Ele guarda <em>instruções de desenho</em>: "na posição (72, 540), com a fonte F1 em 11 pontos, desenhe os glifos 'Art. 75.'". Não existe o conceito de parágrafo, de coluna nem de ordem de leitura. O que a biblioteca de extração faz é <strong>reconstruir</strong> linhas a partir de glifos próximos, e blocos a partir de linhas próximas, e adivinhar a ordem. Por isso duas bibliotecas dão textos diferentes do mesmo arquivo, e por isso a ordem de leitura de uma página em duas colunas pode sair embaralhada.</p>
+  <p>Há ainda um segundo tipo de PDF: o escaneado. Nele não há glifos, só uma imagem por página; extrair texto significa reconhecer caracteres na imagem (OCR). A lei no Planalto é um PDF "nativo" (tem camada de texto); um contrato assinado e digitalizado que o sistema do projeto vai auditar frequentemente não é. O código precisa detectar qual é o caso por página e escolher o caminho.</p>
+
+  <div class="tbl-wrap"><table>
+    <thead><tr><th>Ferramenta</th><th>O que faz bem</th><th>Onde falha</th><th>Quando usar</th></tr></thead>
+    <tbody>
+      <tr><td><code>pymupdf</code> (import <code>fitz</code>)</td><td>Rápido (C), extrai texto, blocos com posição, imagens; <code>sort=True</code> ordena por posição; <code>get_text("dict")</code> dá fonte e tamanho de cada trecho.</td><td>Tabelas viram linhas soltas; licença AGPL para uso comercial fechado.</td><td>Padrão do Ex. 2 e do projeto: texto corrido de documentos nativos.</td></tr>
+      <tr><td><code>pdfplumber</code></td><td>Tabelas (<code>extract_tables</code>), acesso a cada caractere com coordenadas, recortes por área.</td><td>Muito mais lento; texto corrido sai pior que o pymupdf em páginas simples.</td><td>Quando o documento tem tabelas que importam (planilhas de preços em contratos).</td></tr>
+      <tr><td><code>pypdf</code></td><td>Puro Python, sem dependências; manipula páginas (juntar, dividir, girar).</td><td>Extração de texto fraca em layouts complexos; sem posição confiável.</td><td>Operações de arquivo, não extração.</td></tr>
+      <tr><td><code>pdftotext -layout</code> (poppler)</td><td>Preserva o layout visual em texto; bom em colunas.</td><td>Ferramenta externa; alinhamento por espaços que a limpeza precisa desfazer.</td><td>Conferir rapidamente no terminal como o texto "se parece".</td></tr>
+      <tr><td><code>ocrmypdf</code> / <code>tesseract</code> (por)</td><td>Reconhece texto em imagem; ocrmypdf devolve um PDF com camada de texto por cima da imagem.</td><td>Erros de reconhecimento (rn→m, l→1, acentos), lento; precisa do pacote de idioma <code>por</code>.</td><td>Páginas sem camada de texto (escaneadas). Sempre com revisão por amostra.</td></tr>
+    </tbody>
+  </table></div>
+
+  <figure class="diagram" data-caps='["Para cada página, conte os caracteres da camada de texto: len(page.get_text()). Um limiar de 50 caracteres por página separa nativo de escaneado na prática; páginas de capa e em branco caem abaixo, e tudo bem.","Página nativa: page.get_text(\"text\", sort=True) devolve o texto ordenado de cima para baixo e da esquerda para a direita. Para colunas, get_text(\"blocks\") dá cada bloco com o retângulo (x0, y0, x1, y1) e você ordena como quiser.","Página escaneada: renderiza a página como imagem (page.get_pixmap(dpi=300)) e passa pelo tesseract com lang=\"por\"; ou roda ocrmypdf no arquivo inteiro antes e volta ao caminho nativo.","O texto de cada página entra no bruto com um separador de página (form feed \\f ou uma linha-marca). O separador é o que permite detectar cabeçalho e rodapé por repetição no capítulo 3.","Antes de seguir, abra o .txt e leia três páginas: uma do começo, uma do meio (com incisos) e uma do fim (anexos). O que parecer estranho aqui vira regra de limpeza."]' aria-label="Decisão nativo ou escaneado por página">
+    <div class="dtools"><button class="btn small" data-stepper="pf">Passo a passo</button><button class="btn small ghost" data-stepper-reset="pf">Reiniciar</button><span class="mini" id="pf-cap"></span></div>
+    <svg viewBox="0 0 760 200" role="img" aria-labelledby="pft"><title id="pft">Extração por página</title>
+      <g class="node stage" data-stage="pf-0"><rect x="10" y="60" width="130" height="54" rx="8"/><text x="75" y="82" text-anchor="middle" class="t">página</text><text x="75" y="100" text-anchor="middle">len(get_text()) &gt; 50?</text></g>
+      <path class="edge" d="M140 75L200 35" marker-end="url(#ar10)"/><text class="lbl" x="150" y="48">sim</text>
+      <path class="edge" d="M140 100L200 140" marker-end="url(#ar10)"/><text class="lbl" x="150" y="135">não</text>
+      <g class="node ia stage" data-stage="pf-1"><rect x="202" y="8" width="200" height="54" rx="8"/><text x="302" y="30" text-anchor="middle" class="t">nativo · pymupdf</text><text x="302" y="48" text-anchor="middle">get_text("text", sort=True)</text></g>
+      <g class="node gate stage" data-stage="pf-2"><rect x="202" y="112" width="200" height="54" rx="8"/><text x="302" y="134" text-anchor="middle" class="t">escaneado · OCR</text><text x="302" y="152" text-anchor="middle">pixmap 300 dpi → tesseract por</text></g>
+      <path class="edge" d="M402 35L470 75" marker-end="url(#ar10)"/><path class="edge" d="M402 139L470 100" marker-end="url(#ar10)"/>
+      <g class="node stage" data-stage="pf-3"><rect x="472" y="60" width="130" height="54" rx="8"/><text x="537" y="82" text-anchor="middle" class="t">texto bruto</text><text x="537" y="100" text-anchor="middle">+ separador de página</text></g>
+      <path class="edge" d="M602 87H640" marker-end="url(#ar10)"/>
+      <g class="node ok stage" data-stage="pf-4"><rect x="642" y="60" width="108" height="54" rx="8"/><text x="696" y="82" text-anchor="middle" class="t">olhar</text><text x="696" y="100" text-anchor="middle">3 páginas lidas</text></g>
+      <text class="lbl" x="10" y="190">OCR erra (rn→m, l→1, acentos): amostra revisada antes de confiar; a lei do Planalto é nativa, contratos digitalizados quase nunca são</text>
+    </svg>
+    <figcaption>A decisão é por página, não por arquivo: um contrato pode ter o corpo nativo e os anexos escaneados.</figcaption>
+  </figure>
+
+  <div class="lab">
+    <header><h4>Experimento · Ordem de leitura</h4><span class="badge toy">roda no navegador</span></header>
+    <div class="body">
+      <p>Uma página com cabeçalho, duas colunas e rodapé, como o arquivo a guarda: blocos numerados na <em>ordem em que foram escritos no PDF</em>, que não é a ordem de leitura. Escolha como ordenar e leia o texto que sai.</p>
+      <div class="chips" id="ro-mode" style="margin-bottom:10px"><button class="chip" data-m="file" aria-pressed="true">ordem do arquivo (sort=False)</button><button class="chip" data-m="sort">sort=True (y, depois x)</button><button class="chip" data-m="col">por coluna (agrupar por x, depois y)</button></div>
+      <div class="grid2">
+        <div><svg id="ro-svg" viewBox="0 0 300 380" role="img" aria-label="Página com blocos"></svg></div>
+        <div><div class="out" id="ro-out"></div><p class="mini" id="ro-note"></p></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="lab">
+    <header><h4>Experimento · Detector de página escaneada</h4><span class="badge toy">roda no navegador</span></header>
+    <div class="body">
+      <p>Oito páginas de um contrato fictício com a contagem de caracteres da camada de texto e de imagens. Mova o limiar e veja quais páginas iriam para o OCR. Repare nas páginas de capa e de assinatura: poucas letras, mas nativas.</p>
+      <div class="row"><div><label class="f" for="sc-lim">limiar = <span id="sc-limv">50</span> caracteres por página</label><input type="range" id="sc-lim" min="0" max="400" step="10" value="50"></div></div>
+      <div class="tbl-wrap"><table id="sc-tbl"><thead><tr><th>página</th><th>caracteres</th><th>imagens</th><th>o que é</th><th>decisão</th></tr></thead><tbody></tbody></table></div>
+      <p class="mini" id="sc-note"></p>
+    </div>
+  </div>
+
+  <div class="doit"><span class="ic">faça agora</span><p>No experimento de ordem de leitura, escolha <em>sort=True</em> e leia o texto: o cabeçalho vem primeiro (certo), mas as duas colunas se intercalam linha a linha (errado). Agora "por coluna": certo. Escreva no caderno em qual situação você usaria cada um. A resposta do projeto: <em>sort=True</em> para documentos de uma coluna (a maioria) e agrupamento por coluna quando <code>get_text("blocks")</code> mostrar dois valores de x0 dominantes.</p></div>
+
+  <div class="faq">
+    <h3>Perguntas que aparecem aqui</h3>
+    <details><summary>Como sei se o PDF é nativo ou escaneado sem abrir?</summary><p>Contando caracteres por página com o próprio pymupdf: <code>len(page.get_text())</code>. Nativo tem centenas a milhares por página; escaneado tem zero (ou lixo, se alguém já rodou um OCR ruim). Um segundo sinal: <code>page.get_images()</code> devolve uma imagem do tamanho da página. O detector do experimento faz exatamente isso. Não confie no nome do arquivo nem em quem mandou.</p><p class="why">Decisão por página, com contagem, não por aparência.</p></details>
+    <details><summary>Copiar do site do Planalto (HTML) não seria melhor que o PDF?</summary><p>Para a lei, sim: o HTML tem a estrutura marcada e nenhuma hifenização, e é o que muita gente usa. O Ex. 2 escolhe o PDF de propósito, porque o sistema do projeto vai receber PDFs de contratos e editais, não HTML, e as habilidades (extrair, limpar, segmentar) são as mesmas. Depois de fechar o exercício com o PDF, comparar com o HTML é uma boa verificação: os ids têm de coincidir.</p><p class="why">O PDF é o caso real; o HTML é uma verificação.</p></details>
+    <details><summary>O que é o <code>sort=True</code> exatamente?</summary><p>pymupdf ordena os blocos de texto pela coordenada vertical (y) e, em empate, pela horizontal (x), reconstruindo a ordem "de cima para baixo, da esquerda para a direita". Numa coluna só, é o certo. Em duas colunas, intercala as linhas das duas, porque compartilham o mesmo y. Para colunas, pegue os blocos com <code>get_text("blocks")</code>, agrupe por x0 (esquerda e direita) e ordene por y dentro de cada grupo.</p><p class="why">sort=True resolve uma coluna; colunas exigem agrupar por x.</p></details>
+    <details><summary>OCR em português precisa de algo especial?</summary><p>Do pacote de idioma (<code>tesseract-ocr-por</code>) e de resolução: 300 dpi na renderização. Sem o idioma, o tesseract não reconhece acentos nem cedilha. Mesmo com tudo certo, espere 1 a 3% de caracteres errados em documentos limpos e bem mais em cópias de fax; por isso o resultado de OCR entra no sistema com a marca <code>origem: "ocr"</code> nos metadados, para a validação (página 7) ser mais desconfiada com esses trechos.</p><p class="why">OCR é fonte de segunda categoria: marcada e revisada.</p></details>
+    <details><summary>E tabelas? A lei não tem, mas contratos têm.</summary><p>Tabela extraída como texto corrido vira uma sequência de células sem sentido. Para tabelas, pdfplumber com <code>extract_tables()</code>, e cada tabela vira um trecho próprio, com o conteúdo em formato de linhas "coluna: valor" ou Markdown, e o <code>dispositivo</code> do tipo "Anexo I, Tabela 2". É trabalho à parte, e o projeto o adia: primeiro o texto corrido.</p><p class="why">Tabela é outro tipo de trecho, com outra ferramenta.</p></details>
+  </div>
+
+  <div class="notes"><label for="n-p9-c2">Caderno</label><p class="hint">Explique por que um PDF não tem parágrafos, como se detecta uma página escaneada e quando sort=True não basta.</p><textarea class="prose" id="n-p9-c2" data-note="p9-c2"></textarea><div class="saved"></div></div>
+</section>
+
+<!-- ============================================================ 3 -->
+<section class="chapter" id="c3" data-ch="p9-c3">
+  <div class="ch-head"><span class="n">Capítulo 3</span><h2>Limpeza: cabeçalhos, hifenização, quebras e o Unicode invisível</h2><label class="donebox"><input type="checkbox" data-done> Capítulo concluído</label></div>
+
+  <p>A limpeza é uma sequência de regras, e <strong>a ordem importa</strong>. Remover cabeçalho e rodapé precisa acontecer antes de juntar linhas, senão o rodapé é colado ao inciso anterior. Normalizar Unicode precisa vir antes da hifenização, porque o hífen de quebra às vezes é um <em>hífen suave</em> (U+00AD) que a regex de "-" não vê. Desfazer a hifenização precisa vir antes de juntar linhas, porque depois de juntas "automo- tores" ganha um espaço e o hífen já não está no fim de linha. Cada regra tem um risco de estragar algo, e a tabela diz qual.</p>
+
+  <div class="tbl-wrap"><table class="rules">
+    <thead><tr><th>#</th><th>Regra</th><th>Como (Python)</th><th>Risco e proteção</th></tr></thead>
+    <tbody>
+      <tr><td>1</td><td>Remover cabeçalho e rodapé</td><td>Linhas que se repetem em ≥ 3 páginas (contar por página, usando o separador) + regex do rodapé: <code>r'planalto\.gov\.br|^\s*\d+/\d+\s*$'</code></td><td>Apagar uma linha legítima que se repete ("§ 1º" sozinho numa linha). Proteção: só remover linhas sem marcador e com menos de 80 caracteres.</td></tr>
+      <tr><td>2</td><td>Normalizar Unicode</td><td><code>unicodedata.normalize('NFKC', s)</code>; trocar U+00A0 (espaço não separável) por espaço; remover U+00AD (hífen suave) e U+200B (largura zero); <code>°</code> (U+00B0) após dígito → <code>º</code> (U+00BA); travessões (U+2013, U+2014) em marcador → <code>-</code></td><td>NFKC muda "²" para "2" e "ﬁ" para "fi" (bom) mas também "½" para "1⁄2". Proteção: aplicar e comparar contagem de caracteres alterados.</td></tr>
+      <tr><td>3</td><td>Desfazer hifenização</td><td><code>re.sub(r'(\w)-\n([a-zà-ú])', r'\1\2', s)</code>: só quando a linha seguinte começa com minúscula (o <code>re</code> da biblioteca padrão não tem <code>\p{Ll}</code>; isso é do pacote <code>regex</code>)</td><td>Palavras com hífen legítimo no fim da linha ("contra-\nordem"). Proteção: conferir contra um dicionário ou aceitar o erro raro e registrar.</td></tr>
+      <tr><td>4</td><td>Juntar linhas quebradas</td><td>Linha que não termina em <code>. ; :</code> e cuja próxima não começa com marcador → juntar com espaço</td><td>Juntar um caput com o inciso seguinte se o marcador não for reconhecido. Proteção: a regex de marcadores do capítulo 4 é a mesma aqui.</td></tr>
+      <tr><td>5</td><td>Normalizar espaços</td><td><code>re.sub(r'[ \t]+', ' ', s)</code> por linha; <code>strip()</code>; colapsar linhas vazias</td><td>Quase nenhum. Por último, para limpar o que as outras regras deixaram.</td></tr>
+    </tbody>
+  </table></div>
+
+  <div class="lab">
+    <header><h4>Experimento · Bancada de limpeza</h4><span class="badge toy">roda no navegador</span></header>
+    <div class="body">
+      <p>O texto bruto do capítulo 1 passa pelas cinco regras na ordem. Desligue uma regra e leia o resultado; mude a ordem e veja o que quebra. O contador mostra o que cada regra alterou.</p>
+      <div class="chips" id="cl-rules" style="margin-bottom:10px">
+        <label class="chip"><input type="checkbox" data-r="header" checked> 1 · cabeçalho/rodapé</label>
+        <label class="chip"><input type="checkbox" data-r="unicode" checked> 2 · Unicode</label>
+        <label class="chip"><input type="checkbox" data-r="hyphen" checked> 3 · hifenização</label>
+        <label class="chip"><input type="checkbox" data-r="join" checked> 4 · juntar linhas</label>
+        <label class="chip"><input type="checkbox" data-r="spaces" checked> 5 · espaços</label>
+        <label class="chip"><input type="checkbox" data-r="wrong"> ordem errada (4 antes de 3)</label>
+      </div>
+      <ul class="checks" id="cl-counts"></ul>
+      <div class="cmp">
+        <div class="col"><h5>bruto</h5><pre class="raw small" id="cl-before"></pre></div>
+        <div class="col"><h5>limpo</h5><pre class="raw small" id="cl-after"></pre></div>
+      </div>
+      <p class="mini" id="cl-note"></p>
+    </div>
+  </div>
+
+  <p>A segunda metade da limpeza é invisível. Um texto que <em>parece</em> igual pode ter dois "ç" diferentes: o caractere composto (U+00E7) e o "c" seguido de uma cedilha combinante (U+0327), que o PDF às vezes emite. Para a busca lexical são duas palavras distintas; para o hash de conteúdo do capítulo 9, dois trechos distintos. O mesmo vale para o espaço não separável (U+00A0), o hífen suave (U+00AD), a ligadura "ﬁ" (U+FB01) e o sinal de grau (°) usado no lugar do ordinal (º). A forma de normalização <strong>NFC</strong> compõe os caracteres (c + cedilha → ç); a <strong>NFKC</strong> faz isso e também troca as formas de compatibilidade (ligaduras, sobrescritos) pela forma simples. Para texto de lei, NFKC é a escolha, com o cuidado da tabela.</p>
+
+  <div class="lab">
+    <header><h4>Experimento · Inspetor de caracteres</h4><span class="badge toy">roda no navegador</span></header>
+    <div class="body">
+      <p>Cole um texto (ou use um exemplo) e veja cada caractere com o seu código. Os suspeitos ficam marcados; embaixo, o mesmo texto após NFKC e as trocas da regra 2.</p>
+      <div class="chips" id="uc-presets" style="margin-bottom:8px"><button class="chip" data-p="pdf">texto de PDF</button><button class="chip" data-p="nfd">ç decomposto (NFD)</button><button class="chip" data-p="lig">ligadura ﬁ e °</button><button class="chip" data-p="dash">travessões e aspas</button></div>
+      <textarea id="uc-in" rows="2" spellcheck="false"></textarea>
+      <div class="tokens" id="uc-out" style="margin-top:8px"></div>
+      <ul class="checks" id="uc-flags"></ul>
+      <div class="out" id="uc-norm"></div>
+    </div>
+  </div>
+
+  <div class="doit"><span class="ic">faça agora</span><p>Na bancada, desligue a regra 3 (hifenização) e procure "automo-" no texto limpo. Depois ligue "ordem errada" e procure de novo: agora é "automo- tores", com espaço, e nenhuma regra posterior conserta. Escreva no caderno a ordem das cinco regras e a razão de cada posição.</p></div>
+
+  <div class="faq">
+    <h3>Perguntas que aparecem aqui</h3>
+    <details><summary>Como detectar cabeçalho e rodapé sem escrever uma regex para cada documento?</summary><p>Por repetição: cabeçalho e rodapé aparecem em quase todas as páginas, no mesmo lugar, com o mesmo texto (ou o mesmo texto a menos de um número de página). Divida o bruto por página, conte em quantas páginas cada linha aparece (com os dígitos substituídos por <code>#</code>), e remova as que aparecem em mais de 30% das páginas. Isso generaliza para qualquer documento; a regex do rodapé do Planalto é só um atalho para o caso conhecido.</p><p class="why">Repetição entre páginas é a assinatura de cabeçalho e rodapé.</p></details>
+    <details><summary>A regra 3 pode juntar palavras erradas?</summary><p>Pode, quando a palavra tem hífen legítimo e a quebra caiu nele: "contra-\nordem" viraria "contraordem". A condição "a linha seguinte começa com minúscula" evita a maioria dos casos de nomes próprios, mas não esse. Duas saídas: manter uma lista de palavras hifenizadas frequentes no domínio (decreto-lei, contra-ordem, ex-servidor) e não juntar quando o resultado for uma delas; ou aceitar a taxa de erro (rara) e registrar. O projeto aceita e registra.</p><p class="why">Regras têm taxa de erro; conheça-a e decida.</p></details>
+    <details><summary>Por que não usar o modelo de linguagem para limpar?</summary><p>Custo e determinismo. Limpar 120 páginas com o modelo custa tokens a cada rodada e produz resultados diferentes a cada vez, o que quebra o hash de conteúdo e a reprodutibilidade. Regras são grátis, instantâneas e dão o mesmo resultado sempre; e quando erram, erram de forma previsível, que se corrige uma vez. O modelo entra onde regra não alcança (capítulo 5 tem um experimento comparando os dois na segmentação).</p><p class="why">Regra é barata, determinística e corrigível; modelo não.</p></details>
+    <details><summary>NFC ou NFKC?</summary><p>NFC compõe (c + cedilha → ç) e é segura sempre. NFKC também substitui formas de compatibilidade: ligaduras ("ﬁ" → "fi"), sobrescritos ("²" → "2"), espaços especiais. Para texto normativo, o ganho das ligaduras vale mais que a perda dos raros sobrescritos; o projeto usa NFKC e trata "º" e "ª" à parte (NFKC transforma "º" em "o", o que destruiria "1º" → "1o": por isso a regra 2 protege os ordinais antes de normalizar e os restaura depois).</p><p class="why">NFKC, com proteção explícita dos ordinais.</p></details>
+    <details><summary>O texto limpo deve ter uma linha por dispositivo?</summary><p>É o alvo: depois da regra 4, cada linha começa com um marcador (Art., §, inciso, alínea) ou é continuação de uma frase que não coube. O segmentador do capítulo 5 assume isso. Se ao abrir o limpo você vir muitas linhas curtas sem marcador, a regra 4 não está juntando o que devia, e a causa costuma ser um marcador não reconhecido pela regex (que é a do capítulo 4).</p><p class="why">Linha = dispositivo é o contrato entre limpeza e segmentação.</p></details>
+  </div>
+
+  <div class="notes"><label for="n-p9-c3">Caderno</label><p class="hint">Escreva as cinco regras na ordem, o risco de cada uma e três caracteres invisíveis que você aprendeu a procurar.</p><textarea class="prose" id="n-p9-c3" data-note="p9-c3"></textarea><div class="saved"></div></div>
+</section>
+<!-- ============================================================ 4 -->
+<section class="chapter" id="c4" data-ch="p9-c4">
+  <div class="ch-head"><span class="n">Capítulo 4</span><h2>Expressões regulares: a gramática da lei</h2><label class="donebox"><input type="checkbox" data-done> Capítulo concluído</label></div>
+
+  <p>Uma lei brasileira tem uma gramática visual estável: <code>Art. 75.</code> abre um artigo; <code>§ 1º</code> abre um parágrafo; <code>I -</code>, <code>II -</code> abrem incisos; <code>a)</code>, <code>b)</code> abrem alíneas; e dentro de alíneas, raramente, <code>1.</code>, <code>2.</code> abrem itens. Uma expressão regular é a forma de descrever essa gramática de modo que o código a reconheça no início de cada linha. O capítulo ensina a ler e escrever regex do zero, com os pedaços que o segmentador usa, e termina com a galeria das armadilhas: os casos em que a regex "óbvia" acerta 95% e erra justamente o Art. 1º, o Art. 10 e o Parágrafo único.</p>
+
+  <div class="tbl-wrap"><table>
+    <thead><tr><th>Pedaço</th><th>Significa</th><th>No segmentador</th></tr></thead>
+    <tbody>
+      <tr><td><code>^</code> e <code>$</code></td><td>Início e fim da linha (com a flag <code>re.M</code>); sem ela, início e fim do texto inteiro.</td><td><code>^Art\.</code> exige que o marcador esteja no começo da linha: "conforme o Art. 75" no meio de uma frase não abre artigo.</td></tr>
+      <tr><td><code>\d+</code>, <code>\s*</code>, <code>\w</code></td><td>Um ou mais dígitos; zero ou mais espaços; caractere de palavra (letras, dígitos, _; com acentos em Python 3).</td><td><code>Art\.\s*(\d+)</code> aceita "Art.75" e "Art. 75".</td></tr>
+      <tr><td><code>[º°.]?</code></td><td>Uma classe de caracteres: um destes; <code>?</code> torna opcional.</td><td>"Art. 1º", "Art. 10." e "Art. 75" com o mesmo padrão.</td></tr>
+      <tr><td><code>(?P&lt;num&gt;…)</code></td><td>Grupo nomeado: captura a parte e dá um nome (<code>m.group('num')</code>, <code>m['num']</code>).</td><td>Cada marcador captura o número no nome certo: <code>art</code>, <code>par</code>, <code>inc</code>, <code>ali</code>.</td></tr>
+      <tr><td><code>A|B</code></td><td>Alternância: A ou B. Com grupos nomeados, uma regex reconhece todos os marcadores e diz qual casou.</td><td><code>^(?:(?P&lt;art&gt;Art\. …)|(?P&lt;par&gt;§ …)|(?P&lt;inc&gt;[IVXL]+ -)|(?P&lt;ali&gt;[a-z]\)))</code></td></tr>
+      <tr><td><code>[IVXL]+</code> e <code>(?=\s*[-–—])</code></td><td>Classe de algarismos romanos; lookahead: exige que venha um traço depois, sem consumi-lo.</td><td>Evita que "I" no começo de "Item" ou "V" em "Vedado" seja lido como inciso.</td></tr>
+      <tr><td><code>re.M</code>, <code>re.I</code>, <code>re.X</code></td><td>Multilinha (^ e $ por linha); ignorar maiúsculas; modo verboso (espaços e comentários dentro do padrão).</td><td><code>re.M</code> sempre; <code>re.X</code> para a regex grande dos marcadores caber em várias linhas comentadas.</td></tr>
+      <tr><td><code>re.compile</code>, <code>finditer</code>, <code>match</code>, <code>sub</code></td><td>Compilar uma vez; iterar todas as ocorrências; casar só no início; substituir (com <code>\1</code> ou função).</td><td><code>MARCADOR.match(linha)</code> por linha é o coração do segmentador; <code>sub</code> é a limpeza.</td></tr>
+    </tbody>
+  </table></div>
+
+  <div class="lab">
+    <header><h4>Experimento · Laboratório de regex</h4><span class="badge toy">roda no navegador</span></header>
+    <div class="body">
+      <p>Escreva o padrão (sintaxe do Python: <code>(?P&lt;nome&gt;…)</code> funciona) e veja as ocorrências marcadas no texto, com os grupos capturados. Os padrões prontos são os do segmentador; os textos prontos são as pegadinhas.</p>
+      <div class="chips" id="re-pat" style="margin-bottom:6px"><span class="mini" style="align-self:center">padrões:</span><button class="chip" data-p="art">artigo</button><button class="chip" data-p="par">parágrafo</button><button class="chip" data-p="inc">inciso</button><button class="chip" data-p="ali">alínea</button><button class="chip" data-p="all">todos (alternância nomeada)</button><button class="chip" data-p="naive">ingênuo (Art\. \d+\.)</button></div>
+      <div class="chips" id="re-txt" style="margin-bottom:10px"><span class="mini" style="align-self:center">textos:</span><button class="chip" data-t="art75">Art. 75 limpo</button><button class="chip" data-t="traps">pegadinhas</button><button class="chip" data-t="inline">marcador no meio da frase</button></div>
+      <div class="row top">
+        <div style="flex:2"><label class="f" for="re-in">padrão</label><input type="text" id="re-in" spellcheck="false" autocomplete="off"></div>
+        <div class="fixed"><label class="f">flags</label><div class="chips"><label class="chip"><input type="checkbox" id="re-m" checked> M (multilinha)</label><label class="chip"><input type="checkbox" id="re-i"> I</label></div></div>
+      </div>
+      <textarea id="re-text" rows="7" spellcheck="false"></textarea>
+      <p class="status" id="re-status"></p>
+      <pre class="raw" id="re-out"></pre>
+      <div class="tbl-wrap"><table id="re-groups"><thead><tr><th>#</th><th>linha</th><th>casou</th><th>grupos</th></tr></thead><tbody></tbody></table></div>
+      <p class="mini">Python equivalente: <code id="re-py"></code></p>
+    </div>
+  </div>
+
+  <p>As armadilhas abaixo são as que aparecem de verdade na Lei 14.133 e nos documentos que o projeto vai auditar. Cada cartão traz o texto que engana, o que a regex ingênua faz com ele e a correção. Clique para abrir.</p>
+
+  <div class="lab">
+    <header><h4>Experimento · Galeria de armadilhas</h4><span class="badge toy">roda no navegador</span></header>
+    <div class="body">
+      <div class="chips" id="tr-filter" style="margin-bottom:10px"><button class="chip" data-f="all" aria-pressed="true">todas</button><button class="chip" data-f="numero">numeração</button><button class="chip" data-f="unicode">caractere</button><button class="chip" data-f="estrutura">estrutura</button></div>
+      <div class="fail-grid" id="tr-grid"></div>
+      <p class="mini" id="tr-note"></p>
+    </div>
+  </div>
+
+  <div class="doit"><span class="ic">faça agora</span><p>No laboratório, escolha o padrão "ingênuo" e o texto "pegadinhas". Conte quantos artigos ele acha. Troque para "artigo" e conte de novo. Depois escreva, sem olhar, a regex de artigo que aceita "Art. 1º", "Art. 10." e "Art. 75-A" e teste. Cole a sua versão no caderno com um comentário por pedaço.</p></div>
+
+  <div class="faq">
+    <h3>Perguntas que aparecem aqui</h3>
+    <details><summary>Regex não é frágil demais para isso? E se a lei mudar o formato?</summary><p>O formato dos marcadores é a parte mais estável de uma norma brasileira: a Lei Complementar 95/1998 define como artigos, parágrafos, incisos e alíneas são escritos, e todas as leis federais desde então seguem. Contratos e editais são menos disciplinados, e aí a regex precisa de mais alternativas (CLÁUSULA PRIMEIRA, 1.1, 1.1.1). Frágil seria uma regex sem testes; com o teste do Art. 75 no capítulo 10, qualquer mudança que a quebre aparece na hora.</p><p class="why">A gramática é normatizada; a fragilidade se cobre com testes.</p></details>
+    <details><summary>Por que grupos nomeados em vez de numerados?</summary><p>Porque a regex dos marcadores é longa e muda. Com grupos numerados, inserir uma alternativa no meio renumera todas as seguintes e quebra o código que lê <code>m.group(3)</code>. Com nomes, <code>m['inc']</code> continua valendo. E <code>m.lastgroup</code> diz qual alternativa casou, que é exatamente o que a máquina de estados do capítulo 5 precisa saber.</p><p class="why">Nomes sobrevivem a edições; números não.</p></details>
+    <details><summary>Qual a diferença entre <code>match</code>, <code>search</code> e <code>fullmatch</code>?</summary><p><code>match</code> só casa no início da string; <code>search</code> acha em qualquer posição; <code>fullmatch</code> exige que a string inteira case. O segmentador usa <code>match</code> por linha (o marcador tem de estar no começo). A limpeza usa <code>sub</code>, que internamente é um <code>search</code> repetido. Usar <code>search</code> no segmentador é o erro clássico: "conforme o Art. 75" no meio de um inciso abriria um artigo.</p><p class="why">match no início da linha é o que impede falsos marcadores.</p></details>
+    <details><summary>O laboratório usa JavaScript; o Python vai se comportar igual?</summary><p>Para os pedaços desta página, sim: âncoras, classes, quantificadores, grupos nomeados (o laboratório converte <code>(?P&lt;n&gt;</code> para a forma do JavaScript) e lookahead são iguais. Diferenças que importam: no Python, <code>\w</code> inclui letras acentuadas por padrão; no JavaScript, só com a flag <code>u</code> e <code>\p{L}</code>. O laboratório já usa a flag <code>u</code>. E a flag <code>re.X</code> (verbosa) não existe no JavaScript; o capítulo 10 usa <code>re.X</code> no código Python para comentar a regex grande.</p><p class="why">Mesma sintaxe no essencial; \w e re.X são as diferenças.</p></details>
+    <details><summary>Preciso decorar tudo isso?</summary><p>Não. Precisa saber ler uma regex pedaço por pedaço e testar cada pedaço num laboratório como este (ou no <code>regex101.com</code> com o sabor Python) antes de colocar no código. E precisa da disciplina de nunca mudar a regex sem rodar o teste do Art. 75.</p><p class="why">Ler, testar por pedaço, e um teste que trava o comportamento.</p></details>
+  </div>
+
+  <div class="notes"><label for="n-p9-c4">Caderno</label><p class="hint">Escreva a regex de cada marcador com um comentário por pedaço, e as três armadilhas que você achou mais prováveis no seu caso.</p><textarea class="prose" id="n-p9-c4" data-note="p9-c4"></textarea><div class="saved"></div></div>
+</section>
+
+<!-- ============================================================ 5 -->
+<section class="chapter" id="c5" data-ch="p9-c5">
+  <div class="ch-head"><span class="n">Capítulo 5</span><h2>O segmentador: máquina de estados e identificador natural</h2><label class="donebox"><input type="checkbox" data-done> Capítulo concluído</label></div>
+
+  <p>Reconhecer marcadores não basta: o segmentador precisa saber <em>onde está</em> na hierarquia para dar o identificador certo. O inciso "I" depois de "Art. 75." é <code>art75-incI</code>; o mesmo "I" depois de "§ 1º" é <code>art75-p1-incI</code>. A forma mais simples e robusta de guardar esse "onde estou" é uma <strong>máquina de estados com uma pilha</strong>: o estado é (artigo, parágrafo, inciso, alínea) e cada marcador altera o estado a partir do seu nível para baixo. Um novo artigo zera tudo; um parágrafo zera inciso e alínea; um inciso zera a alínea; uma alínea só se coloca. Linha sem marcador é continuação: vai para o conteúdo do último trecho emitido.</p>
+  <p>O identificador é montado a partir do estado, e é por isso que ele é <strong>natural</strong>: não depende da ordem de processamento nem de um contador. Reprocessar a lei de novo, com outra regex ou daqui a um ano, produz os mesmos ids para os mesmos dispositivos. É essa propriedade que permite o <code>ON CONFLICT (id)</code> do capítulo 9 e a citação estável das páginas 5 e 7.</p>
+
+  <figure class="diagram" data-caps='["Estado inicial: nenhum artigo. A pilha está vazia; qualquer linha sem marcador aqui é ementa ou preâmbulo e é ignorada (ou vai para um trecho \"preambulo\").","Linha \"Art. 75. É dispensável a licitação:\" casa o grupo art. Estado ← (75, –, –, –). Emite o trecho L14133-art75 com o texto após o marcador.","Linha \"I - para contratação…\" casa inc. Estado ← (75, –, I, –). Emite L14133-art75-incI. O caput vira prefixo desse trecho (página 5).","Linha \"a) não surgiram licitantes…\" casa ali. Estado ← (75, –, III, a). Emite L14133-art75-incIII-a, filho do inciso corrente.","Linha \"§ 1º Para fins de aplicação…\" casa par. Estado ← (75, 1, –, –): inciso e alínea zerados. Emite L14133-art75-p1.","Linha \"I - o somatório…\" casa inc de novo, mas agora o estado tem parágrafo 1: emite L14133-art75-p1-incI. O mesmo marcador, id diferente, porque o estado é diferente.","Linha sem marcador (\"aqueles relativos a contratações…\") é continuação: concatena ao conteúdo do último trecho emitido. Nada muda no estado."]' aria-label="Máquina de estados do segmentador">
+    <div class="dtools"><button class="btn small" data-stepper="sm">Passo a passo</button><button class="btn small ghost" data-stepper-reset="sm">Reiniciar</button><span class="mini" id="sm-cap"></span></div>
+    <svg viewBox="0 0 760 250" role="img" aria-labelledby="smt"><title id="smt">Estado e emissão</title>
+      <defs><marker id="ar11" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="var(--muted)"/></marker></defs>
+      <rect class="lane" x="10" y="10" width="330" height="230" rx="8"/><text class="lane-t" x="20" y="28">ESTADO (art, par, inc, ali)</text>
+      <rect class="lane" x="350" y="10" width="400" height="230" rx="8"/><text class="lane-t" x="360" y="28">TRECHOS EMITIDOS</text>
+      <g class="node stage" data-stage="sm-0"><rect x="30" y="40" width="290" height="30" rx="6"/><text x="175" y="60" text-anchor="middle">( – , – , – , – )  pilha vazia</text></g>
+      <g class="node stage" data-stage="sm-1"><rect x="30" y="76" width="290" height="30" rx="6"/><text x="175" y="96" text-anchor="middle">( 75 , – , – , – )  ← Art. 75.</text></g>
+      <g class="node stage" data-stage="sm-2"><rect x="30" y="112" width="290" height="30" rx="6"/><text x="175" y="132" text-anchor="middle">( 75 , – , I , – )  ← I -</text></g>
+      <g class="node stage" data-stage="sm-3"><rect x="30" y="148" width="290" height="30" rx="6"/><text x="175" y="168" text-anchor="middle">( 75 , – , III , a )  ← a)</text></g>
+      <g class="node gate stage" data-stage="sm-4"><rect x="30" y="184" width="290" height="30" rx="6"/><text x="175" y="204" text-anchor="middle">( 75 , 1 , – , – )  ← § 1º  zera inc e ali</text></g>
+      <g class="node stage" data-stage="sm-5"><rect x="30" y="220" width="290" height="18" rx="6"/><text x="175" y="233" text-anchor="middle" style="font-size:11px">( 75 , 1 , I , – )  ← I -  (mesmo marcador, outro estado)</text></g>
+      <g class="node ia stage" data-stage="sm-1"><rect x="370" y="40" width="360" height="26" rx="6"/><text x="380" y="57" class="t" style="font-family:var(--mono);font-size:11.5px">L14133-art75 · "É dispensável a licitação:"</text></g>
+      <g class="node ia stage" data-stage="sm-2"><rect x="370" y="72" width="360" height="26" rx="6"/><text x="380" y="89" class="t" style="font-family:var(--mono);font-size:11.5px">L14133-art75-incI · "para contratação que…"</text></g>
+      <g class="node ia stage" data-stage="sm-3"><rect x="370" y="104" width="360" height="26" rx="6"/><text x="380" y="121" class="t" style="font-family:var(--mono);font-size:11.5px">L14133-art75-incIII-a · "não surgiram licitantes…"</text></g>
+      <g class="node ia stage" data-stage="sm-4"><rect x="370" y="136" width="360" height="26" rx="6"/><text x="380" y="153" class="t" style="font-family:var(--mono);font-size:11.5px">L14133-art75-p1 · "Para fins de aplicação…"</text></g>
+      <g class="node ia stage" data-stage="sm-5"><rect x="370" y="168" width="360" height="26" rx="6"/><text x="380" y="185" class="t" style="font-family:var(--mono);font-size:11.5px">L14133-art75-p1-incI · "o somatório do que for…"</text></g>
+      <g class="node ok stage" data-stage="sm-6"><rect x="370" y="200" width="360" height="30" rx="6"/><text x="380" y="213" style="font-size:11px">linha sem marcador → concatena ao último emitido</text><text x="380" y="226" style="font-family:var(--mono);font-size:11px">…-p1-incII · "…natureza, entendidos como tais aqueles…"</text></g>
+    </svg>
+    <figcaption>O estado é o "onde estou"; o id é o estado escrito; a continuação não muda nada. Três regras que cabem em vinte linhas de Python.</figcaption>
+  </figure>
+
+  <div class="lab">
+    <header><h4>Experimento · Segmentador ao vivo</h4><span class="badge toy">roda no navegador · três versões da regex</span></header>
+    <div class="body">
+      <p>O texto limpo do capítulo 3 (ou o seu) passa pelo segmentador. As três versões reproduzem o laço do Ex. 2: a v1 é a primeira tentativa, a v2 corrige o que a inspeção mostrou, a v3 fecha as pegadinhas. Os checks embaixo são o critério de parada ("Art. 75 com todos os incisos certos").</p>
+      <div class="chips" style="margin-bottom:8px"><span class="mini" style="align-self:center">texto:</span><button class="chip" data-st="clean">Art. 75 limpo (bancada)</button><button class="chip" data-st="traps">com pegadinhas</button><button class="chip" data-st="raw">bruto sem limpar</button></div>
+      <textarea id="sg-in" rows="8" spellcheck="false"></textarea>
+      <div class="row" style="margin-top:8px"><div class="fixed"><label class="f">versão da regex</label><div class="chips" id="sg-ver"><button class="chip" data-v="1">v1 · ingênua</button><button class="chip" data-v="2" aria-pressed="true">v2 · § e alíneas</button><button class="chip" data-v="3">v3 · pegadinhas</button></div></div><div class="fixed"><button class="btn" id="sg-run">Segmentar</button></div></div>
+      <pre class="out small" id="sg-regex"></pre>
+      <div class="grid2">
+        <div><h5 class="mini">árvore</h5><div id="sg-tree" class="tree"></div></div>
+        <div><h5 class="mini">JSONL</h5><pre class="out small" id="sg-jsonl"></pre></div>
+      </div>
+      <ul class="checks" id="sg-checks"></ul>
+    </div>
+  </div>
+
+  <div class="lab">
+    <header><h4>Experimento · Regex contra modelo</h4><span class="badge live">ao vivo · 1 chamada</span></header>
+    <div class="body">
+      <p>O mesmo texto vai para o modelo com a instrução "liste os dispositivos com id no formato do projeto". Compare com a saída da v3: quantos ids coincidem, quantos o modelo inventou ou perdeu, e o que mudou entre duas execuções.</p>
+      <div class="row"><div class="fixed"><button class="btn" id="rm-run">Pedir ao modelo</button></div><div><p class="status" id="rm-status"></p></div></div>
+      <div class="cmp" id="rm-out"></div>
+      <p class="mini" id="rm-note"></p>
+    </div>
+  </div>
+
+  <div class="doit"><span class="ic">faça agora</span><p>Carregue "com pegadinhas" e rode a v1: leia os checks vermelhos e a árvore. Passe para a v2, depois v3, e anote no caderno o que cada versão consertou. Depois carregue "bruto sem limpar" com a v3 e veja o cabeçalho virar conteúdo: é a prova de que a limpeza vem antes e de que nenhuma regex compensa a falta dela.</p></div>
+
+  <div class="faq">
+    <h3>Perguntas que aparecem aqui</h3>
+    <details><summary>Por que uma pilha e não uma árvore?</summary><p>Porque a lei é lida em sequência e cada marcador só depende do estado corrente. A pilha (ou simplesmente quatro variáveis) é tudo o que a sequência precisa. A árvore aparece como resultado (o experimento a desenha), mas o algoritmo não precisa construí-la para emitir os trechos. Menos estrutura, menos lugares para errar.</p><p class="why">Leitura sequencial pede estado, não árvore.</p></details>
+    <details><summary>O que fazer com "Parágrafo único"?</summary><p>É um parágrafo sem número: o estado recebe <code>par = 'u'</code> e o id vira <code>art74-pu</code>. Quando a lei é alterada e o parágrafo único ganha irmãos, ele passa a ser "§ 1º" no texto consolidado; o id muda e é correto que mude, porque o dispositivo mudou de nome. O mapeamento antigo→novo fica registrado nos metadados de vigência (página 5).</p><p class="why">pu é um estado como qualquer outro; a renumeração é um evento de vigência.</p></details>
+    <details><summary>E "Art. 75-A", "§ 1º-A", incisos "I-A"?</summary><p>São dispositivos inseridos por alteração posterior sem renumerar os vizinhos. A regex captura o sufixo (<code>(?P&lt;art&gt;\d+)(?P&lt;sufixo&gt;-[A-Z])?</code>) e o id o incorpora: <code>art75A</code>, <code>p1A</code>, <code>incIA</code>. A v3 do experimento faz isso. A ordem de leitura (75, 75-A, 76) é a do texto, e o id não tenta representar ordem: é nome, não posição.</p><p class="why">Sufixos entram no id; o id é nome, não posição.</p></details>
+    <details><summary>O texto do caput deve entrar no conteúdo dos incisos?</summary><p>Como prefixo, sim, e a página 5 explicou por quê: o inciso sozinho ("para contratação que envolva valores inferiores a…") não diz do que se trata. O segmentador emite o inciso com o conteúdo "É dispensável a licitação: para contratação que…" (caput até os dois-pontos + inciso), e guarda também o texto puro do inciso num campo <code>texto_proprio</code>. A busca usa o conteúdo com prefixo; a citação literal usa o texto próprio.</p><p class="why">Prefixo para busca; texto próprio para citar.</p></details>
+    <details><summary>O modelo acertou quase tudo no experimento ao vivo. Por que não usar ele?</summary><p>Rode duas vezes e compare: é comum a lista mudar entre execuções, e é comum aparecer um inciso que não existe ou faltar uma alínea. "Quase tudo" numa lei de 194 artigos são dezenas de dispositivos errados, sem nenhuma forma de saber quais. A regex acerta 100% dos casos que ela conhece e falha de forma visível nos que não conhece, e o teste do Art. 75 pega. Para estrutura, determinismo vale mais que inteligência.</p><p class="why">Estrutura pede determinismo; o modelo entra onde não há estrutura.</p></details>
+  </div>
+
+  <div class="notes"><label for="n-p9-c5">Caderno</label><p class="hint">Descreva a máquina de estados (o que cada marcador zera), o formato do id e o que a v2 e a v3 consertaram em relação à v1.</p><textarea class="prose" id="n-p9-c5" data-note="p9-c5"></textarea><div class="saved"></div></div>
+</section>
+
+<!-- ============================================================ 6 -->
+<section class="chapter" id="c6" data-ch="p9-c6">
+  <div class="ch-head"><span class="n">Capítulo 6</span><h2>JSONL: o formato de trabalho</h2><label class="donebox"><input type="checkbox" data-done> Capítulo concluído</label></div>
+
+  <p>JSON Lines é um arquivo de texto com <strong>um objeto JSON por linha</strong>, sem colchetes em volta e sem vírgula entre as linhas. É o formato de trabalho do projeto para trechos, casos de avaliação (página 8) e registros de execução (página 5), pelas mesmas razões: pode ser lido linha a linha sem carregar tudo na memória; pode ser acrescentado no fim (<code>append</code>) sem reescrever; uma linha corrompida não invalida o arquivo; <code>wc -l</code> conta registros; <code>grep art75</code> acha um; e o <code>git diff</code> mostra exatamente quais registros mudaram. Um JSON com um array faz o oposto em cada um desses pontos.</p>
+
+  <div class="tbl-wrap"><table>
+    <thead><tr><th></th><th>CSV</th><th>JSON (array)</th><th>JSONL</th><th>Parquet</th></tr></thead>
+    <tbody>
+      <tr><td>Texto com quebras de linha e aspas</td><td class="bad">frágil (escapes, delimitadores)</td><td class="ok">seguro</td><td class="ok">seguro (a quebra vira <code>\n</code> dentro da string)</td><td class="ok">seguro</td></tr>
+      <tr><td>Campos aninhados (listas, objetos)</td><td class="bad">não</td><td class="ok">sim</td><td class="ok">sim</td><td class="ok">sim</td></tr>
+      <tr><td>Ler linha a linha / acrescentar</td><td class="ok">sim</td><td class="bad">não (precisa do array inteiro)</td><td class="ok">sim</td><td class="bad">não (binário, por blocos)</td></tr>
+      <tr><td>Diff legível no git</td><td class="ok">sim</td><td class="bad">ruim (vírgulas, indentação)</td><td class="ok">um registro por linha</td><td class="bad">binário</td></tr>
+      <tr><td>Tamanho e velocidade em milhões de linhas</td><td>médio</td><td>ruim</td><td>médio</td><td class="ok">ótimo (colunar, comprimido)</td></tr>
+      <tr><td>No projeto</td><td>exportar para planilha</td><td>respostas da API</td><td><strong>trechos, casos, execuções</strong></td><td>só se o volume crescer muito</td></tr>
+    </tbody>
+  </table></div>
+
+  <p>Dois detalhes de escrita evitam a maioria dos problemas. <code>json.dumps(obj, ensure_ascii=False)</code> grava "licitação" como está, e não como <code>licita\u00e7\u00e3o</code>; sem isso o arquivo continua válido, mas ilegível no editor e no diff. E o arquivo se abre sempre com <code>encoding="utf-8"</code> explícito, na leitura e na escrita: no Windows o padrão é outro e a cedilha vira lixo. A leitura tolerante (uma linha inválida gera um aviso com o número da linha, não uma exceção que derruba o resto) é o que permite inspecionar um arquivo parcialmente quebrado, que é exatamente o estado dele durante o Ex. 2.</p>
+
+  <div class="lab">
+    <header><h4>Experimento · Inspetor de JSONL</h4><span class="badge toy">roda no navegador</span></header>
+    <div class="body">
+      <p>Cole um JSONL (ou carregue um exemplo) e veja, linha a linha, o que passaria e o que não passaria: JSON válido, campos obrigatórios, id no padrão, conteúdo mínimo, ids repetidos e marcador dentro do conteúdo (sinal de segmentação incompleta).</p>
+      <div class="chips" id="jl-presets" style="margin-bottom:8px"><button class="chip" data-p="ok">exemplo limpo (8 linhas)</button><button class="chip" data-p="bad">exemplo com 6 erros</button><button class="chip" data-p="corpus">corpus do guia (48 linhas)</button><button class="chip" data-p="seg">saída do segmentador (cap. 5)</button></div>
+      <textarea id="jl-in" rows="7" spellcheck="false"></textarea>
+      <div class="row" style="margin-top:8px"><div class="fixed"><button class="btn" id="jl-run">Inspecionar</button></div><div class="fixed"><button class="btn ghost" id="jl-json">Ver como JSON (array)</button></div><div><p class="status" id="jl-status"></p></div></div>
+      <div class="tbl-wrap"><table id="jl-tbl" class="evtbl"><thead><tr><th>linha</th><th>id</th><th>resultado</th></tr></thead><tbody></tbody></table></div>
+      <div class="out small" id="jl-summary" hidden></div>
+    </div>
+  </div>
+
+  <div class="doit"><span class="ic">faça agora</span><p>Carregue "exemplo com 6 erros", inspecione e anote no caderno cada erro e a estação em que ele nasceu (segmentador? limpeza? gravação?). Depois clique em "Ver como JSON" e imagine o diff no git quando um único trecho muda: no array, a vírgula da linha anterior muda junto; no JSONL, uma linha.</p></div>
+
+  <div class="faq">
+    <h3>Perguntas que aparecem aqui</h3>
+    <details><summary>Por que não gravar direto no banco e pular o JSONL?</summary><p>Porque o JSONL é o artefato que se olha, se versiona e se compara entre execuções. O banco é o destino, e é reconstruível a partir do JSONL a qualquer momento (<code>carregar.py</code>); o contrário não é tão simples. Ter o arquivo no git significa que uma mudança na regex aparece como diff de trechos, revisável antes de tocar no banco.</p><p class="why">JSONL é o artefato revisável; o banco é derivado dele.</p></details>
+    <details><summary>Um trecho por linha não deixa a linha enorme?</summary><p>Deixa, e não importa: nenhuma ferramenta que lê JSONL se incomoda com linhas de 5.000 caracteres. O que importa é que a quebra de linha real dentro do conteúdo vire <code>\n</code> escapado, coisa que <code>json.dumps</code> faz sozinho. Para ler com os olhos, <code>jq -c '.id, (.conteudo | .[0:80])' trechos.jsonl</code> ou o pandas do capítulo 7.</p><p class="why">Linha longa é normal; o que não pode é quebra de linha crua.</p></details>
+    <details><summary>Como versionar o arquivo quando a lei muda?</summary><p>O arquivo é <code>data/trechos.jsonl</code> e o git guarda a história. Quando uma alteração legal entra, os trechos afetados mudam de conteúdo (e ganham <code>vigencia_fim</code> os revogados); o diff mostra exatamente quais. O <code>hash</code> do conteúdo, gravado por linha, é o que o capítulo 9 usa para não reembutir o que não mudou.</p><p class="why">git para a história; hash por linha para o incremental.</p></details>
+    <details><summary>Os metadados (vigência, origem, hash) vão na mesma linha?</summary><p>Sim: cada linha tem tudo o que o trecho precisa: <code>id</code>, <code>dispositivo</code>, <code>conteudo</code>, <code>texto_proprio</code>, <code>artigo</code>, <code>tipo</code>, <code>vigencia_inicio</code>, <code>vigencia_fim</code>, <code>origem</code>, <code>hash</code>. É o modelo Pydantic do capítulo 8. O que não vai na linha é o embedding: 768 números por trecho triplicariam o arquivo e mudariam sempre que o modelo de embedding mudasse. Embedding mora no banco.</p><p class="why">Metadados na linha; embedding no banco.</p></details>
+  </div>
+
+  <div class="notes"><label for="n-p9-c6">Caderno</label><p class="hint">Escreva por que JSONL e não JSON, os dois cuidados de escrita (ensure_ascii, encoding) e o que uma leitura tolerante faz.</p><textarea class="prose" id="n-p9-c6" data-note="p9-c6"></textarea><div class="saved"></div></div>
+</section>
+<!-- ============================================================ 7 -->
+<section class="chapter" id="c7" data-ch="p9-c7">
+  <div class="ch-head"><span class="n">Capítulo 7</span><h2>pandas: olhar os dados antes de confiar neles</h2><label class="donebox"><input type="checkbox" data-done> Capítulo concluído</label></div>
+
+  <p>pandas não está no pipeline do projeto. Ele está na <em>bancada</em>: é a lupa com que se olha o JSONL para achar o que o segmentador errou. Um <code>DataFrame</code> é uma tabela em memória, com um índice (a numeração das linhas), colunas nomeadas e um tipo por coluna (<code>dtype</code>). O que importa aqui é um pequeno repertório de perguntas, cada uma com uma linha de pandas e um sinal de erro que ela revela. Um trecho de 4.000 caracteres é quase sempre um marcador não reconhecido (dois artigos colados); um de 15 é um marcador reconhecido demais ("I" de "Item"); um artigo com 40 incisos no groupby merece uma olhada; um id duplicado é uma alteração legal (75-A) que a regex não distinguiu.</p>
+
+  <div class="tbl-wrap"><table>
+    <thead><tr><th>Pergunta</th><th>pandas</th><th>Sinal de erro</th></tr></thead>
+    <tbody>
+      <tr><td>Quantos trechos, de que tipos?</td><td><code>len(df)</code>, <code>df.tipo.value_counts()</code></td><td>Lei com 194 artigos e 60 parágrafos no total: a regex de § não está casando.</td></tr>
+      <tr><td>Como é a distribuição de tamanho?</td><td><code>df.n_chars.describe()</code>, histograma</td><td>Média muito alta ou máximo de milhares: dispositivos colados.</td></tr>
+      <tr><td>Quais são os maiores?</td><td><code>df.nlargest(10, 'n_chars')[['id','n_chars','conteudo']]</code></td><td>Conteúdo contém "Art." ou "§" no meio: marcador não reconhecido.</td></tr>
+      <tr><td>Quais são os menores?</td><td><code>df.nsmallest(10, 'n_chars')</code></td><td>Conteúdo vazio ou de uma palavra: marcador falso ou continuação perdida.</td></tr>
+      <tr><td>Algum id repetido?</td><td><code>df[df.id.duplicated(keep=False)]</code></td><td>Sufixos (-A) ignorados, ou o mesmo artigo extraído duas vezes (página repetida no PDF).</td></tr>
+      <tr><td>Quantos filhos cada artigo tem?</td><td><code>df.groupby('artigo').size().sort_values(ascending=False)</code></td><td>Um artigo com dezenas de incisos: um "Art." de outro artigo não foi reconhecido e tudo caiu nele.</td></tr>
+      <tr><td>Sobrou cabeçalho?</td><td><code>df[df.conteudo.str.contains('Presidência|planalto', regex=True)]</code></td><td>Qualquer linha: a regra 1 da limpeza falhou nessa página.</td></tr>
+      <tr><td>O Art. 75 saiu certo?</td><td><code>df[df.id.str.startswith('L14133-art75')].sort_values('id')</code></td><td>Lista diferente da esperada (caput, I, II, III, III-a…, § 1º, § 1º-I…): critério de parada do exercício.</td></tr>
+    </tbody>
+  </table></div>
+
+  <div class="lab">
+    <header><h4>Experimento · Painel de inspeção</h4><span class="badge toy">roda no navegador · corpus do guia</span></header>
+    <div class="body">
+      <p>O corpus do guia (48 trechos) carregado como um DataFrame com as colunas derivadas (<code>artigo</code>, <code>tipo</code>, <code>n_chars</code>, <code>n_palavras</code>). Clique numa pergunta: a saída imita a do pandas e a nota diz o que procurar nela.</p>
+      <div class="chips" id="pd-cmds" style="margin-bottom:10px"></div>
+      <pre class="out small" id="pd-code"></pre>
+      <pre class="out small" id="pd-out"></pre>
+      <p class="mini" id="pd-note"></p>
+      <div class="row" style="margin-top:12px"><div><label class="f" for="pd-lim">histograma de n_chars · destacar abaixo de <span id="pd-limv">120</span></label><input type="range" id="pd-lim" min="20" max="600" step="10" value="120"></div></div>
+      <svg id="pd-hist" viewBox="0 0 760 170" role="img" aria-label="Histograma de tamanhos"></svg>
+      <p class="mini" id="pd-hnote"></p>
+    </div>
+  </div>
+
+  <div class="doit"><span class="ic">faça agora</span><p>Clique em "os 10 menores" e leia os conteúdos: são incisos curtos legítimos (o corpus do guia é limpo). Agora imagine a mesma lista no seu JSONL com uma linha de conteúdo "único." ou "A": é assim que um erro de regex aparece. Escreva no caderno as três perguntas que você fará primeiro ao seu arquivo, e o que cada resposta mandaria você corrigir.</p></div>
+
+  <div class="faq">
+    <h3>Perguntas que aparecem aqui</h3>
+    <details><summary>pandas ou SQL para inspecionar?</summary><p>Os dois servem; a diferença é onde os dados estão. Antes de carregar no banco, pandas sobre o JSONL. Depois de carregar, as mesmas perguntas em SQL (<code>GROUP BY artigo</code>, <code>ORDER BY length(conteudo) DESC LIMIT 10</code>) confirmam que a carga preservou tudo. Fazer as duas e comparar as contagens é um teste barato do <code>carregar.py</code>.</p><p class="why">pandas antes do banco; SQL depois; contagens iguais.</p></details>
+    <details><summary>Preciso aprender pandas inteiro?</summary><p>Não. Para o projeto bastam: <code>read_json(lines=True)</code>, seleção de colunas, filtros booleanos, <code>str</code> (len, contains, startswith), <code>value_counts</code>, <code>describe</code>, <code>nlargest</code>/<code>nsmallest</code>, <code>duplicated</code>, <code>groupby().size()</code>, <code>sort_values</code>. O painel acima cobre todos. O resto se aprende quando uma pergunta nova aparecer.</p><p class="why">Repertório pequeno, usado sempre.</p></details>
+    <details><summary>O que é <code>apply</code> e por que evitar?</summary><p><code>df.conteudo.apply(f)</code> chama uma função Python linha a linha: lento e opaco. Quase tudo que se faria com apply tem uma forma vetorizada: <code>df.conteudo.str.len()</code> em vez de <code>apply(len)</code>; <code>df.id.str.extract(r'art(\d+)')</code> em vez de uma função de regex. Para 48 ou 3.000 linhas não faz diferença de tempo, mas faz de clareza, e o hábito vale para quando fizer.</p><p class="why">Vetorizado é mais claro e escala; apply é a exceção.</p></details>
+    <details><summary>E os tipos das colunas?</summary><p><code>df.dtypes</code> mostra. <code>artigo</code> deve ser inteiro (<code>int64</code>), não texto: se aparecer <code>object</code>, alguma linha tem "75-A" como artigo e o sufixo não foi separado. <code>vigencia_inicio</code> deve ser data (<code>pd.to_datetime</code>). Um tipo errado numa coluna é ele mesmo um sinal de erro no segmentador, e é o que o Pydantic do capítulo 8 impede na origem.</p><p class="why">dtype errado = registro fora do contrato.</p></details>
+  </div>
+
+  <div class="notes"><label for="n-p9-c7">Caderno</label><p class="hint">Escreva as oito perguntas da tabela como as suas primeiras linhas de inspecionar.py e, para cada uma, o sinal de erro.</p><textarea class="prose" id="n-p9-c7" data-note="p9-c7"></textarea><div class="saved"></div></div>
+</section>
+
+<!-- ============================================================ 8 -->
+<section class="chapter" id="c8" data-ch="p9-c8">
+  <div class="ch-head"><span class="n">Capítulo 8</span><h2>Pydantic: o contrato dos dados</h2><label class="donebox"><input type="checkbox" data-done> Capítulo concluído</label></div>
+
+  <p>pandas mostra o que está errado; Pydantic <strong>impede que o errado passe</strong>. Um modelo Pydantic é uma classe que declara os campos, os tipos e as regras de um registro; <code>Trecho.model_validate(obj)</code> devolve um objeto tipado se o registro obedece ao contrato, ou levanta <code>ValidationError</code> com uma lista de erros, cada um com o campo (<code>loc</code>), a mensagem (<code>msg</code>) e um código (<code>type</code>). O mesmo mecanismo que a página 6 usou para a resposta do modelo de linguagem (esquema de saída) vale para o dado de entrada: o contrato fica num lugar só, em código, e é ele que o segmentador, o carregador e a API respeitam.</p>
+
+  <div class="tbl-wrap"><table>
+    <thead><tr><th>Recurso</th><th>O que faz</th><th>No modelo Trecho</th></tr></thead>
+    <tbody>
+      <tr><td><code>BaseModel</code> + anotações de tipo</td><td>Declara campos e tipos; converte o que for conversível (modo "lax": <code>"75"</code> → <code>75</code>) e rejeita o resto.</td><td><code>artigo: int</code>, <code>vigencia_inicio: date</code>, <code>vigencia_fim: date | None = None</code></td></tr>
+      <tr><td><code>Field(pattern=…, min_length=…, ge=…)</code></td><td>Restrições declarativas por campo.</td><td><code>id</code> com o padrão <code>^L\d+-art\d+[A-Z]?…</code>; <code>conteudo</code> com <code>min_length=20</code>; <code>artigo</code> com <code>ge=1</code></td></tr>
+      <tr><td><code>@field_validator('campo')</code></td><td>Regra em código para um campo, depois da conversão.</td><td>Conteúdo não pode começar com marcador ("Art.", "§", "I -"): segmentação incompleta.</td></tr>
+      <tr><td><code>@model_validator(mode='after')</code></td><td>Regra que envolve vários campos.</td><td><code>vigencia_fim</code>, se existir, é posterior a <code>vigencia_inicio</code>; o <code>artigo</code> bate com o do <code>id</code>.</td></tr>
+      <tr><td><code>ConfigDict(extra='forbid')</code></td><td>Campo desconhecido é erro (e não silenciosamente ignorado).</td><td>Pega "conteúdo" com acento ou "texto" onde devia ser "conteudo".</td></tr>
+      <tr><td><code>str_strip_whitespace=True</code></td><td>Remove espaços nas pontas de todo campo texto.</td><td>Evita ids com espaço no fim que quebram o <code>ON CONFLICT</code>.</td></tr>
+      <tr><td><code>model_validate_json</code>, <code>model_dump</code>, <code>model_json_schema</code></td><td>Validar direto da string JSON; exportar dict; gerar o JSON Schema.</td><td>Ler cada linha do JSONL; gravar; documentar o formato para quem consome.</td></tr>
+      <tr><td><code>TypeAdapter(list[Trecho])</code></td><td>Validar uma lista inteira de uma vez.</td><td>Menos útil que linha a linha: com o adapter, um erro na linha 3.000 derruba tudo; linha a linha coleta todos os erros.</td></tr>
+    </tbody>
+  </table></div>
+
+  <div class="lab">
+    <header><h4>Experimento · Validador Pydantic</h4><span class="badge toy">roda no navegador · mensagens no formato do Pydantic v2</span></header>
+    <div class="body">
+      <p>O modelo <code>Trecho</code> à esquerda; um registro à direita. Edite ou escolha um caso e valide: os erros saem como o Pydantic os imprime, e a linha do modelo responsável acende.</p>
+      <div class="chips" id="py-presets" style="margin-bottom:8px"><button class="chip" data-p="ok">válido</button><button class="chip" data-p="id">id fora do padrão</button><button class="chip" data-p="curto">conteúdo curto</button><button class="chip" data-p="marcador">marcador no conteúdo</button><button class="chip" data-p="extra">campo extra (acento)</button><button class="chip" data-p="tipo">tipo errado</button><button class="chip" data-p="lax">"75" vira 75 (lax)</button><button class="chip" data-p="data">data inválida</button><button class="chip" data-p="vig">vigência invertida</button><button class="chip" data-p="json">JSON quebrado</button></div>
+      <div class="grid2">
+        <div><pre class="anat" id="py-model"><code><span class="an" data-k="config">class Trecho(BaseModel):
+    model_config = ConfigDict(extra='forbid', str_strip_whitespace=True)</span>
+<span class="an" data-k="id">    id: str = Field(pattern=r'^L\d+-art\d+[A-Z]?(-p(\d+[A-Z]?|u))?(-inc[IVXL]+[A-Z]?)?(-[a-z])?$')</span>
+<span class="an" data-k="dispositivo">    dispositivo: str = Field(min_length=3)</span>
+<span class="an" data-k="conteudo">    conteudo: str = Field(min_length=20)</span>
+<span class="an" data-k="artigo">    artigo: int = Field(ge=1)</span>
+<span class="an" data-k="tipo">    tipo: Literal['caput', 'paragrafo', 'inciso', 'alinea']</span>
+<span class="an" data-k="vigencia_inicio">    vigencia_inicio: date</span>
+<span class="an" data-k="vigencia_fim">    vigencia_fim: date | None = None</span>
+
+<span class="an" data-k="marcador">    @field_validator('conteudo')
+    @classmethod
+    def sem_marcador(cls, v: str) -> str:
+        if re.match(r'^(Art\.|§|[IVXL]+\s*-|[a-z]\))', v):
+            raise ValueError('conteúdo começa com marcador: segmentação incompleta')
+        return v</span>
+
+<span class="an" data-k="modelo">    @model_validator(mode='after')
+    def coerente(self):
+        if self.vigencia_fim and self.vigencia_fim < self.vigencia_inicio:
+            raise ValueError('vigencia_fim anterior a vigencia_inicio')
+        if int(re.search(r'art(\d+)', self.id).group(1)) != self.artigo:
+            raise ValueError('artigo não bate com o id')
+        return self</span></code></pre></div>
+        <div><textarea id="py-in" rows="12" spellcheck="false"></textarea><div class="row" style="margin-top:8px"><div class="fixed"><button class="btn" id="py-run">Validar</button></div></div><pre class="out small" id="py-out"></pre></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="doit"><span class="ic">faça agora</span><p>Escolha "válido" e, no registro, apague o campo <code>artigo</code>. Valide: "Field required". Agora coloque <code>"artigo": "75"</code> entre aspas: passa (modo lax converte). Depois <code>"artigo": "75-A"</code>: falha. Escreva no caderno em que situação a conversão automática ajuda e em que situação você preferiria <code>strict=True</code>.</p></div>
+
+  <div class="faq">
+    <h3>Perguntas que aparecem aqui</h3>
+    <details><summary>Pydantic ou dataclass ou TypedDict?</summary><p><code>dataclass</code> e <code>TypedDict</code> declaram a forma mas <em>não validam</em>: um <code>Trecho(artigo="abc")</code> é aceito. Pydantic valida na construção e dá mensagens por campo. Para dados que vêm de fora (arquivo, API, modelo de linguagem), validar é o ponto; para estruturas internas que o próprio código cria, dataclass basta e é mais leve.</p><p class="why">Dado que cruza uma fronteira é validado; dado interno pode ser dataclass.</p></details>
+    <details><summary>Onde o modelo Trecho é usado além da carga?</summary><p>Em quatro lugares: o segmentador constrói <code>Trecho(...)</code> antes de gravar (erro aparece na origem); o carregador valida cada linha do JSONL antes do INSERT; a API do sistema devolve trechos como <code>Trecho.model_dump()</code>; e o <code>model_json_schema()</code> documenta o formato. Um contrato, quatro usos, zero cópias divergentes.</p><p class="why">Um modelo, todas as fronteiras.</p></details>
+    <details><summary>O que fazer com as linhas que falham?</summary><p>Não derrubar o processo. O carregador coleta os erros (linha, campo, mensagem) num <code>rejeitados.jsonl</code>, segue com as válidas e no fim imprime o resumo. Se a taxa de rejeição passar de um limiar (1% no projeto), a carga é abortada: o problema é sistemático e mora na regex, não em linhas isoladas. É o laço de volta do capítulo 1.</p><p class="why">Coletar, resumir, abortar acima do limiar.</p></details>
+    <details><summary>Pydantic v1 ou v2?</summary><p>v2 (2023 em diante): <code>model_validate</code>, <code>model_dump</code>, <code>field_validator</code>, <code>ConfigDict</code>. Muito material na internet ainda mostra v1 (<code>parse_obj</code>, <code>validator</code>, <code>class Config</code>): funciona com avisos de descontinuação, mas misturar os dois estilos confunde. O código do capítulo 10 é v2.</p><p class="why">v2, sem misturar.</p></details>
+    <details><summary>Validar 48 linhas é rápido; e 300 mil?</summary><p>Pydantic v2 tem o núcleo em Rust e valida centenas de milhares de registros simples por segundo. Para o volume do projeto (milhares a dezenas de milhares de trechos por documento), a validação é desprezível diante do embedding. Se um dia for gargalo, <code>model_validate_json</code> direto da string é mais rápido que <code>json.loads</code> + <code>model_validate</code>.</p><p class="why">Não é gargalo; o embedding é.</p></details>
+  </div>
+
+  <div class="notes"><label for="n-p9-c8">Caderno</label><p class="hint">Escreva o modelo Trecho de memória (campos, restrições, os dois validadores) e o que acontece com uma linha rejeitada.</p><textarea class="prose" id="n-p9-c8" data-note="p9-c8"></textarea><div class="saved"></div></div>
+</section>
+
+<!-- ============================================================ 9 -->
+<section class="chapter" id="c9" data-ch="p9-c9">
+  <div class="ch-head"><span class="n">Capítulo 9</span><h2>psycopg: carregar sem duplicar e sem reembutir</h2><label class="donebox"><input type="checkbox" data-done> Capítulo concluído</label></div>
+
+  <p>A carga é o último passo e o que mais custa quando feito errado: cada trecho embutido custa uma chamada de embedding, e reembutir a lei inteira porque um artigo mudou é jogar dinheiro e tempo fora. Três ideias resolvem: <strong>parâmetros</strong> em vez de montar SQL com texto (segurança e tipos corretos), <strong>transação</strong> por arquivo (ou tudo entra, ou nada), e <strong>upsert por chave natural com hash de conteúdo</strong>: <code>INSERT … ON CONFLICT (id) DO UPDATE</code>, e o embedding só é recalculado quando o <code>hash</code> do conteúdo mudou.</p>
+  <p>psycopg 3 é o driver. <code>psycopg.connect(url)</code> abre a conexão; <code>with conn.transaction():</code> delimita a transação; <code>cur.execute(sql, params)</code> envia o SQL com os valores separados (o servidor faz a ligação); <code>cur.executemany</code> repete para uma lista; <code>cur.copy()</code> usa o protocolo COPY, dez vezes mais rápido para milhares de linhas; e <code>pgvector.psycopg.register_vector(conn)</code> ensina o driver a enviar e receber o tipo <code>vector</code> como lista de floats (ou array do NumPy).</p>
+
+  <figure class="diagram" data-caps='["Lê o JSONL linha a linha e valida com Trecho.model_validate_json. Rejeitados vão para rejeitados.jsonl; acima de 1% de rejeição, aborta antes de tocar no banco.","Calcula hash = sha256(conteudo) de cada trecho válido e consulta o banco: SELECT id, hash FROM trechos WHERE id = ANY(%s). Uma consulta, não uma por trecho.","Compara: id novo → inserir e embutir; id existente com hash igual → não fazer nada; hash diferente → atualizar e reembutir; id no banco que sumiu do arquivo → marcar para revisão (vigência), nunca apagar em silêncio.","Embute só os novos e alterados, em lotes de 16 a 100, com o modelo e as dimensões registrados em uma coluna (modelo_emb). Trocar de modelo de embedding é reembutir tudo, e o registro é o que permite saber.","Dentro de uma transação: INSERT … ON CONFLICT (id) DO UPDATE SET conteudo = EXCLUDED.conteudo, hash = EXCLUDED.hash, embedding = EXCLUDED.embedding, atualizado_em = now(). Com executemany ou COPY para uma tabela temporária + um único INSERT … SELECT.","Commit. Se qualquer passo falhar, rollback: o banco fica como estava. Depois, as contagens: quantos inseridos, atualizados, ignorados, marcados; e a conferência com pandas (capítulo 7) contra o banco."]' aria-label="Fluxo de carga incremental">
+    <div class="dtools"><button class="btn small" data-stepper="ld">Passo a passo</button><button class="btn small ghost" data-stepper-reset="ld">Reiniciar</button><span class="mini" id="ld-cap"></span></div>
+    <svg viewBox="0 0 760 210" role="img" aria-labelledby="ldt"><title id="ldt">Carga incremental</title>
+      <defs><marker id="ar12" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="var(--muted)"/></marker></defs>
+      <g class="node stage" data-stage="ld-0"><rect x="10" y="20" width="110" height="54" rx="8"/><text x="65" y="42" text-anchor="middle" class="t">validar</text><text x="65" y="60" text-anchor="middle">Pydantic · rejeitados</text></g>
+      <path class="edge" d="M120 47H140" marker-end="url(#ar12)"/>
+      <g class="node stage" data-stage="ld-1"><rect x="142" y="20" width="110" height="54" rx="8"/><text x="197" y="42" text-anchor="middle" class="t">hash</text><text x="197" y="60" text-anchor="middle">sha256(conteudo)</text></g>
+      <path class="edge" d="M252 47H272" marker-end="url(#ar12)"/>
+      <g class="node gate stage" data-stage="ld-2"><rect x="274" y="20" width="150" height="54" rx="8"/><text x="349" y="42" text-anchor="middle" class="t">comparar com o banco</text><text x="349" y="60" text-anchor="middle">novo · igual · mudou · sumiu</text></g>
+      <path class="edge" d="M424 47H444" marker-end="url(#ar12)"/>
+      <g class="node ia stage" data-stage="ld-3"><rect x="446" y="20" width="130" height="54" rx="8"/><text x="511" y="42" text-anchor="middle" class="t">embutir</text><text x="511" y="60" text-anchor="middle">só novos e alterados</text></g>
+      <path class="edge" d="M576 47H596" marker-end="url(#ar12)"/>
+      <g class="node stage" data-stage="ld-4"><rect x="598" y="20" width="152" height="54" rx="8"/><text x="674" y="42" text-anchor="middle" class="t">upsert em transação</text><text x="674" y="60" text-anchor="middle">ON CONFLICT (id) DO UPDATE</text></g>
+      <path class="edge" d="M674 74V104" marker-end="url(#ar12)"/>
+      <g class="node ok stage" data-stage="ld-5"><rect x="598" y="106" width="152" height="54" rx="8"/><text x="674" y="128" text-anchor="middle" class="t">commit + contagens</text><text x="674" y="146" text-anchor="middle">ou rollback total</text></g>
+      <text class="lbl" x="10" y="120">igual → nada · mudou → reembutir · sumiu → marcar (nunca apagar em silêncio)</text>
+      <text class="lbl" x="10" y="140">uma consulta para todos os hashes (WHERE id = ANY(%s)), não uma por trecho</text>
+      <text class="lbl" x="10" y="160">modelo_emb e dims gravados na linha: trocar o modelo de embedding = reembutir tudo, e o registro é o que avisa</text>
+      <text class="lbl" x="10" y="195">custo da carga ≈ nº de trechos novos ou alterados, não o tamanho do arquivo</text>
+    </svg>
+    <figcaption>Idempotente: rodar duas vezes com o mesmo arquivo custa zero embeddings na segunda. É o mesmo princípio da página 5 aplicado à carga.</figcaption>
+  </figure>
+
+  <div class="lab">
+    <header><h4>Experimento · Simulador de carga</h4><span class="badge toy">roda no navegador</span></header>
+    <div class="body">
+      <p>O banco tem cinco trechos embutidos. Chega um arquivo novo: um trecho mudou de conteúdo, um é novo, um sumiu. Escolha a estratégia de carga e veja o estado final, quantos embeddings foram calculados e o que se perdeu.</p>
+      <div class="chips" id="up-strat" style="margin-bottom:10px"><button class="chip" data-s="insert">INSERT simples</button><button class="chip" data-s="drop">apagar tudo e inserir</button><button class="chip" data-s="upsert">UPSERT por id (sem hash)</button><button class="chip" data-s="hash">UPSERT por id + hash</button></div>
+      <div class="cmp">
+        <div class="col"><h5>banco antes</h5><div class="tbl-wrap"><table id="up-before" class="uptbl"><thead><tr><th>id</th><th>hash</th><th>emb</th></tr></thead><tbody></tbody></table></div></div>
+        <div class="col"><h5>arquivo novo</h5><div class="tbl-wrap"><table id="up-file" class="uptbl"><thead><tr><th>id</th><th>hash</th><th></th></tr></thead><tbody></tbody></table></div></div>
+        <div class="col"><h5>banco depois</h5><div class="tbl-wrap"><table id="up-after" class="uptbl"><thead><tr><th>id</th><th>hash</th><th>emb</th></tr></thead><tbody></tbody></table></div></div>
+      </div>
+      <div class="bars" id="up-bars" style="margin-top:10px"></div>
+      <div class="callout" id="up-note"><span class="t">Escolha uma estratégia</span><p>Cada uma tem um custo em embeddings e um risco de perda. A quarta é a do projeto.</p></div>
+    </div>
+  </div>
+
+  <div class="lab">
+    <header><h4>Experimento · Parâmetros contra texto montado</h4><span class="badge toy">roda no navegador</span></header>
+    <div class="body">
+      <p>O mesmo INSERT escrito de dois jeitos: montando a string (f-string) e com parâmetros (<code>%s</code>). Mude o valor de <code>dispositivo</code> e veja o que o banco recebe em cada caso. O terceiro valor pronto é o clássico.</p>
+      <div class="chips" id="sq-presets" style="margin-bottom:8px"><button class="chip" data-v="Art. 75, I">normal</button><button class="chip" data-v="Art. 75, § 1º, 'a'">com aspas</button><button class="chip" data-v="x'); DROP TABLE trechos; --">o clássico</button></div>
+      <div class="row"><div><label class="f" for="sq-in">valor de dispositivo</label><input type="text" id="sq-in" spellcheck="false"></div></div>
+      <div class="cmp">
+        <div class="col"><h5>f-string (não faça)</h5><pre class="out small" id="sq-f"></pre><p class="mini" id="sq-fnote"></p></div>
+        <div class="col"><h5>parâmetros (psycopg)</h5><pre class="out small" id="sq-p"></pre><p class="mini" id="sq-pnote"></p></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="doit"><span class="ic">faça agora</span><p>No simulador, rode as quatro estratégias e anote a linha "embeddings calculados" de cada uma. Multiplique pelos 1.200 trechos da lei inteira e pelo número de vezes que você vai rodar o Ex. 2 até acertar a regex (dez?). Essa conta é a razão do hash.</p></div>
+
+  <div class="faq">
+    <h3>Perguntas que aparecem aqui</h3>
+    <details><summary>psycopg 2 ou 3?</summary><p>3 (<code>pip install "psycopg[binary]"</code>): API moderna, <code>async</code> se precisar, <code>conn.transaction()</code>, <code>cur.copy()</code>, e é o que o pgvector documenta (<code>pgvector.psycopg</code>). psycopg2 ainda é comum em código antigo e em tutoriais; a sintaxe de parâmetros (<code>%s</code>) é a mesma, o resto difere.</p><p class="why">psycopg 3 com pgvector.psycopg.</p></details>
+    <details><summary>Por que <code>%s</code> e não f-string, se eu confio nos meus dados?</summary><p>Dois motivos além da segurança. Tipos: com parâmetros, o driver envia datas, listas e vetores no formato que o servidor espera; com f-string, você mesmo formata e erra. E aspas: qualquer conteúdo com <code>'</code> (a lei tem dezenas) quebra a string montada. O experimento mostra os três casos. A regra é absoluta no projeto: SQL nunca é montado com valores dentro; nomes de tabela e coluna, quando dinâmicos, usam <code>psycopg.sql.Identifier</code>.</p><p class="why">Parâmetros por tipos, aspas e segurança: sem exceção.</p></details>
+    <details><summary>executemany ou COPY?</summary><p>Para até alguns milhares de linhas, <code>executemany</code> com o upsert é simples e suficiente (psycopg 3 agrupa em pipeline). Para dezenas de milhares, <code>COPY</code> para uma tabela temporária e um único <code>INSERT … SELECT … ON CONFLICT</code> é dez a cinquenta vezes mais rápido. O código do capítulo 10 usa executemany, com a nota de onde trocar.</p><p class="why">executemany até milhares; COPY + tabela temporária acima.</p></details>
+    <details><summary>O que acontece com um trecho que sumiu do arquivo?</summary><p>Nada automático. Sumir do JSONL pode ser revogação (vigência encerrada), erro de regex nesta rodada ou renumeração. Apagar destruiria citações de pareceres antigos. O carregador lista os ids ausentes e um humano decide: <code>vigencia_fim</code> (página 5) ou correção da regex. O banco só apaga o que alguém mandou apagar.</p><p class="why">Ausência é sinal para revisão, não ordem de exclusão.</p></details>
+    <details><summary>Preciso de pool de conexões?</summary><p>Para o script de carga, não: uma conexão, uma transação. Para a API do sistema (várias consultas simultâneas), sim: <code>psycopg_pool.ConnectionPool</code>, com <code>min_size</code> e <code>max_size</code> pequenos (2 a 10). Abrir uma conexão por consulta custa dezenas de milissegundos e esgota o servidor.</p><p class="why">Script: uma conexão; serviço: pool.</p></details>
+  </div>
+
+  <div class="notes"><label for="n-p9-c9">Caderno</label><p class="hint">Escreva o fluxo de carga incremental em seis passos, o upsert em SQL e as três razões para parâmetros.</p><textarea class="prose" id="n-p9-c9" data-note="p9-c9"></textarea><div class="saved"></div></div>
+</section>
+<!-- ============================================================ 10 -->
+<section class="chapter" id="c10" data-ch="p9-c10">
+  <div class="ch-head"><span class="n">Capítulo 10</span><h2>No projeto, checklist e autoavaliação</h2><label class="donebox"><input type="checkbox" data-done> Capítulo concluído</label></div>
+
+  <h3>No projeto</h3>
+  <p>A ingestão do sistema vive em <code>ingestao/</code>, com um módulo por estação: <code>extrair.py</code> (pymupdf, com OCR por página quando a camada de texto falta), <code>limpar.py</code> (as cinco regras, na ordem, com os contadores impressos), <code>segmentar.py</code> (a regex dos marcadores e a máquina de estados), <code>modelos.py</code> (o <code>Trecho</code> em Pydantic, único contrato) e <code>carregar.py</code> (psycopg, hash, upsert). O JSONL fica em <code>data/</code> e no git; o banco é derivado dele. Os testes travam o comportamento: <code>test_segmentar.py</code> exige que o Art. 75 saia com caput, três incisos, duas alíneas e dois parágrafos com seus incisos, e qualquer mudança na regex que quebre isso falha antes de chegar ao banco.</p>
+  <p>O Ex. 2 (VIN-6) é tudo isso em um script: <code>ex2_segmentar.py</code> faz as quatro primeiras estações e grava <code>data/trechos.jsonl</code>; <code>inspecionar.py</code> faz as perguntas do capítulo 7; e o teste do Art. 75 é o critério de parada. O código abaixo é a referência: leia, entenda cada função, e escreva a sua.</p>
+
+  <h3>Código de referência</h3>
+<pre><code class="language-python"># ex2_segmentar.py — PDF → texto bruto → limpo → trechos por dispositivo → JSONL (Ex. 2)
+import re, hashlib, unicodedata
+from collections import Counter
+from datetime import date
+from pathlib import Path
+import fitz  # pymupdf
+from modelos import Trecho
+
+LEI, VIGENCIA = "L14133", date(2021, 4, 1)
+
+# ---------- 1. extrair ----------
+def extrair(pdf: Path, txt: Path) -> str:
+    paginas = []
+    with fitz.open(pdf) as doc:
+        for page in doc:
+            t = page.get_text("text", sort=True)
+            if len(t.strip()) < 50:              # sem camada de texto: OCR (capítulo 2)
+                t = ocr(page)
+            paginas.append(t)
+    bruto = "\f".join(paginas)                   # form feed separa páginas; a limpeza usa
+    txt.write_text(bruto, encoding="utf-8")
+    return bruto
+
+def ocr(page) -> str:
+    import pytesseract
+    from PIL import Image
+    pix = page.get_pixmap(dpi=300)
+    img = Image.frombytes("RGB", (pix.width, pix.height), pix.samples)
+    return pytesseract.image_to_string(img, lang="por")
+
+# ---------- marcadores (capítulo 4) ----------
+MARCADOR = re.compile(r"""^(?:
+    (?P&lt;art&gt;Art\.\s*(?P&lt;art_n&gt;\d+)(?P&lt;art_s&gt;-[A-Z])?\s*[º°.]?)                 # Art. 75.  Art. 1º  Art. 75-A.
+  | (?P&lt;par&gt;§\s*(?P&lt;par_n&gt;\d+)\s*[º°]?(?P&lt;par_s&gt;-[A-Z])?|Parágrafo\s+único\.?)  # § 1º  § 1º-A  Parágrafo único
+  | (?P&lt;inc&gt;(?P&lt;inc_n&gt;[IVXL]+)(?P&lt;inc_s&gt;-[A-Z])?\s*[-–—])                        # I -  IV-A -
+  | (?P&lt;ali&gt;(?P&lt;ali_n&gt;[a-z])\))                                                # a)
+)\s*""", re.X)
+RODAPE = re.compile(r"planalto\.gov\.br|^\s*\d+\s*/\s*\d+\s*$")
+
+# ---------- 2. limpar (capítulo 3: a ordem importa) ----------
+def limpar(bruto: str) -> str:
+    paginas = bruto.split("\f")
+    # regra 1: linhas repetidas em >= 30% das páginas (dígitos → #) são cabeçalho/rodapé
+    assinatura = lambda l: re.sub(r"\d", "#", l.strip())
+    freq = Counter(assinatura(l) for p in paginas for l in set(p.splitlines()) if l.strip())
+    limiar = max(3, int(0.3 * len(paginas)))
+    repetidas = {a for a, n in freq.items() if n >= limiar and len(a) < 80}
+    linhas = [l for p in paginas for l in p.splitlines() if l.strip()
+              and not RODAPE.search(l)
+              and not (assinatura(l) in repetidas and not MARCADOR.match(l))]
+    s = "\n".join(linhas)
+    # regra 2: Unicode (protege os ordinais: NFKC transformaria º em o)
+    s = s.replace("º", "\x00o").replace("ª", "\x00a")
+    s = unicodedata.normalize("NFKC", s)
+    s = s.replace("\x00o", "º").replace("\x00a", "ª")
+    s = s.replace("\u00a0", " ").replace("\u00ad", "").replace("\u200b", "")   # nbsp, hífen suave, largura zero
+    s = re.sub(r"(\d)°", r"\1º", s)                                   # grau → ordinal
+    s = re.sub(r"^([IVXL]+(?:-[A-Z])?)\s*[–—]", r"\1 -", s, flags=re.M)  # travessão → hífen no inciso
+    # regra 3: hifenização de fim de linha (só quando a próxima começa com minúscula)
+    s = re.sub(r"(\w)-\n([a-zà-ú])", r"\1\2", s)
+    # regras 4 e 5: juntar linhas quebradas; normalizar espaços
+    out: list[str] = []
+    for l in s.split("\n"):
+        l = re.sub(r"[ \t]+", " ", l).strip()
+        if out and not re.search(r"[.;:]$", out[-1]) and not MARCADOR.match(l):
+            out[-1] += " " + l                 # continuação de frase
+        else:
+            out.append(l)
+    return "\n".join(out)
+
+# ---------- 3. segmentar (capítulo 5: máquina de estados) ----------
+def montar_id(e: dict) -> str:
+    partes = [LEI, f"art{e['art']}"]
+    if e["par"]: partes.append(f"p{e['par']}")
+    if e["inc"]: partes.append(f"inc{e['inc']}")
+    if e["ali"]: partes.append(e["ali"])
+    return "-".join(partes)
+
+def segmentar(limpo: str) -> list[dict]:
+    trechos, por_id = [], {}
+    e = {"art": None, "par": None, "inc": None, "ali": None}
+    sufixo = lambda s: (s or "").replace("-", "")
+    for linha in limpo.split("\n"):
+        m = MARCADOR.match(linha)
+        if not m:
+            if trechos: trechos[-1]["texto_proprio"] += " " + linha   # continuação
+            continue
+        texto = linha[m.end():].strip()
+        tipo = next(k for k in ("art", "par", "inc", "ali") if m.group(k))
+        if tipo == "art":
+            e.update(art=m["art_n"] + sufixo(m["art_s"]), par=None, inc=None, ali=None)
+            disp, tipo_t = f"Art. {m['art_n']}{m['art_s'] or ''}, caput", "caput"
+        elif tipo == "par":
+            n = "u" if m["par_n"] is None else m["par_n"] + sufixo(m["par_s"])
+            e.update(par=n, inc=None, ali=None)
+            disp, tipo_t = f"Art. {e['art']}, " + ("parágrafo único" if n == "u" else f"§ {n}º"), "paragrafo"
+        elif tipo == "inc":
+            e.update(inc=m["inc_n"] + sufixo(m["inc_s"]), ali=None)
+            pai = ("parágrafo único, " if e["par"] == "u" else f"§ {e['par']}º, ") if e["par"] else ""
+            disp, tipo_t = f"Art. {e['art']}, {pai}{e['inc']}", "inciso"
+        else:
+            e["ali"] = m["ali_n"]
+            disp, tipo_t = f"Art. {e['art']}, {e['inc']}, {e['ali']}", "alinea"
+        if e["art"] is None:
+            continue                                  # marcador antes do primeiro artigo: preâmbulo
+        # só inciso e alínea herdam prefixo: do caput/parágrafo e do inciso, respectivamente
+        pai_id = montar_id({**e, "ali": None}) if tipo == "ali" else \
+                 montar_id({**e, "inc": None, "ali": None}) if tipo == "inc" else None
+        t = {"id": montar_id(e), "dispositivo": disp, "tipo": tipo_t, "texto_proprio": texto,
+             "artigo": int(re.match(r"\d+", e["art"]).group()), "pai_id": pai_id,
+             "vigencia_inicio": VIGENCIA, "origem": "pdf"}
+        trechos.append(t); por_id[t["id"]] = t
+    # conteúdo = conteúdo do pai (se o texto dele termina em ':') + texto próprio (página 5);
+    # os pais vêm antes na lista, então o prefixo da alínea já inclui o do inciso
+    for t in trechos:
+        pai = por_id.get(t.pop("pai_id") or "")
+        prefixo = pai["conteudo"] + " " if pai and pai["texto_proprio"].endswith(":") else ""
+        t["conteudo"] = (prefixo + t["texto_proprio"]).strip()
+        t["hash"] = hashlib.sha256(t["conteudo"].encode()).hexdigest()
+    return trechos
+
+# ---------- 4. gravar (capítulo 6, validando na origem com o capítulo 8) ----------
+def gravar(trechos: list[dict], caminho: Path) -> None:
+    with open(caminho, "w", encoding="utf-8") as f:
+        for t in trechos:
+            f.write(Trecho.model_validate(t).model_dump_json() + "\n")
+
+if __name__ == "__main__":
+    bruto = extrair(Path("data/lei14133.pdf"), Path("data/lei14133.txt"))
+    limpo = limpar(bruto)
+    Path("data/lei14133_limpo.txt").write_text(limpo, encoding="utf-8")
+    trechos = segmentar(limpo)
+    gravar(trechos, Path("data/trechos.jsonl"))
+    print(len(trechos), "trechos gravados; agora rode inspecionar.py e pytest")
+</code></pre>
+
+<pre><code class="language-python"># modelos.py — o contrato (capítulo 8); um modelo, todas as fronteiras
+import re
+from datetime import date
+from typing import Literal
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
+
+class Trecho(BaseModel):
+    model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
+    id: str = Field(pattern=r"^L\d+-art\d+[A-Z]?(-p(\d+[A-Z]?|u))?(-inc[IVXL]+[A-Z]?)?(-[a-z])?$")
+    dispositivo: str = Field(min_length=3)
+    conteudo: str = Field(min_length=20)
+    texto_proprio: str = Field(min_length=1)
+    artigo: int = Field(ge=1)
+    tipo: Literal["caput", "paragrafo", "inciso", "alinea"]
+    vigencia_inicio: date
+    vigencia_fim: date | None = None
+    origem: Literal["pdf", "ocr", "html"] = "pdf"
+    hash: str = Field(pattern=r"^[0-9a-f]{64}$")
+
+    @field_validator("conteudo", "texto_proprio")
+    @classmethod
+    def sem_marcador(cls, v: str) -> str:
+        if re.match(r"^(Art\.|§|[IVXL]+\s*-|[a-z]\))", v):
+            raise ValueError("conteúdo começa com marcador: segmentação incompleta")
+        return v
+
+    @model_validator(mode="after")
+    def coerente(self):
+        if self.vigencia_fim and self.vigencia_fim &lt; self.vigencia_inicio:
+            raise ValueError("vigencia_fim anterior a vigencia_inicio")
+        if int(re.search(r"art(\d+)", self.id).group(1)) != self.artigo:
+            raise ValueError("artigo não bate com o id")
+        return self
+</code></pre>
+
+<pre><code class="language-python"># inspecionar.py — as perguntas do capítulo 7, na ordem em que se fazem
+import pandas as pd
+pd.set_option("display.width", 160, "display.max_colwidth", 90)
+
+df = pd.read_json("data/trechos.jsonl", lines=True)
+df["n_chars"] = df.conteudo.str.len()
+
+print(len(df), "trechos");                 print(df.tipo.value_counts(), "\n")
+print(df.n_chars.describe().round(0), "\n")
+print("--- 10 maiores (dispositivos colados?)");  print(df.nlargest(10, "n_chars")[["id", "n_chars", "conteudo"]], "\n")
+print("--- 10 menores (marcador falso?)");        print(df.nsmallest(10, "n_chars")[["id", "n_chars", "conteudo"]], "\n")
+print("--- ids duplicados");                      print(df[df.id.duplicated(keep=False)][["id", "dispositivo"]], "\n")
+print("--- artigos com mais filhos");             print(df.groupby("artigo").size().sort_values(ascending=False).head(10), "\n")
+print("--- sobrou cabeçalho?");                   print(df[df.conteudo.str.contains("Presidência|planalto", regex=True)][["id", "conteudo"]], "\n")
+print("--- marcador dentro do conteúdo?");        print(df[df.conteudo.str.contains(r"\s(Art\.|§)\s*\d", regex=True)][["id", "conteudo"]], "\n")
+print("--- Art. 75 (critério de parada)");        print(df[df.id.str.startswith("L14133-art75")].sort_values("id")[["id", "dispositivo", "n_chars"]])
+</code></pre>
+
+<pre><code class="language-python"># test_segmentar.py — trava o comportamento: pytest antes de qualquer carga
+from ex2_segmentar import limpar, segmentar
+
+ART75 = """Presidência da República
+Art. 75. É dispensável a licitação:
+I - para contratação que envolva valores inferiores a R$ 100.000,00 (cem mil reais), no
+caso de obras e serviços de engenharia ou de serviços de manutenção de veículos automo-
+tores;
+II – para contratação que envolva valores inferiores a R$ 50.000,00 (cinquenta mil reais);
+III - para contratação que mantenha todas as condições definidas em edital, quando:
+a) não surgiram licitantes interessados;
+b) as propostas apresentadas consignaram preços manifestamente superiores;
+§ 1° Para fins de aplicação dos incisos I e II do caput deste artigo, deverão ser observados:
+I - o somatório do que for despendido no exercício financeiro;
+§ 2º Os valores referidos nos incisos I e II do caput serão duplicados para consórcios.
+Art. 75-A. Dispositivo inserido por lei posterior.
+Parágrafo único. Texto do parágrafo único.
+www.planalto.gov.br/ccivil_03/_ato2019-2022/2021/lei/l14133.htm   12/120
+\fPresidência da República
+\fPresidência da República
+"""
+
+def test_art75_sai_inteiro():
+    ids = [t["id"] for t in segmentar(limpar(ART75))]
+    assert ids == ["L14133-art75", "L14133-art75-incI", "L14133-art75-incII", "L14133-art75-incIII",
+                   "L14133-art75-incIII-a", "L14133-art75-incIII-b", "L14133-art75-p1", "L14133-art75-p1-incI",
+                   "L14133-art75-p2", "L14133-art75A", "L14133-art75A-pu"]
+
+def test_limpeza_desfaz_hifen_e_remove_cabecalho():
+    limpo = limpar(ART75)
+    assert "automotores" in limpo and "automo-" not in limpo
+    assert "Presidência" not in limpo and "planalto" not in limpo
+
+def test_inciso_recebe_o_caput_como_prefixo():
+    t = {x["id"]: x for x in segmentar(limpar(ART75))}
+    assert t["L14133-art75-incI"]["conteudo"].startswith("É dispensável a licitação: para contratação")
+    assert t["L14133-art75-incI"]["texto_proprio"].startswith("para contratação")
+</code></pre>
+
+<pre><code class="language-python"># carregar.py — JSONL → PostgreSQL com hash e upsert (capítulo 9); 0 embeddings na segunda rodada
+import json, os, sys
+import numpy as np
+import psycopg
+from pgvector.psycopg import register_vector
+from modelos import Trecho
+from embed import embutir            # lotes de 16, taskType RETRIEVAL_DOCUMENT (Ex. 3)
+
+MODELO_EMB = "gemini-embedding-001/768"
+DDL = """CREATE EXTENSION IF NOT EXISTS vector;
+CREATE TABLE IF NOT EXISTS trechos (
+  id text PRIMARY KEY, dispositivo text NOT NULL, conteudo text NOT NULL, texto_proprio text NOT NULL,
+  artigo int NOT NULL, tipo text NOT NULL, vigencia_inicio date NOT NULL, vigencia_fim date,
+  origem text NOT NULL, hash text NOT NULL, modelo_emb text NOT NULL, embedding vector(768) NOT NULL,
+  atualizado_em timestamptz NOT NULL DEFAULT now());"""
+UPSERT = """INSERT INTO trechos (id, dispositivo, conteudo, texto_proprio, artigo, tipo, vigencia_inicio,
+  vigencia_fim, origem, hash, modelo_emb, embedding)
+VALUES (%(id)s, %(dispositivo)s, %(conteudo)s, %(texto_proprio)s, %(artigo)s, %(tipo)s, %(vigencia_inicio)s,
+  %(vigencia_fim)s, %(origem)s, %(hash)s, %(modelo_emb)s, %(embedding)s)
+ON CONFLICT (id) DO UPDATE SET
+  dispositivo = EXCLUDED.dispositivo, conteudo = EXCLUDED.conteudo, texto_proprio = EXCLUDED.texto_proprio,
+  artigo = EXCLUDED.artigo, tipo = EXCLUDED.tipo, vigencia_inicio = EXCLUDED.vigencia_inicio,
+  vigencia_fim = EXCLUDED.vigencia_fim, origem = EXCLUDED.origem, hash = EXCLUDED.hash,
+  modelo_emb = EXCLUDED.modelo_emb, embedding = EXCLUDED.embedding, atualizado_em = now();"""
+
+def ler(caminho: str) -> tuple[list[Trecho], list[dict]]:
+    validos, rejeitados = [], []
+    with open(caminho, encoding="utf-8") as f:
+        for n, linha in enumerate(f, 1):
+            try:
+                validos.append(Trecho.model_validate_json(linha))
+            except Exception as e:                      # coleta, não derruba
+                rejeitados.append({"linha": n, "erro": str(e)})
+    return validos, rejeitados
+
+def main(caminho: str = "data/trechos.jsonl") -> None:
+    validos, rejeitados = ler(caminho)
+    with open("data/rejeitados.jsonl", "w", encoding="utf-8") as f:
+        for r in rejeitados:
+            f.write(json.dumps(r, ensure_ascii=False) + "\n")
+    if len(rejeitados) &gt; 0.01 * (len(validos) + len(rejeitados)):
+        sys.exit(f"{len(rejeitados)} rejeitados (&gt; 1%): problema sistemático, corrija a regex")
+    with psycopg.connect(os.environ["DATABASE_URL"]) as conn:
+        register_vector(conn)
+        with conn.transaction():                       # tudo ou nada
+            cur = conn.cursor()
+            cur.execute(DDL)
+            ids = [t.id for t in validos]
+            cur.execute("SELECT id, hash, modelo_emb FROM trechos WHERE id = ANY(%s)", (ids,))
+            no_banco = {i: (h, m) for i, h, m in cur.fetchall()}
+            mudados = [t for t in validos if no_banco.get(t.id) != (t.hash, MODELO_EMB)]
+            cur.execute("SELECT id FROM trechos WHERE NOT (id = ANY(%s)) AND vigencia_fim IS NULL", (ids,))
+            sumidos = [r[0] for r in cur.fetchall()]
+            vetores = embutir([t.conteudo for t in mudados]) if mudados else []
+            cur.executemany(UPSERT, [t.model_dump() | {"modelo_emb": MODELO_EMB,
+                                     "embedding": np.asarray(v, dtype=np.float32)}
+                                     for t, v in zip(mudados, vetores)])
+        # saiu do with: commit; qualquer exceção acima → rollback
+    print(f"{len(mudados)} inseridos/atualizados ({len(mudados)} embeddings), "
+          f"{len(validos) - len(mudados)} iguais (0 embeddings), {len(rejeitados)} rejeitados")
+    if sumidos:
+        print(f"{len(sumidos)} ids no banco ausentes do arquivo: revisar vigência, não apagar: {sumidos[:10]}")
+
+if __name__ == "__main__":
+    main()
+</code></pre>
+
+  <h3>Checklist de domínio</h3>
+  <p>Marque só o que você faria sem consultar a página.</p>
+  <ul class="checklist">
+    <li><input type="checkbox" id="ck9-1"><label for="ck9-1">Explico o que um PDF guarda e detecto, por página, se é nativo ou escaneado.</label></li>
+    <li><input type="checkbox" id="ck9-2"><label for="ck9-2">Escrevo as cinco regras de limpeza na ordem e sei o risco de cada uma.</label></li>
+    <li><input type="checkbox" id="ck9-3"><label for="ck9-3">Acho um espaço não separável, um hífen suave e um "°" no lugar de "º", e normalizo com NFKC protegendo os ordinais.</label></li>
+    <li><input type="checkbox" id="ck9-4"><label for="ck9-4">Leio e escrevo a regex dos marcadores com grupos nomeados e testo as armadilhas (1º/10., 75-A, Parágrafo único, travessão).</label></li>
+    <li><input type="checkbox" id="ck9-5"><label for="ck9-5">Implemento a máquina de estados e monto o id natural a partir do estado.</label></li>
+    <li><input type="checkbox" id="ck9-6"><label for="ck9-6">Gravo JSONL com ensure_ascii=False e utf-8, e leio de forma tolerante.</label></li>
+    <li><input type="checkbox" id="ck9-7"><label for="ck9-7">Faço as oito perguntas do pandas e sei que erro cada resposta revela.</label></li>
+    <li><input type="checkbox" id="ck9-8"><label for="ck9-8">Escrevo o modelo Trecho em Pydantic v2 com os dois validadores e trato os rejeitados.</label></li>
+    <li><input type="checkbox" id="ck9-9"><label for="ck9-9">Carrego com psycopg usando parâmetros, transação, ON CONFLICT e hash para não reembutir.</label></li>
+  </ul>
+
+  <h3>Autoavaliação</h3>
+  <div class="quiz" id="quiz-p9">
+    <fieldset><legend>1. Um PDF "nativo" guarda:</legend>
+      <label class="opt"><input type="radio" name="q1"> Parágrafos e títulos, como um documento de texto.</label><div class="why">Não: essa estrutura é reconstruída pela biblioteca a partir de posições.</div>
+      <label class="opt"><input type="radio" name="q1" data-correct="1"> Instruções de desenho: glifos com posição e fonte, sem ordem de leitura explícita.</label><div class="why">Correto. Por isso duas bibliotecas dão textos diferentes e colunas se embaralham.</div>
+      <label class="opt"><input type="radio" name="q1"> Uma imagem por página.</label><div class="why">Isso é o PDF escaneado, que precisa de OCR.</div>
+    </fieldset>
+    <fieldset><legend>2. A regra "desfazer hifenização" vem antes de "juntar linhas" porque:</legend>
+      <label class="opt"><input type="radio" name="q2" data-correct="1"> Depois de juntas, "automo- tores" ganha um espaço e o hífen já não está no fim de linha.</label><div class="why">Correto. A regra 3 procura "-\n"; a regra 4 destrói esse padrão.</div>
+      <label class="opt"><input type="radio" name="q2"> Tanto faz a ordem.</label><div class="why">A bancada mostra o contrário: "ordem errada" deixa "automo- tores".</div>
+      <label class="opt"><input type="radio" name="q2"> Porque a hifenização é mais frequente.</label><div class="why">Frequência não define ordem; dependência entre regras define.</div>
+    </fieldset>
+    <fieldset><legend>3. NFKC transforma "1º" em "1o". O projeto:</legend>
+      <label class="opt"><input type="radio" name="q3"> Usa NFC, que não tem esse problema, e aceita as ligaduras.</label><div class="why">NFC evitaria, mas deixaria "ﬁ" e sobrescritos; o projeto quer NFKC.</div>
+      <label class="opt"><input type="radio" name="q3" data-correct="1"> Protege º e ª antes do NFKC e os restaura depois.</label><div class="why">Correto. É o que limpar() faz com o marcador \x00.</div>
+      <label class="opt"><input type="radio" name="q3"> Não normaliza Unicode.</label><div class="why">Sem normalização, "ç" composto e decomposto viram duas palavras.</div>
+    </fieldset>
+    <fieldset><legend>4. A regex ingênua <code>Art\. \d+\.</code> erra em:</legend>
+      <label class="opt"><input type="radio" name="q4"> "Art. 10."</label><div class="why">Esse ela acerta: dígitos seguidos de ponto.</div>
+      <label class="opt"><input type="radio" name="q4" data-correct="1"> "Art. 1º" e "Art. 75-A."</label><div class="why">Correto. Ordinal e sufixo não estão no padrão; os dois casos existem na lei.</div>
+      <label class="opt"><input type="radio" name="q4"> "Art. 75."</label><div class="why">Esse é o caso feliz.</div>
+    </fieldset>
+    <fieldset><legend>5. No segmentador, a linha "I - o somatório…" logo após "§ 1º" recebe o id:</legend>
+      <label class="opt"><input type="radio" name="q5"> L14133-art75-incI</label><div class="why">Seria o inciso I do caput; o estado tem parágrafo 1.</div>
+      <label class="opt"><input type="radio" name="q5" data-correct="1"> L14133-art75-p1-incI</label><div class="why">Correto. Mesmo marcador, estado diferente, id diferente.</div>
+      <label class="opt"><input type="radio" name="q5"> L14133-art75-p1</label><div class="why">Esse é o próprio parágrafo.</div>
+    </fieldset>
+    <fieldset><legend>6. O identificador é "natural" porque:</legend>
+      <label class="opt"><input type="radio" name="q6" data-correct="1"> É montado a partir do dispositivo (artigo, parágrafo, inciso), e reprocessar produz o mesmo id.</label><div class="why">Correto. É o que permite ON CONFLICT (id) e citação estável.</div>
+      <label class="opt"><input type="radio" name="q6"> É um contador sequencial.</label><div class="why">Contador muda a cada reprocessamento: o oposto de natural.</div>
+      <label class="opt"><input type="radio" name="q6"> É um hash do conteúdo.</label><div class="why">Hash muda quando o texto muda; o id deve permanecer.</div>
+    </fieldset>
+    <fieldset><legend>7. Por que JSONL e não um JSON com array?</legend>
+      <label class="opt"><input type="radio" name="q7"> JSONL é mais compacto.</label><div class="why">O tamanho é quase igual.</div>
+      <label class="opt"><input type="radio" name="q7" data-correct="1"> Leitura linha a linha, acréscimo no fim, tolerância a linha corrompida e diff por registro.</label><div class="why">Correto. Quatro propriedades que o array não tem.</div>
+      <label class="opt"><input type="radio" name="q7"> JSON não aceita acentos.</label><div class="why">Aceita; ensure_ascii=False só muda como os grava.</div>
+    </fieldset>
+    <fieldset><legend>8. <code>df.nlargest(10, 'n_chars')</code> mostra um trecho de 4.000 caracteres com "Art. 76" no meio. Diagnóstico:</legend>
+      <label class="opt"><input type="radio" name="q8" data-correct="1"> Um marcador de artigo não foi reconhecido e dois artigos ficaram colados: ajustar a regex.</label><div class="why">Correto. É o sinal clássico dos "maiores".</div>
+      <label class="opt"><input type="radio" name="q8"> O artigo é longo mesmo.</label><div class="why">Um artigo pode ser longo, mas não contém "Art. 76" dentro.</div>
+      <label class="opt"><input type="radio" name="q8"> Erro do pandas.</label><div class="why">pandas só mostra; o erro está no segmentador.</div>
+    </fieldset>
+    <fieldset><legend>9. Pydantic com <code>extra='forbid'</code> serve para:</legend>
+      <label class="opt"><input type="radio" name="q9"> Impedir campos opcionais.</label><div class="why">Opcionais continuam permitidos quando declarados.</div>
+      <label class="opt"><input type="radio" name="q9" data-correct="1"> Rejeitar chaves desconhecidas, como "conteúdo" com acento no lugar de "conteudo".</label><div class="why">Correto. Sem isso o campo errado é ignorado em silêncio e o obrigatório aparece como ausente.</div>
+      <label class="opt"><input type="radio" name="q9"> Acelerar a validação.</label><div class="why">Não tem relação com desempenho.</div>
+    </fieldset>
+    <fieldset><legend>10. Rodar carregar.py duas vezes com o mesmo arquivo custa, na segunda:</legend>
+      <label class="opt"><input type="radio" name="q10"> Todos os embeddings de novo.</label><div class="why">Seria sem hash: reembutir tudo.</div>
+      <label class="opt"><input type="radio" name="q10" data-correct="1"> Zero embeddings: os hashes batem e o upsert não tem o que mudar.</label><div class="why">Correto. Idempotência: mesma entrada, mesmo efeito, uma vez.</div>
+      <label class="opt"><input type="radio" name="q10"> Erro de chave duplicada.</label><div class="why">Seria com INSERT simples, sem ON CONFLICT.</div>
+    </fieldset>
+    <button class="btn grade">Corrigir</button>
+    <div class="score"></div>
+  </div>
+
+  <div class="callout"><span class="t">Próxima página</span><p>A página 10, Custo, modelos e operação, fecha o guia: tokens e a conta por documento, cache de prompt e de embedding, limites de taxa e retentativa com recuo, observabilidade (o que registrar por chamada), escolha de modelo por tarefa, e o Ex. 8: a mini auditoria com índice determinístico rodando de ponta a ponta.</p></div>
+</section>
+
+    <div class="pager"><a class="prev" href="08-avaliacao.html"><small>anterior</small>Avaliação</a><a class="next disabled" href="#"><small>próxima</small>em construção</a></div>
+    <p class="foot">Guia de estudo pessoal. Corpus com redação adaptada da Lei 14.133/2021 para fins didáticos; confira o texto oficial antes de qualquer uso real. A chave da API fica apenas neste navegador; experimentos ao vivo chamam a API do Google diretamente e consomem a sua cota.</p>
+  </div></main>
+  <aside class="toc" aria-label="Nesta página" ><div class="t">Nesta página</div><ol id="toc-list"></ol></aside>
+</div>
+<script>window.GUIA_MANIFEST = {pages: [{"id": "p0", "file": "index.html", "num": "0", "title": "Início", "chapters": [], "issue": null}, {"id": "p1", "file": "01-modelos.html", "num": "1", "title": "Como um modelo de linguagem funciona", "chapters": ["p1-c1", "p1-c2", "p1-c3", "p1-c4", "p1-c5", "p1-c6", "p1-c7", "p1-c8", "p1-c9", "p1-c10"], "issue": "VIN-5"}, {"id": "p2", "file": "02-embeddings.html", "num": "2", "title": "Embeddings", "chapters": ["p2-c1", "p2-c2", "p2-c3", "p2-c4", "p2-c5", "p2-c6", "p2-c7", "p2-c8", "p2-c9", "p2-c10"], "issue": "VIN-7"}, {"id": "p3", "file": "03-busca-vetorial.html", "num": "3", "title": "Busca vetorial e índices", "chapters": ["p3-c1", "p3-c2", "p3-c3", "p3-c4", "p3-c5", "p3-c6", "p3-c7", "p3-c8", "p3-c9", "p3-c10"], "issue": "VIN-7"}, {"id": "p4", "file": "04-busca-lexical-hibrida.html", "num": "4", "title": "Busca lexical e híbrida", "chapters": ["p4-c1", "p4-c2", "p4-c3", "p4-c4", "p4-c5", "p4-c6", "p4-c7", "p4-c8", "p4-c9", "p4-c10"], "issue": "VIN-8"}, {"id": "p5", "file": "05-rag.html", "num": "5", "title": "RAG de ponta a ponta e ingestão", "chapters": ["p5-c1", "p5-c2", "p5-c3", "p5-c4", "p5-c5", "p5-c6", "p5-c7", "p5-c8", "p5-c9", "p5-c10"], "issue": "VIN-6"}, {"id": "p6", "file": "06-prompt.html", "num": "6", "title": "Prompt engineering", "chapters": ["p6-c1", "p6-c2", "p6-c3", "p6-c4", "p6-c5", "p6-c6", "p6-c7", "p6-c8", "p6-c9", "p6-c10"], "issue": "VIN-9"}, {"id": "p7", "file": "07-validacao.html", "num": "7", "title": "Alucinação, validação e guardrails", "chapters": ["p7-c1", "p7-c2", "p7-c3", "p7-c4", "p7-c5", "p7-c6", "p7-c7", "p7-c8", "p7-c9", "p7-c10"], "issue": "VIN-10"}, {"id": "p8", "file": "08-avaliacao.html", "num": "8", "title": "Avaliação", "chapters": ["p8-c1", "p8-c2", "p8-c3", "p8-c4", "p8-c5", "p8-c6", "p8-c7", "p8-c8", "p8-c9", "p8-c10"], "issue": "VIN-11"}, {"id": "p9", "file": "09-dados-python.html", "num": "9", "title": "Dados e Python para RAG", "chapters": ["p9-c1", "p9-c2", "p9-c3", "p9-c4", "p9-c5", "p9-c6", "p9-c7", "p9-c8", "p9-c9", "p9-c10"], "issue": "VIN-6"}, {"id": "p10", "file": "10-custo-operacao.html", "num": "10", "title": "Custo, modelos e operação", "chapters": [], "issue": "VIN-12"}, {"id": "glossario", "file": "glossario.html", "num": "•", "title": "Glossário", "chapters": [], "issue": null}, {"id": "exercicios", "file": "exercicios.html", "num": "•", "title": "Exercícios", "chapters": [], "issue": null}, {"id": "prompts", "file": "prompts.html", "num": "•", "title": "Biblioteca de prompts", "chapters": [], "issue": null}]};</script>
+<script src="assets/corpus.js"></script>
+<script src="assets/core.js"></script>
+<script src="assets/site.js"></script>
+<script>
+(function () {
+  const needKey = () => { if (!gemini.ready()) throw new Error('Precisa de chave (configure na página inicial).'); };
+  const cp = (s) => Array.from(s);
+  const hex = (c) => 'U+' + c.codePointAt(0).toString(16).toUpperCase().padStart(4, '0');
+  const pct = (x) => (x * 100).toFixed(0) + '%';
+
+  /* ================= texto bruto compartilhado (como sai do pymupdf) ================= */
+  const HEAD = ['Presidência da República', 'Secretaria-Geral', 'Subchefia para Assuntos Jurídicos'];
+  const P1 = [...HEAD,
+    'Art. 75. É dispensável a licitação:',
+    'I - para contratação que envolva valores inferiores a R$\u00a0100.000,00 (cem mil reais), no',
+    'caso de obras e serviços de engenharia ou de serviços de manutenção de veículos automo-',
+    'tores;',
+    'II \u2013 para contratação que envolva valores inferiores a R$\u00a050.000,00 (cinquenta mil reais),',
+    'no caso de outros serviços e compras;',
+    'III - para contratação que mantenha todas as condições definidas em edital de licitação',
+    'realizada há menos de 1 (um) ano,  quando se veri\ufb01car que naquela licitação:',
+    'a) não surgiram licitantes interessados ou não foram apresentadas propostas válidas;',
+    'b) as propostas apresentadas consignaram preços manifestamente superiores aos prati-',
+    'cados no mercado ou incompatíveis com os fixados pelos órgãos oficiais competentes;',
+    'www.planalto.gov.br/ccivil_03/_ato2019-2022/2021/lei/l14133.htm   12/120'];
+  const P2 = [...HEAD,
+    '§ 1\u00b0 Para fins de aplicação dos incisos I e II do caput deste artigo, deverão ser observados:',
+    'I - o somatório do que for despendido no exercício financeiro pela respectiva unidade gestora;',
+    'II - o somatório da despesa realizada com objetos de mesma natureza, entendidos como tais',
+    'aqueles relativos a contratações no mesmo ramo de atividade.',
+    '§ 2º Os valores referidos nos incisos I e II do caput deste artigo serão duplicados para compras,',
+    'obras e serviços contratados por con\u00adsórcio público ou por autarquia ou fundação qualificadas',
+    'como agências executivas na forma da lei.',
+    'www.planalto.gov.br/ccivil_03/_ato2019-2022/2021/lei/l14133.htm   13/120'];
+  const P3 = [...HEAD,
+    'Art. 76. A dispensa prevista no art. 75 desta Lei exige a estimativa de preço e a razão da escolha',
+    'do contratado, registradas no processo.',
+    'www.planalto.gov.br/ccivil_03/_ato2019-2022/2021/lei/l14133.htm   14/120'];
+  const RAW = [P1, P2, P3].map((p) => p.join('\n')).join('\n\f\n');
+  const TRAPS_RAW = [...HEAD,
+    'Art. 75. É dispensável a licitação:',
+    'I - para contratação que envolva valores inferiores a R$ 100.000,00 (cem mil reais), no',
+    'caso de obras e serviços de engenharia ou de serviços de manutenção de veículos automo-',
+    'tores;',
+    'II \u2013 para contratação que envolva valores inferiores a R$ 50.000,00 (cinquenta mil reais);',
+    'III - para contratação que mantenha todas as condições definidas em edital, quando:',
+    'a) não surgiram licitantes interessados;',
+    'b) as propostas apresentadas consignaram preços manifestamente superiores;',
+    '§ 1\u00b0 Para fins de aplicação dos incisos I e II do caput deste artigo, deverão ser observados:',
+    'I - o somatório do que for despendido no exercício financeiro;',
+    '§ 2º Os valores referidos nos incisos I e II do caput serão duplicados para consórcios.',
+    'Art. 75-A. Dispositivo inserido por lei posterior, com a numeração preservada.',
+    'Parágrafo único. Texto do parágrafo único do artigo inserido.',
+    'www.planalto.gov.br/ccivil_03/_ato2019-2022/2021/lei/l14133.htm   12/120', '\f', ...HEAD, '\f', ...HEAD].join('\n');
+
+  /* ================= marcadores (três versões) ================= */
+  const MARC = {
+    1: { art: /^Art\. (\d+)\./, par: null, inc: /^([IVX]+) - /, ali: null,
+      txt: "art = r'^Art\\. (\\d+)\\.'\ninc = r'^([IVX]+) - '\n# sem parágrafo, sem alínea, ponto obrigatório, só hífen" },
+    2: { art: /^Art\.\s*(\d+)\s*[º°.]?/, par: /^§\s*(\d+)\s*[º°]?/, inc: /^([IVXL]+)\s*-/, ali: /^([a-z])\)/,
+      txt: "art = r'^Art\\.\\s*(\\d+)\\s*[º°.]?'\npar = r'^§\\s*(\\d+)\\s*[º°]?'\ninc = r'^([IVXL]+)\\s*-'\nali = r'^([a-z])\\)'\n# aceita 1º e 10.; ainda sem sufixo -A, Parágrafo único e travessões" },
+    3: { art: /^Art\.\s*(\d+)(-[A-Z])?\s*[º°.]?/, par: /^(?:§\s*(\d+)\s*[º°]?(-[A-Z])?|Parágrafo\s+único\.?)/, inc: /^([IVXL]+)(-[A-Z])?\s*[-\u2013\u2014]/, ali: /^([a-z])\)/,
+      txt: "MARCADOR = re.compile(r'''^(?:\n    (?P<art>Art\\.\\s*(?P<art_n>\\d+)(?P<art_s>-[A-Z])?\\s*[º°.]?)\n  | (?P<par>§\\s*(?P<par_n>\\d+)\\s*[º°]?(?P<par_s>-[A-Z])?|Parágrafo\\s+único\\.?)\n  | (?P<inc>(?P<inc_n>[IVXL]+)(?P<inc_s>-[A-Z])?\\s*[-–—])\n  | (?P<ali>(?P<ali_n>[a-z])\\))\n)\\s*''', re.X)" },
+  };
+  const isMarker = (line, v = 3) => { const M = MARC[v]; return !!((M.art && M.art.test(line)) || (M.par && M.par.test(line)) || (M.inc && M.inc.test(line)) || (M.ali && M.ali.test(line))); };
+
+  /* ================= limpeza (espelha limpar() do capítulo 10) ================= */
+  const FOOT = /planalto\.gov\.br|^\s*\d+\s*\/\s*\d+\s*$/;
+  function clean(raw, opts = {}) {
+    const o = Object.assign({ header: true, unicode: true, hyphen: true, join: true, spaces: true, wrong: false }, opts);
+    const c = { header: 0, unicode: 0, hyphen: 0, join: 0, spaces: 0 };
+    const pages = raw.split('\f');
+    let lines;
+    if (o.header) {
+      const sig = (l) => l.trim().replace(/\d/g, '#');
+      const freq = new Map();
+      pages.forEach((p) => new Set(p.split('\n').filter((l) => l.trim())).forEach((l) => freq.set(sig(l), (freq.get(sig(l)) || 0) + 1)));
+      const lim = Math.max(3, Math.floor(0.3 * pages.length));
+      const rep = new Set([...freq].filter(([a, n]) => n >= lim && a.length < 80).map(([a]) => a));
+      lines = [];
+      pages.forEach((p) => p.split('\n').forEach((l) => { if (!l.trim()) return; if (FOOT.test(l) || (rep.has(sig(l)) && !isMarker(l))) { c.header++; return; } lines.push(l); }));
+    } else lines = pages.flatMap((p) => p.split('\n')).filter((l) => l.trim());
+    let s = lines.join('\n');
+    const unicode = (t) => {
+      const before = t;
+      t = t.replace(/º/g, '\x00o').replace(/ª/g, '\x00a');
+      t = t.normalize('NFKC');
+      t = t.replace(/\x00o/g, 'º').replace(/\x00a/g, 'ª');
+      t = t.replace(/\u00a0/g, ' ').replace(/\u00ad/g, '').replace(/\u200b/g, '');
+      t = t.replace(/(\d)\u00b0/g, '$1º');
+      t = t.replace(/^([IVXL]+(?:-[A-Z])?)\s*[\u2013\u2014]/gm, '$1 -');
+      c.unicode = (before.match(/[\u00a0\u00ad\u200b\u00b0\ufb01\ufb02\u2013\u2014\u0300-\u036f]/g) || []).length;
+      return t;
+    };
+    const hyphen = (t) => { let n = 0; t = t.replace(/(\p{L})-\n(\p{Ll})/gu, (m, a, b) => { n++; return a + b; }); c.hyphen = n; return t; };
+    const join = (t) => { const out = []; t.split('\n').forEach((l) => { if (o.spaces) { const l2 = l.replace(/[ \t]+/g, ' ').trim(); c.spaces += l.length - l2.length; l = l2; } if (out.length && !/[.;:]$/.test(out[out.length - 1]) && !isMarker(l)) { out[out.length - 1] += ' ' + l; c.join++; } else out.push(l); }); return out.join('\n'); };
+    if (o.unicode) s = unicode(s);
+    if (o.wrong) { if (o.join) s = join(s); if (o.hyphen) s = hyphen(s); }
+    else { if (o.hyphen) s = hyphen(s); if (o.join) s = join(s); }
+    if (o.spaces) { const b = s; s = s.split('\n').map((l) => l.replace(/[ \t]+/g, ' ').trim()).join('\n'); c.spaces += b.length - s.length; }
+    return { text: s, counts: c };
+  }
+  const CLEAN = clean(RAW).text;
+  const TRAPS = clean(TRAPS_RAW).text;
+
+  /* ================= 1 · Raio-X do texto bruto ================= */
+  (function rx() {
+    const el = $('#rx-text'); if (!el) return;
+    const CATS = {
+      header: { n: 'cabeçalho e rodapé', why: 'O PDF repete o cabeçalho institucional e o rodapé (URL e número de página) em cada página; na extração viram linhas comuns.', fix: 'Regra 1: linhas repetidas em ≥ 30% das páginas (dígitos trocados por #) e a regex do rodapé. Antes de qualquer outra.' },
+      hifen: { n: 'hifenização', why: 'A composição tipográfica quebrou a palavra no fim da linha com hífen; o texto guarda "automo-" e "tores" separados.', fix: 'Regra 3: (\\w)-\\n([a-zà-ú]) → junta. Só quando a próxima linha começa com minúscula.' },
+      quebra: { n: 'linha quebrada no meio da frase', why: 'Cada linha visual da página virou uma linha do texto. A frase continua na seguinte sem pontuação.', fix: 'Regra 4: linha que não termina em . ; : e cuja próxima não é marcador → juntar com espaço.' },
+      inv: { n: 'caractere invisível', why: 'Espaço não separável (U+00A0), hífen suave (U+00AD), largura zero (U+200B): parecem espaço ou nada, mas são outros caracteres para a busca e para o hash.', fix: 'Regra 2: substituir U+00A0 por espaço, remover U+00AD e U+200B. Vêm antes da hifenização, porque o hífen suave engana a regra 3.' },
+      troca: { n: 'caractere trocado', why: 'Sinal de grau (°) no lugar do ordinal (º); ligadura "ﬁ" (U+FB01) no lugar de "fi"; travessão (U+2013) no lugar do hífen do inciso; espaço duplo.', fix: 'Regra 2: NFKC (desfaz ligaduras) com proteção dos ordinais; (\\d)° → º; travessão em marcador → hífen. Regra 5: espaços.' },
+      marc: { n: 'marcadores (preservar)', why: 'Art., §, algarismo romano com traço, letra com parêntese: a estrutura que o segmentador vai procurar.', fix: 'Nenhuma regra pode tocá-los. A regra 1 nunca remove uma linha com marcador; a regra 4 nunca junta uma linha que começa com marcador.' },
+    };
+    const counts = {}; Object.keys(CATS).forEach((k) => (counts[k] = 0));
+    const lines = RAW.split('\n');
+    const html = lines.map((l, i) => {
+      if (l === '\f') return '<span class="pg">— quebra de página (\\f) —</span>';
+      if (HEAD.includes(l) || FOOT.test(l)) { counts.header++; return `<mark class="p-header" title="cabeçalho/rodapé">${esc(l)}</mark>`; }
+      let out = ''; let rest = l;
+      const flag = (t) => esc(t).replace(/\u00a0/g, () => { counts.inv++; return '<mark class="p-inv" title="U+00A0 espaço não separável">␣U+00A0</mark>'; })
+        .replace(/\u00ad/g, () => { counts.inv++; return '<mark class="p-inv" title="U+00AD hífen suave">·U+00AD</mark>'; })
+        .replace(/(\d)\u00b0/g, (_, d) => { counts.troca++; return d + '<mark class="p-troca" title="U+00B0 grau, não ordinal">°U+00B0</mark>'; })
+        .replace(/\ufb01/g, () => { counts.troca++; return '<mark class="p-troca" title="U+FB01 ligadura fi">ﬁU+FB01</mark>'; })
+        .replace(/\u2013/g, () => { counts.troca++; return '<mark class="p-troca" title="U+2013 travessão curto no lugar do hífen">–U+2013</mark>'; })
+        .replace(/  +/g, (sp) => { counts.troca++; return `<mark class="p-troca" title="espaço duplo">${'␣'.repeat(sp.length)}</mark>`; });
+      const m = rest.match(/^(Art\.\s*\d+\.|§\s*\d+[º°]|[IVX]+\s*[-\u2013]|[a-z]\))/);
+      if (m) { counts.marc++; out += `<mark class="p-marc" title="marcador">${flag(m[0])}</mark>`; rest = rest.slice(m[0].length); }
+      out += flag(rest);
+      const next = lines[i + 1] || '';
+      if (/\p{L}-$/u.test(l) && /^\p{Ll}/u.test(next)) { counts.hifen++; out = out.replace(/-$/, '<mark class="p-hifen" title="hífen de quebra de linha">-⏎</mark>'); }
+      else if (!/[.;:]$/.test(l) && next && next !== '\f' && !HEAD.includes(next) && !FOOT.test(next) && !/^(Art\.|§|[IVX]+\s*[-\u2013]|[a-z]\))/.test(next)) { counts.quebra++; out += '<mark class="p-quebra" title="frase continua na próxima linha">⏎</mark>'; }
+      return out;
+    }).join('\n');
+    el.innerHTML = html;
+    const filt = $('#rx-filter');
+    filt.innerHTML = `<button class="chip" data-f="all" aria-pressed="true">tudo</button>` + Object.entries(CATS).map(([k, c]) => `<button class="chip" data-f="${k}"><i class="sw p-${k}"></i> ${c.n} · ${counts[k]}</button>`).join('');
+    $$('#rx-filter .chip').forEach((b) => b.addEventListener('click', () => {
+      $$('#rx-filter .chip').forEach((x) => x.setAttribute('aria-pressed', x === b ? 'true' : 'false'));
+      const k = b.dataset.f; el.className = 'raw' + (k === 'all' ? '' : ' filt f-' + k);
+      const info = $('#rx-info');
+      if (k === 'all') info.innerHTML = '<span class="t">Tudo</span><p>Cada cor é uma família de problema. Os marcadores (verde) não são problema: são a estrutura que a limpeza precisa preservar.</p>';
+      else info.innerHTML = `<span class="t">${esc(CATS[k].n)} · ${counts[k]} ocorrência(s)</span><p><strong>Causa:</strong> ${esc(CATS[k].why)}</p><p><strong>Conserta:</strong> ${esc(CATS[k].fix)}</p>`;
+    }));
+  })();
+
+  /* ================= 2 · Ordem de leitura ================= */
+  (function ro() {
+    const svg = $('#ro-svg'); if (!svg) return;
+    const B = [
+      { f: 3, x: 20, y: 18, w: 260, h: 22, t: 'LEI Nº 14.133, DE 1º DE ABRIL DE 2021', kind: 'head' },
+      { f: 1, x: 20, y: 52, w: 122, h: 124, t: 'Art. 75. É dispensável a licitação: I - para contratação que envolva valores inferiores a R$ 100.000,00 (cem mil reais);', col: 0 },
+      { f: 5, x: 20, y: 186, w: 122, h: 124, t: 'II - para contratação que envolva valores inferiores a R$ 50.000,00, no caso de outros serviços e compras;', col: 0 },
+      { f: 2, x: 158, y: 52, w: 122, h: 124, t: '§ 1º Para fins de aplicação dos incisos I e II do caput deste artigo, deverão ser observados:', col: 1 },
+      { f: 6, x: 158, y: 186, w: 122, h: 124, t: 'I - o somatório do que for despendido no exercício financeiro pela respectiva unidade gestora;', col: 1 },
+      { f: 4, x: 20, y: 330, w: 260, h: 22, t: 'www.planalto.gov.br/…/l14133.htm   12/120', kind: 'foot' },
+    ];
+    const order = { file: [...B].sort((a, b) => a.f - b.f), sort: [...B].sort((a, b) => a.y - b.y || a.x - b.x), col: [...B].sort((a, b) => { const z = (k) => k.kind === 'head' ? 0 : k.kind === 'foot' ? 2 : 1; return z(a) - z(b) || (a.col ?? 0) - (b.col ?? 0) || a.y - b.y; }) };
+    const NOTE = { file: 'A ordem em que o gerador do PDF escreveu os blocos: a coluna da direita veio antes, o cabeçalho no meio. É o que get_text() devolve sem sort. Leia o resultado: "§ 1º" aparece antes de "Art. 75".', sort: 'sort=True ordena por y e depois x: o cabeçalho vem primeiro (certo), mas as duas colunas se intercalam linha a linha, porque compartilham o mesmo y. "II" cai depois de "§ 1º".', col: 'Agrupar por x0 (esquerda, direita) e ordenar por y dentro de cada coluna reconstrói a leitura: caput, I, II, § 1º, I. É o que get_text("blocks") permite fazer em duas linhas de Python.' };
+    function render(mode) {
+      const seq = order[mode];
+      svg.innerHTML = `<rect x="4" y="4" width="292" height="372" rx="6" class="page"/>` + B.map((b) => { const pos = seq.indexOf(b) + 1; return `<g class="blk ${b.kind || ''}"><rect x="${b.x}" y="${b.y}" width="${b.w}" height="${b.h}" rx="4"/><text x="${b.x + 6}" y="${b.y + 15}" class="num">${pos}</text><text x="${b.x + b.w - 6}" y="${b.y + 15}" text-anchor="end" class="fno">#${b.f} no arquivo</text>${b.kind ? '' : `<text x="${b.x + 6}" y="${b.y + 34}" class="txt">${esc(b.t.slice(0, 18))}…</text>`}</g>`; }).join('');
+      $('#ro-out').textContent = seq.map((b, i) => `${i + 1}. ${b.t}`).join('\n');
+      $('#ro-note').textContent = NOTE[mode];
+    }
+    $$('#ro-mode .chip').forEach((c) => c.addEventListener('click', () => { $$('#ro-mode .chip').forEach((x) => x.setAttribute('aria-pressed', x === c ? 'true' : 'false')); render(c.dataset.m); }));
+    render('file');
+  })();
+
+  /* ================= 2 · Detector de página escaneada ================= */
+  (function sc() {
+    const tb = $('#sc-tbl tbody'); if (!tb) return;
+    const PG = [[1, 38, 1, 'capa (logotipo e título)'], [2, 2140, 0, 'cláusulas'], [3, 1980, 0, 'cláusulas'], [4, 0, 1, 'anexo digitalizado'], [5, 12, 1, 'anexo digitalizado com OCR ruim anterior'], [6, 2310, 0, 'cláusulas'], [7, 64, 1, 'página de assinaturas'], [8, 0, 1, 'verso em branco']];
+    const run = () => {
+      const lim = +$('#sc-lim').value; $('#sc-limv').textContent = lim; let ocr = 0, waste = 0;
+      tb.innerHTML = PG.map(([p, ch, im, w]) => { const go = ch < lim; if (go) ocr++; const capa = go && (/capa|assinaturas|branco/.test(w)); if (capa) waste++; return `<tr><td>${p}</td><td>${ch}</td><td>${im}</td><td>${esc(w)}</td><td class="${go ? (capa ? 'bad' : 'ok') : ''}">${go ? 'OCR' + (capa ? ' (custo sem texto útil)' : '') : 'nativo'}</td></tr>`; }).join('');
+      $('#sc-note').textContent = `${ocr} página(s) para o OCR${waste ? `, ${waste} sem texto útil (capa, assinaturas, branco): o limiar não distingue "pouco texto" de "sem camada de texto"; a contagem de imagens ajuda: imagem do tamanho da página + zero caracteres é escaneada` : ''}. Página 5 é o caso traiçoeiro: já tem 12 caracteres de um OCR ruim anterior e passaria como nativa com limiar baixo.`;
+    };
+    $('#sc-lim').addEventListener('input', run); run();
+  })();
+
+  /* ================= 3 · Bancada de limpeza ================= */
+  (function cl() {
+    const el = $('#cl-before'); if (!el) return;
+    el.textContent = RAW.replace(/\f/g, '— \\f —');
+    const run = () => {
+      const o = {}; $$('#cl-rules input').forEach((i) => (o[i.dataset.r] = i.checked));
+      const { text, counts } = clean(RAW, o);
+      $('#cl-after').textContent = text;
+      $('#cl-counts').innerHTML = [['header', 'linhas de cabeçalho/rodapé removidas'], ['unicode', 'caracteres normalizados (nbsp, °, ﬁ, travessão, hífen suave)'], ['hyphen', 'hifenizações desfeitas'], ['join', 'linhas juntadas'], ['spaces', 'espaços a mais removidos']].map(([k, l]) => `<li class="${o[k] ? 'ok' : ''}">${o[k] ? '✓' : '○'} ${l}: <b>${o[k] ? counts[k] : 'desligada'}</b></li>`).join('');
+      const problems = [];
+      if (/automo-/.test(text)) problems.push('"automo-" sobreviveu: a hifenização não foi desfeita' + (o.wrong ? ' (ordem errada: a regra 4 juntou antes e o hífen já não está no fim da linha)' : ''));
+      if (/Presidência/.test(text)) problems.push('cabeçalho ainda no texto: vai virar conteúdo de trecho');
+      if (/\u00b0/.test(text)) problems.push('"°" (grau) continua no lugar de "º": a regex de § com [º°] tolera, mas o hash e a busca lexical não');
+      if (/\ufb01/.test(text)) problems.push('ligadura "ﬁ" continua: "verificar" não casa com "veri\ufb01car"');
+      const dispLines = text.split('\n').filter((l) => !isMarker(l)).length;
+      if (dispLines > 0 && o.join) problems.push(`${dispLines} linha(s) sem marcador: continuação que não foi juntada (a linha anterior termina em pontuação forte)`);
+      $('#cl-note').textContent = problems.length ? 'Problemas no resultado: ' + problems.join('; ') + '.' : 'Resultado: um dispositivo por linha, sem cabeçalhos, sem hífens de quebra, sem caracteres trocados. É o que o segmentador do capítulo 5 espera.';
+    };
+    $$('#cl-rules input').forEach((i) => i.addEventListener('change', run)); run();
+  })();
+
+  /* ================= 3 · Inspetor de caracteres ================= */
+  (function uc() {
+    const inp = $('#uc-in'); if (!inp) return;
+    const P = { pdf: 'R$\u00a0100.000,00 … § 1\u00b0 … veri\ufb01car … con\u00adsórcio', nfd: 'licitac\u0327a\u0303o (c + U+0327, a + U+0303) e licitação (NFC)', lig: '\ufb01nanceiro, § 1\u00b0, 2\u00aa, art. 5\u00ba', dash: 'II \u2013 inciso; III \u2014 inciso; \u201caspas curvas\u201d; \u2018simples\u2019; hífen - comum' };
+    const FLAG = { '\u00a0': ['inv', 'espaço não separável: parece espaço, não é'], '\u00ad': ['inv', 'hífen suave: invisível, quebra a regra de hifenização'], '\u200b': ['inv', 'largura zero'], '\ufeff': ['inv', 'BOM no início do arquivo'], '\u00b0': ['troca', 'sinal de grau usado como ordinal'], '\ufb01': ['troca', 'ligadura fi → "fi" com NFKC'], '\ufb02': ['troca', 'ligadura fl'], '\u2013': ['troca', 'travessão curto (en dash) no lugar do hífen'], '\u2014': ['troca', 'travessão longo (em dash)'], '\u201c': ['troca', 'aspas curvas'], '\u201d': ['troca', 'aspas curvas'], '\u2018': ['troca', 'aspas simples curvas'], '\u2019': ['troca', 'apóstrofo curvo'], '\u0327': ['comb', 'cedilha combinante: c + ̧ = ç decomposto (NFD)'], '\u0303': ['comb', 'til combinante (NFD)'], '\u0301': ['comb', 'acento agudo combinante (NFD)'], '\u00ba': ['ok', 'ordinal masculino (o certo)'], '\u00aa': ['ok', 'ordinal feminino (o certo)'] };
+    const run = () => {
+      const s = inp.value; const chars = cp(s); const flags = [];
+      $('#uc-out').innerHTML = chars.map((ch) => { const f = FLAG[ch]; const cls = f ? 'u-' + f[0] : (/\s/.test(ch) ? 'u-sp' : ''); if (f && f[0] !== 'ok') flags.push(`${hex(ch)} ${f[1]}`); const shown = ch === ' ' ? '␣' : (/[\u0300-\u036f]/.test(ch) ? '◌' + ch : (f && f[0] === 'inv' ? '·' : ch)); return `<span class="${cls}" title="${hex(ch)}">${esc(shown)}<small>${hex(ch).slice(2)}</small></span>`; }).join('');
+      const uniq = [...new Set(flags)];
+      $('#uc-flags').innerHTML = uniq.length ? uniq.map((f) => `<li class="bad">✗ ${esc(f)}</li>`).join('') : '<li class="ok">✓ nenhum caractere suspeito</li>';
+      const n = clean('\n\n\n' + s).text.trim();
+      $('#uc-norm').textContent = `NFC:  ${s.normalize('NFC')}   (${cp(s.normalize('NFC')).length} caracteres; original ${chars.length})\nNFKC: ${s.normalize('NFKC')}   ← repare: "1º" viraria "1o" sem proteção\nregra 2 do projeto: ${n}\n\nPython: unicodedata.normalize('NFKC', s)  ·  ver limpar() no capítulo 10`;
+    };
+    $$('#uc-presets .chip').forEach((c) => c.addEventListener('click', () => { inp.value = P[c.dataset.p]; run(); }));
+    inp.addEventListener('input', run); inp.value = P.pdf; run();
+  })();
+
+  /* ================= 4 · Laboratório de regex ================= */
+  (function re() {
+    const inp = $('#re-in'); if (!inp) return;
+    const PAT = { art: '^Art\\.\\s*(?P<num>\\d+)(?P<sufixo>-[A-Z])?\\s*[º°.]?', par: '^(?:§\\s*(?P<num>\\d+)\\s*[º°]?(?P<sufixo>-[A-Z])?|Parágrafo\\s+único\\.?)', inc: '^(?P<num>[IVXL]+)(?P<sufixo>-[A-Z])?\\s*[-–—]', ali: '^(?P<letra>[a-z])\\)', all: '^(?:(?P<art>Art\\.\\s*\\d+(?:-[A-Z])?\\s*[º°.]?)|(?P<par>§\\s*\\d+\\s*[º°]?(?:-[A-Z])?|Parágrafo\\s+único\\.?)|(?P<inc>[IVXL]+(?:-[A-Z])?\\s*[-–—])|(?P<ali>[a-z]\\)))', naive: 'Art\\. \\d+\\.' };
+    const TXT = { art75: CLEAN, traps: ['Art. 1º Esta Lei estabelece normas gerais de licitação e contratação.', 'Art. 10. O processo licitatório observará as fases desta Lei.', 'Art. 75-A. Dispositivo inserido por lei posterior.', '§ 1º-A Parágrafo inserido depois do § 1º.', 'Parágrafo único. Texto do parágrafo único.', 'II – inciso com travessão curto;', 'IV-A - inciso inserido por alteração;', 'Item de continuação que começa com I maiúsculo, sem traço.', 'Vedado o uso: linha que começa com V, sem traço.', 'a) alínea de verdade;', 'b) outra alínea.'].join('\n'), inline: ['Conforme o Art. 75, I, é dispensável a licitação; ver também o § 1º e a alínea a) do inciso III.', 'Art. 76. A dispensa exige a estimativa de preço.', 'I - a razão da escolha do contratado;'].join('\n') };
+    const run = () => {
+      const src = inp.value; const flags = 'gu' + ($('#re-m').checked ? 'm' : '') + ($('#re-i').checked ? 'i' : '');
+      const js = src.replace(/\(\?P</g, '(?<'); const text = $('#re-text').value; let rx;
+      $('#re-py').textContent = `re.finditer(r'${src}', texto${$('#re-m').checked ? ', re.M' : ''}${$('#re-i').checked ? ' | re.I' : ''})`;
+      try { rx = new RegExp(js, flags); setStatus($('#re-status'), ''); } catch (e) { setStatus($('#re-status'), 'Padrão inválido: ' + e.message, 'err'); $('#re-out').textContent = text; $('#re-groups tbody').innerHTML = ''; return; }
+      let html = '', last = 0, n = 0; const rows = [];
+      for (const m of text.matchAll(rx)) {
+        if (m[0] === '') { if (m.index >= text.length) break; continue; }
+        html += esc(text.slice(last, m.index)) + `<mark class="${n % 2 ? 'm2' : 'm1'}">${esc(m[0])}</mark>`; last = m.index + m[0].length; n++;
+        const line = text.slice(0, m.index).split('\n').length;
+        const groups = m.groups ? Object.entries(m.groups).filter(([, v]) => v !== undefined).map(([k, v]) => `${k}=${JSON.stringify(v)}`) : m.slice(1).map((v, i) => v !== undefined ? `${i + 1}=${JSON.stringify(v)}` : null).filter(Boolean);
+        rows.push(`<tr><td>${n}</td><td>${line}</td><td><code>${esc(m[0])}</code></td><td>${groups.length ? groups.map(esc).join(' · ') : '—'}</td></tr>`);
+      }
+      html += esc(text.slice(last)); $('#re-out').innerHTML = html;
+      $('#re-groups tbody').innerHTML = rows.join('') || '<tr><td colspan="4">nenhuma ocorrência</td></tr>';
+      const lines = text.split('\n').filter((l) => l.trim()).length;
+      setStatus($('#re-status'), `${n} ocorrência(s) em ${lines} linha(s)${/^\^/.test(src) ? '' : ' · sem ^ no início: o padrão casa em qualquer posição (re.search), inclusive no meio de frases'}`, n ? 'ok' : 'warn');
+    };
+    $$('#re-pat .chip').forEach((c) => c.addEventListener('click', () => { inp.value = PAT[c.dataset.p]; run(); }));
+    $$('#re-txt .chip').forEach((c) => c.addEventListener('click', () => { $('#re-text').value = TXT[c.dataset.t]; run(); }));
+    inp.addEventListener('input', run); $('#re-text').addEventListener('input', run); $('#re-m').addEventListener('change', run); $('#re-i').addEventListener('change', run);
+    inp.value = PAT.all; $('#re-text').value = TXT.art75; run();
+  })();
+
+  /* ================= 4 · Galeria de armadilhas ================= */
+  (function tr() {
+    const grid = $('#tr-grid'); if (!grid) return;
+    const T = [
+      { k: 'ordinal', g: 'numero', name: 'Art. 1º contra Art. 10.', text: 'Art. 1º Esta Lei estabelece normas gerais.\nArt. 10. O processo licitatório observará…', naive: "^Art\\. (\\d+)\\.", what: 'Com o ponto obrigatório, "Art. 1º" não casa: os nove primeiros artigos (e todo artigo com ordinal) viram continuação do anterior. Com "\\d+º" obrigatório, "Art. 10." não casa. Os dois formatos coexistem na mesma lei.', fix: "^Art\\.\\s*(?P<num>\\d+)\\s*[º°.]?  — o terminador é opcional e aceita ordinal, grau ou ponto." },
+      { k: 'sufixo', g: 'numero', name: 'Art. 75-A, § 1º-A, IV-A', text: 'Art. 75-A. Dispositivo inserido por lei posterior.\n§ 1º-A Parágrafo inserido.\nIV-A - inciso inserido;', naive: "^Art\\.\\s*(\\d+)\\s*[º°.]?", what: 'A regex casa "Art. 75" e deixa "-A." no conteúdo; o id vira art75, duplicado com o Art. 75 verdadeiro. No pandas aparece em df.id.duplicated().', fix: "(?P<num>\\d+)(?P<sufixo>-[A-Z])?  — captura o sufixo e o id o incorpora: art75A, p1A, incIVA." },
+      { k: 'pu', g: 'estrutura', name: 'Parágrafo único', text: 'Art. 74. Texto do caput.\nParágrafo único. Texto do parágrafo.', naive: "^§\\s*(\\d+)", what: 'Não há "§": a linha vira continuação do caput e o parágrafo desaparece como dispositivo. É o erro mais comum e mais silencioso, porque o texto continua "certo" ao ler.', fix: "^(?:§\\s*(?P<num>\\d+)…|Parágrafo\\s+único\\.?)  — alternativa dentro do grupo par; o estado recebe par = 'u' e o id, -pu." },
+      { k: 'grau', g: 'unicode', name: 'º (ordinal) contra ° (grau)', text: '§ 1\u00b0 Para fins de aplicação…\n§ 2º Os valores referidos…', naive: "^§\\s*(\\d+)º", what: 'O PDF (ou quem digitou) usou o sinal de grau U+00B0 no § 1 e o ordinal U+00BA no § 2. A regex com "º" fixo casa um e perde o outro.', fix: "Regra 2 da limpeza: (\\d)° → º. E, por segurança, a classe [º°] na regex." },
+      { k: 'travessao', g: 'unicode', name: 'Hífen, travessão curto, travessão longo', text: 'I - hífen comum (U+002D)\nII \u2013 travessão curto (U+2013)\nIII \u2014 travessão longo (U+2014)', naive: "^([IVX]+) - ", what: 'Editores de texto trocam "-" por "–" automaticamente. Os incisos II e III viram continuação do I, que fica com três incisos dentro.', fix: "Normalizar na regra 2 (^([IVXL]+)\\s*[–—] → \\1 -) e aceitar a classe [-–—] na regex." },
+      { k: 'romano', g: 'estrutura', name: '"I" de Item e "V" de Vedado', text: 'Item de continuação que começa com I maiúsculo.\nVedado o uso de critério subjetivo.\nX - inciso de verdade;', naive: "^([IVX]+)", what: 'Sem exigir o traço, qualquer linha que começa com I, V ou X vira inciso: "Item" vira inciso I, "Vedado" vira inciso V. Aparece no pandas entre os menores trechos ou como incisos fora de ordem.', fix: "^(?P<num>[IVXL]+)\\s*(?=[-–—])  — lookahead: exige o traço logo após o romano, sem consumi-lo." },
+      { k: 'inline', g: 'estrutura', name: 'Marcador no meio da frase', text: 'Conforme o Art. 75, I, é dispensável a licitação, observado o § 1º.', naive: "re.search(r'Art\\.\\s*\\d+', linha)", what: 'search acha "Art. 75" dentro de uma frase e abre um artigo falso no meio de um inciso. O trecho seguinte ganha o id do artigo errado.', fix: "re.match (só no início) com a âncora ^. O segmentador nunca usa search." },
+      { k: 'alinea', g: 'estrutura', name: '"a)" que não é alínea', text: '…conforme a alínea a) do inciso III deste artigo;\na) alínea de verdade;', naive: "[a-z]\\)", what: 'Sem âncora, "a)" no meio da frase casa. Com âncora, só a linha que começa com "a)". Sobra o caso de uma continuação de linha que começa por acaso com "a)": raro, e a regra 4 (juntar) o evita porque a linha anterior não terminou em pontuação.', fix: "^(?P<letra>[a-z])\\)  — âncora no início; e a regra 4 antes." },
+      { k: 'nbsp', g: 'unicode', name: 'Espaço não separável em "§ 1º"', text: '§\u00a01º Texto do parágrafo com nbsp após o sinal.', naive: "^§ (\\d+)", what: 'O espaço depois de "§" é U+00A0. A regex com espaço comum não casa e o parágrafo vira continuação. Invisível no editor.', fix: "Regra 2 (U+00A0 → espaço) antes; e \\s* na regex, que casa qualquer espaço." },
+      { k: 'colado', g: 'estrutura', name: 'Dois artigos na mesma linha', text: 'Art. 75. É dispensável a licitação Art. 76. A dispensa prevista…', naive: '(regra 4 sem checar marcador)', what: 'A linha do Art. 75 não terminou em pontuação e a regra 4 juntou "Art. 76." como continuação. Com âncora, a regex nunca mais vê o Art. 76. No pandas: um trecho enorme com "Art." no meio, entre os maiores.', fix: "Na regra 4, não juntar se a próxima linha casa MARCADOR (a mesma regex do segmentador). E a pergunta 'marcador dentro do conteúdo' no inspecionar.py." },
+    ];
+    grid.innerHTML = T.map((t, i) => `<div class="fail g-${t.g}" data-k="${t.k}" data-g="${t.g}" tabindex="0"><div class="head"><span class="num">${String(i + 1).padStart(2, '0')}</span><span class="name">${esc(t.name)}</span><span class="tag">${t.g}</span></div><div class="body"><pre><code>${esc(t.text)}</code></pre><p class="more"><strong>Regex ingênua:</strong> <code>${esc(t.naive)}</code></p><p class="more"><strong>O que acontece:</strong> ${esc(t.what)}</p><p class="more"><strong>Correção:</strong> <code>${esc(t.fix)}</code></p><p class="mini hint-open">clique para ver o problema e a correção</p></div></div>`).join('');
+    const cards = $$('#tr-grid .fail');
+    cards.forEach((c) => { const open = () => { const was = c.classList.contains('open'); cards.forEach((x) => x.classList.remove('open')); if (!was) c.classList.add('open'); }; c.addEventListener('click', open); c.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); open(); } }); });
+    $$('#tr-filter .chip').forEach((b) => b.addEventListener('click', () => { $$('#tr-filter .chip').forEach((x) => x.setAttribute('aria-pressed', x === b ? 'true' : 'false')); const f = b.dataset.f; cards.forEach((c) => c.classList.toggle('dim', f !== 'all' && c.dataset.g !== f)); const n = f === 'all' ? cards.length : cards.filter((c) => c.dataset.g === f).length; $('#tr-note').textContent = { all: 'Dez armadilhas reais. Numeração: o formato do marcador varia. Caractere: o texto parece igual e não é. Estrutura: a regex casa onde não devia ou não casa onde devia.', numero: `${n} armadilhas de numeração: ordinal, ponto e sufixo. Todas se resolvem tornando o terminador opcional e capturando o sufixo.`, unicode: `${n} armadilhas de caractere: todas se resolvem na regra 2 da limpeza, antes da regex.`, estrutura: `${n} armadilhas de estrutura: âncora ^, match em vez de search, lookahead do traço e a regra 4 checando marcadores.` }[f]; }));
+  })();
+
+  /* ================= 5 · Segmentador ao vivo ================= */
+  const romanOk = (s) => /^M{0,3}(CM|CD|D?C{0,3})(XC|XL|L?X{0,3})(IX|IV|V?I{0,3})$/.test(s) && s.length > 0;
+  function segment(text, v) {
+    const M = MARC[v]; const out = []; const byId = {}; const e = { art: null, par: null, inc: null, ali: null }; const suf = (s) => (s || '').replace('-', '');
+    const mkId = (s) => ['L14133', 'art' + s.art, s.par ? 'p' + s.par : null, s.inc ? 'inc' + s.inc : null, s.ali].filter(Boolean).join('-');
+    text.split('\n').forEach((line) => {
+      if (!line.trim()) return;
+      let m, tipo = null, texto = '';
+      if (M.art && (m = line.match(M.art))) { tipo = 'art'; e.art = m[1] + suf(m[2]); e.par = e.inc = e.ali = null; }
+      else if (M.par && (m = line.match(M.par))) { tipo = 'par'; e.par = m[1] === undefined ? 'u' : m[1] + suf(m[2]); e.inc = e.ali = null; }
+      else if (M.inc && (m = line.match(M.inc)) && (v === 3 ? romanOk(m[1]) : true)) { tipo = 'inc'; e.inc = m[1] + suf(m[2]); e.ali = null; }
+      else if (M.ali && (m = line.match(M.ali))) { tipo = 'ali'; e.ali = m[1]; }
+      if (!tipo) { if (out.length) out[out.length - 1].texto_proprio += ' ' + line.trim(); return; }
+      if (e.art === null) return;
+      texto = line.slice(m[0].length).trim();
+      const disp = tipo === 'art' ? `Art. ${e.art}, caput` : tipo === 'par' ? `Art. ${e.art}, ${e.par === 'u' ? 'parágrafo único' : '§ ' + e.par + 'º'}` : tipo === 'inc' ? `Art. ${e.art}, ${e.par ? (e.par === 'u' ? 'parágrafo único, ' : '§ ' + e.par + 'º, ') : ''}${e.inc}` : `Art. ${e.art}, ${e.inc}, ${e.ali}`;
+      const pai = tipo === 'ali' ? mkId({ ...e, ali: null }) : tipo === 'inc' ? mkId({ ...e, inc: null, ali: null }) : null;
+      const t = { id: mkId(e), dispositivo: disp, tipo: { art: 'caput', par: 'paragrafo', inc: 'inciso', ali: 'alinea' }[tipo], texto_proprio: texto, pai, nivel: { art: 0, par: 1, inc: e.par ? 2 : 1, ali: e.par ? 3 : 2 }[tipo] };
+      out.push(t); byId[t.id] = t;
+    });
+    out.forEach((t) => { const p = byId[t.pai]; const pre = p && /:$/.test(p.texto_proprio) ? p.conteudo + ' ' : ''; t.conteudo = (pre + t.texto_proprio).trim(); });
+    return out;
+  }
+  window.__seg = { segment, CLEAN, TRAPS };
+  (function sg() {
+    const inp = $('#sg-in'); if (!inp) return; let ver = 2;
+    const EXP = { clean: ['L14133-art75', 'L14133-art75-incI', 'L14133-art75-incII', 'L14133-art75-incIII', 'L14133-art75-incIII-a', 'L14133-art75-incIII-b', 'L14133-art75-p1', 'L14133-art75-p1-incI', 'L14133-art75-p1-incII', 'L14133-art75-p2'] };
+    EXP.raw = EXP.clean; EXP.traps = [...EXP.clean.filter((x) => x !== 'L14133-art75-p1-incII'), 'L14133-art75A', 'L14133-art75A-pu']; let EXP75 = EXP.clean; let expLabel = 'caput, I, II, III (a, b), § 1º (I, II), § 2º';
+    const run = () => {
+      const tr = segment(inp.value, ver); $('#sg-regex').textContent = MARC[ver].txt;
+      $('#sg-tree').innerHTML = tr.length ? tr.map((t) => `<div class="tn l${t.nivel}"><span class="id">${esc(t.id)}</span><span class="tx">${esc(t.texto_proprio.slice(0, 70))}${t.texto_proprio.length > 70 ? '…' : ''}</span></div>`).join('') : '<p class="mini">nenhum trecho: nenhum marcador reconhecido</p>';
+      $('#sg-jsonl').textContent = tr.map((t) => JSON.stringify({ id: t.id, dispositivo: t.dispositivo, tipo: t.tipo, conteudo: t.conteudo })).join('\n');
+      const ids = tr.map((t) => t.id); const dup = ids.filter((x, i) => ids.indexOf(x) !== i);
+      const leftover = tr.filter((t) => /(^|\s)(Art\.|§)\s*\d|(^|\s)[IVXL]+\s*[-\u2013\u2014]\s|(^|\s)Parágrafo único/.test(t.texto_proprio));
+      const header = tr.filter((t) => /Presidência|planalto|Subchefia|Secretaria-Geral/.test(t.conteudo));
+      const short = tr.filter((t) => t.conteudo.length < 20);
+      const has75 = /Art\.\s*75\b/.test(inp.value); const got75 = ids.filter((i) => /^L14133-art75[A-Z]?(-|$)/.test(i));
+      const miss = EXP75.filter((x) => !got75.includes(x)), extra = got75.filter((x) => !EXP75.includes(x));
+      const checks = [
+        [dup.length === 0, dup.length ? `ids repetidos: ${[...new Set(dup)].join(', ')} (sufixo -A ignorado?)` : 'todos os ids únicos'],
+        [short.length === 0, short.length ? `${short.length} trecho(s) com menos de 20 caracteres: ${short.map((t) => t.id).join(', ')}` : 'nenhum trecho curto demais'],
+        [leftover.length === 0, leftover.length ? `marcador dentro do conteúdo em ${leftover.length} trecho(s): ${leftover.map((t) => t.id).join(', ')} (a regex não reconheceu o marcador seguinte)` : 'nenhum marcador dentro do conteúdo'],
+        [header.length === 0, header.length ? `cabeçalho dentro do conteúdo em ${header.map((t) => t.id).join(', ')}: a limpeza não rodou antes` : 'nenhum cabeçalho no conteúdo'],
+      ];
+      if (has75) checks.push([miss.length === 0 && extra.length === 0, miss.length || extra.length ? `Art. 75 incompleto${miss.length ? ' · faltam: ' + miss.map((x) => x.replace('L14133-', '')).join(', ') : ''}${extra.length ? ' · sobram: ' + extra.map((x) => x.replace('L14133-', '')).join(', ') : ''}` : `Art. 75 saiu inteiro: ${expLabel} — critério de parada atendido`]);
+      $('#sg-checks').innerHTML = checks.map(([ok, t]) => `<li class="${ok ? 'ok' : 'bad'}">${ok ? '✓' : '✗'} ${esc(t)}</li>`).join('') + `<li>${tr.length} trecho(s) · ${tr.filter((t) => t.tipo === 'caput').length} caputs · ${tr.filter((t) => t.tipo === 'paragrafo').length} parágrafos · ${tr.filter((t) => t.tipo === 'inciso').length} incisos · ${tr.filter((t) => t.tipo === 'alinea').length} alíneas</li>`;
+      window.__segLast = tr;
+    };
+    $$('#sg-ver .chip').forEach((c) => c.addEventListener('click', () => { ver = +c.dataset.v; $$('#sg-ver .chip').forEach((x) => x.setAttribute('aria-pressed', x === c ? 'true' : 'false')); run(); }));
+    $$('#c5 [data-st]').forEach((c) => c.addEventListener('click', () => { const k = c.dataset.st; inp.value = { clean: CLEAN, traps: TRAPS, raw: RAW.replace(/\f/g, '') }[k]; EXP75 = EXP[k]; expLabel = k === 'traps' ? 'caput, I, II, III (a, b), § 1º (I), § 2º, 75-A e seu parágrafo único' : 'caput, I, II, III (a, b), § 1º (I, II), § 2º'; run(); }));
+    $('#sg-run').addEventListener('click', run); inp.value = CLEAN; run();
+  })();
+
+  /* ================= 5 · Regex contra modelo (ao vivo) ================= */
+  (function rm() {
+    const btn = $('#rm-run'); if (!btn) return; let prev = null;
+    const SCHEMA = { type: 'OBJECT', properties: { dispositivos: { type: 'ARRAY', items: { type: 'OBJECT', properties: { id: { type: 'STRING' }, dispositivo: { type: 'STRING' } }, required: ['id', 'dispositivo'] } } }, required: ['dispositivos'] };
+    btn.addEventListener('click', () => guard($('#rm-status'), async () => {
+      needKey(); const text = $('#sg-in').value; const ref = segment(text, 3).map((t) => t.id);
+      setStatus($('#rm-status'), 'Chamando o modelo…');
+      const r = await gemini.generate({ system: 'Você segmenta textos normativos brasileiros em dispositivos. Responda só com JSON.', user: `Liste cada dispositivo do texto (artigo caput, parágrafo, inciso, alínea) com um id no formato: L14133-art<num> para o caput; -p<num> ou -pu (parágrafo único) para parágrafo; -inc<ROMANO> para inciso; -<letra> para alínea. Sufixo de artigo inserido (75-A) vira art75A. Inciso dentro de parágrafo: L14133-art75-p1-incI. Alínea: L14133-art75-incIII-a.\n\n<texto>\n${text}\n</texto>`, schema: SCHEMA, maxTokens: 2048 });
+      const obj = parseJSON(r.text); const got = (obj?.dispositivos || []).map((d) => String(d.id).trim());
+      const ok = ref.filter((i) => got.includes(i)), miss = ref.filter((i) => !got.includes(i)), extra = got.filter((i) => !ref.includes(i));
+      $('#rm-out').innerHTML = `<div class="col"><h5>regex v3 · ${ref.length}</h5><ul class="checks">${ref.map((i) => `<li class="${got.includes(i) ? 'ok' : 'bad'}">${got.includes(i) ? '✓' : '✗'} ${esc(i)}</li>`).join('')}</ul></div><div class="col"><h5>modelo · ${got.length}</h5><ul class="checks">${got.map((i) => `<li class="${ref.includes(i) ? 'ok' : 'bad'}">${ref.includes(i) ? '✓' : '✗ inventado'} ${esc(i)}</li>`).join('')}</ul></div>`;
+      let delta = '';
+      if (prev) { const changed = prev.filter((i) => !got.includes(i)).length + got.filter((i) => !prev.includes(i)).length; delta = ` Em relação à execução anterior, ${changed} id(s) mudaram${changed ? ': a mesma entrada não deu a mesma saída' : ': desta vez estável'}.`; }
+      prev = got;
+      $('#rm-note').textContent = `${ok.length} coincidem, ${miss.length} o modelo perdeu, ${extra.length} o modelo inventou ou nomeou fora do padrão.${delta} A regex dá o mesmo resultado sempre e falha de forma visível; o modelo acerta muito e erra sem avisar.`;
+      setStatus($('#rm-status'), `${r.ms} ms · ${r.usage?.totalTokenCount ?? '?'} tokens`, 'ok');
+    }));
+  })();
+
+  /* ================= 6 · Inspetor de JSONL ================= */
+  (function jl() {
+    const inp = $('#jl-in'); if (!inp) return;
+    const REQ = ['id', 'dispositivo', 'conteudo']; const IDRX = /^L\d+-art\d+[A-Z]?(-p(\d+[A-Z]?|u))?(-inc[IVXL]+[A-Z]?)?(-[a-z])?$/;
+    const line = (t) => JSON.stringify({ id: t.id, dispositivo: t.dispositivo, conteudo: t.conteudo });
+    const base = corpus.trechos.slice(0, 8);
+    const P = {
+      ok: () => base.map(line).join('\n'),
+      bad: () => [line(base[0]), line(base[1]).replace(/}$/, ',}'), JSON.stringify({ id: base[2].id, dispositivo: base[2].dispositivo, 'conteúdo': base[2].conteudo }), JSON.stringify({ id: 'art75-incIII', dispositivo: 'Art. 75, III', conteudo: base[3].conteudo }), JSON.stringify({ id: base[4].id, dispositivo: base[4].dispositivo, conteudo: '' }), line(base[0]), JSON.stringify({ id: base[5].id, dispositivo: base[5].dispositivo, conteudo: base[5].conteudo + ' Art. 76. A dispensa prevista no art. 75 exige a estimativa de preço.' }), line(base[6])].join('\n'),
+      corpus: () => corpus.trechos.map(line).join('\n'),
+      seg: () => (window.__segLast || segment(CLEAN, 3)).map((t) => JSON.stringify({ id: t.id, dispositivo: t.dispositivo, tipo: t.tipo, conteudo: t.conteudo })).join('\n'),
+    };
+    let asJson = false;
+    const run = () => {
+      const lines = inp.value.split('\n'); const seen = new Map(); const rows = []; let ok = 0, err = 0, warn = 0;
+      lines.forEach((l, i) => {
+        const n = i + 1; if (!l.trim()) return; const probs = []; let obj;
+        try { obj = JSON.parse(l); } catch (e) { rows.push([n, '—', 'bad', 'JSON inválido: ' + e.message.replace(/ in JSON at position \d+.*/, '') + ' (vírgula sobrando? aspas?)']); err++; return; }
+        if (!obj || typeof obj !== 'object' || Array.isArray(obj)) { rows.push([n, '—', 'bad', 'a linha não é um objeto JSON']); err++; return; }
+        REQ.forEach((k) => { if (!(k in obj)) probs.push(['bad', `campo obrigatório ausente: ${k}`]); });
+        Object.keys(obj).forEach((k) => { if (!['id', 'dispositivo', 'conteudo', 'tipo', 'texto_proprio', 'artigo', 'vigencia_inicio', 'vigencia_fim', 'origem', 'hash'].includes(k)) probs.push(['bad', `chave desconhecida: "${k}"${k.normalize('NFD').replace(/[\u0300-\u036f]/g, '') === 'conteudo' ? ' (acento no nome do campo)' : ''}`]); });
+        if (typeof obj.id === 'string') { if (!IDRX.test(obj.id)) probs.push(['bad', `id fora do padrão: "${obj.id}"`]); if (seen.has(obj.id)) probs.push(['bad', `id repetido (linha ${seen.get(obj.id)})`]); else seen.set(obj.id, n); }
+        if (typeof obj.conteudo === 'string') { if (!obj.conteudo.trim()) probs.push(['bad', 'conteúdo vazio']); else if (obj.conteudo.length < 20) probs.push(['bad', `conteúdo curto (${obj.conteudo.length} caracteres)`]); if (/\s(Art\.|§)\s*\d/.test(obj.conteudo)) probs.push(['warn', 'marcador dentro do conteúdo: dois dispositivos colados']); if (/Presidência|planalto/.test(obj.conteudo)) probs.push(['warn', 'cabeçalho dentro do conteúdo']); }
+        else if ('conteudo' in obj) probs.push(['bad', 'conteúdo não é texto']);
+        const worst = probs.some((p) => p[0] === 'bad') ? 'bad' : probs.length ? 'warn' : 'ok'; if (worst === 'bad') err++; else if (worst === 'warn') warn++; else ok++;
+        rows.push([n, typeof obj.id === 'string' ? obj.id : '—', worst, probs.length ? probs.map((p) => p[1]).join('; ') : 'ok']);
+      });
+      $('#jl-tbl tbody').innerHTML = rows.map(([n, id, cls, msg]) => `<tr><td>${n}</td><td>${esc(id)}</td><td class="${cls === 'ok' ? 'ok' : cls === 'bad' ? 'bad' : ''}">${esc(msg)}</td></tr>`).join('');
+      setStatus($('#jl-status'), `${rows.length} linha(s): ${ok} ok · ${warn} com aviso · ${err} rejeitada(s)`, err ? 'err' : warn ? 'warn' : 'ok');
+      const s = $('#jl-summary'); s.hidden = false;
+      s.textContent = `# leitura tolerante (o que o carregar.py faz)\nvalidos, rejeitados = [], []\nwith open("data/trechos.jsonl", encoding="utf-8") as f:\n    for n, linha in enumerate(f, 1):\n        try:\n            validos.append(Trecho.model_validate_json(linha))\n        except Exception as e:\n            rejeitados.append({"linha": n, "erro": str(e)})\n# aqui: ${ok + warn} válidas, ${err} rejeitadas → data/rejeitados.jsonl`;
+    };
+    $$('#jl-presets .chip').forEach((c) => c.addEventListener('click', () => { inp.value = P[c.dataset.p](); asJson = false; $('#jl-json').textContent = 'Ver como JSON (array)'; run(); }));
+    $('#jl-json').addEventListener('click', () => {
+      if (!asJson) { const objs = []; inp.value.split('\n').forEach((l) => { try { if (l.trim()) objs.push(JSON.parse(l)); } catch {} }); inp.value = JSON.stringify(objs, null, 2); asJson = true; $('#jl-json').textContent = 'Voltar ao JSONL'; setStatus($('#jl-status'), 'Mesmos registros como um array: colchetes, vírgulas entre objetos, indentação. Mude um registro e imagine o diff; acrescente um no fim e repare que a vírgula do anterior muda também.', 'warn'); }
+      else { try { const objs = JSON.parse(inp.value); inp.value = objs.map((o) => JSON.stringify(o)).join('\n'); } catch {} asJson = false; $('#jl-json').textContent = 'Ver como JSON (array)'; run(); }
+    });
+    $('#jl-run').addEventListener('click', run); inp.value = P.ok(); run();
+  })();
+
+  /* ================= 7 · Painel pandas ================= */
+  (function pd() {
+    const el = $('#pd-cmds'); if (!el) return;
+    const tipo = (id) => /-[a-z]$/.test(id) ? 'alinea' : /-inc/.test(id) ? 'inciso' : /-p/.test(id) ? 'paragrafo' : 'caput';
+    const df = corpus.trechos.map((t, i) => ({ i, id: t.id, dispositivo: t.dispositivo, artigo: +(t.id.match(/art(\d+)/) || [0, 0])[1], tipo: tipo(t.id), n_chars: t.conteudo.length, n_palavras: t.conteudo.split(/\s+/).length, conteudo: t.conteudo }));
+    const pad = (s, n, right = false) => { s = String(s); return s.length >= n ? s : right ? s + ' '.repeat(n - s.length) : ' '.repeat(n - s.length) + s; };
+    const table = (rows, cols, trunc = 48) => { if (!rows.length) return `Empty DataFrame\nColumns: [${cols.join(', ')}]\nIndex: []`; const cell = (r, c) => c === 'conteudo' ? (r[c].length > trunc ? r[c].slice(0, trunc - 1) + '…' : r[c]) : String(r[c]); const w = {}; cols.forEach((c) => (w[c] = Math.max(c.length, ...rows.map((r) => cell(r, c).length)))); const iw = Math.max(...rows.map((r) => String(r.i).length)); return pad('', iw) + '  ' + cols.map((c) => (c === 'conteudo' || c === 'dispositivo' || c === 'id' ? pad(c, w[c], true) : pad(c, w[c]))).join('  ') + '\n' + rows.map((r) => pad(r.i, iw) + '  ' + cols.map((c) => (c === 'conteudo' || c === 'dispositivo' || c === 'id' ? pad(cell(r, c), w[c], true) : pad(cell(r, c), w[c]))).join('  ')).join('\n'); };
+    const stats = (a) => { const s = [...a].sort((x, y) => x - y); const q = (p) => { const k = (s.length - 1) * p; const f = Math.floor(k); return s[f] + (s[f + 1] !== undefined ? (s[f + 1] - s[f]) * (k - f) : 0); }; const m = a.reduce((x, y) => x + y, 0) / a.length; const sd = Math.sqrt(a.reduce((x, y) => x + (y - m) ** 2, 0) / (a.length - 1)); return { count: a.length, mean: m, std: sd, min: s[0], '25%': q(.25), '50%': q(.5), '75%': q(.75), max: s[s.length - 1] }; };
+    const C = [
+      ['df.head()', () => table(df.slice(0, 5), ['id', 'dispositivo', 'tipo', 'n_chars']), 'As cinco primeiras linhas. Serve para conferir que as colunas são as esperadas e que o id está no padrão. O índice à esquerda é a posição no arquivo.'],
+      ['df.info()', () => `<class 'pandas.core.frame.DataFrame'>\nRangeIndex: ${df.length} entries, 0 to ${df.length - 1}\nData columns (total 7 columns):\n #   Column       Non-Null Count  Dtype \n---  ------       --------------  ----- \n 0   id           ${df.length} non-null    object\n 1   dispositivo  ${df.length} non-null    object\n 2   conteudo     ${df.length} non-null    object\n 3   artigo       ${df.length} non-null    int64 \n 4   tipo         ${df.length} non-null    object\n 5   n_chars      ${df.length} non-null    int64 \n 6   n_palavras   ${df.length} non-null    int64 \ndtypes: int64(3), object(4)`, 'Tipos e nulos por coluna. artigo como int64 é o que se espera; se aparecer object, alguma linha tem "75-A" no campo numérico. Um non-null menor que o total é campo faltando.'],
+      ['df.tipo.value_counts()', () => { const c = {}; df.forEach((r) => (c[r.tipo] = (c[r.tipo] || 0) + 1)); const e = Object.entries(c).sort((a, b) => b[1] - a[1]); return 'tipo\n' + e.map(([k, v]) => pad(k, 10, true) + pad(v, 5)).join('\n') + '\nName: count, dtype: int64'; }, 'Quantos de cada tipo. Uma lei com centenas de artigos e poucos parágrafos diz que a regex de § não casa. O corpus do guia é uma amostra e não tem a proporção da lei.'],
+      ["df.n_chars.describe().round(0)", () => { const s = stats(df.map((r) => r.n_chars)); return Object.entries(s).map(([k, v]) => pad(k, 6, true) + pad(Math.round(v), 8) + '.0').join('\n') + '\nName: n_chars, dtype: float64'; }, 'A distribuição de tamanho. Repare no máximo e no 75%: se o máximo for dez vezes o 75%, há dispositivos colados. O mínimo abaixo de 20 é marcador falso.'],
+      ["df.nlargest(10, 'n_chars')[['id', 'n_chars', 'conteudo']]", () => table([...df].sort((a, b) => b.n_chars - a.n_chars).slice(0, 10), ['id', 'n_chars', 'conteudo']), 'Os dez maiores. Leia o conteúdo: se aparecer "Art." ou "§" no meio, um marcador não foi reconhecido. Aqui são artigos longos legítimos (princípios, definições).'],
+      ["df.nsmallest(10, 'n_chars')[['id', 'n_chars', 'conteudo']]", () => table([...df].sort((a, b) => a.n_chars - b.n_chars).slice(0, 10), ['id', 'n_chars', 'conteudo']), 'Os dez menores. Um conteúdo de uma palavra ("único.", "A") é marcador reconhecido demais ou continuação perdida. Aqui são incisos curtos e legítimos.'],
+      ["df[df.id.duplicated(keep=False)][['id', 'dispositivo']]", () => table(df.filter((r, i, a) => a.some((x, j) => j !== i && x.id === r.id)), ['id', 'dispositivo']), 'Ids repetidos. Vazio é o esperado. Se aparecer, o sufixo -A foi ignorado ou o PDF tem uma página duplicada.'],
+      ["df.groupby('artigo').size().sort_values(ascending=False).head(8)", () => { const c = {}; df.forEach((r) => (c[r.artigo] = (c[r.artigo] || 0) + 1)); return 'artigo\n' + Object.entries(c).sort((a, b) => b[1] - a[1]).slice(0, 8).map(([k, v]) => pad(k, 6, true) + pad(v, 5)).join('\n') + '\ndtype: int64'; }, 'Filhos por artigo. Um artigo com dezenas de filhos merece uma olhada: ou é o Art. 6º (definições, com 60 incisos de verdade) ou um "Art." seguinte não foi reconhecido e tudo caiu nele.'],
+      ["df[df.conteudo.str.contains('Presidência|planalto', regex=True)][['id', 'conteudo']]", () => table(df.filter((r) => /Presidência|planalto/.test(r.conteudo)), ['id', 'conteudo']), 'Cabeçalho que sobrou. Vazio é o esperado. Qualquer linha aponta para a página em que a regra 1 falhou.'],
+      ["df[df.id.str.startswith('L14133-art75')].sort_values('id')[['id', 'dispositivo', 'n_chars']]", () => table(df.filter((r) => r.id.startsWith('L14133-art75')).sort((a, b) => a.id.localeCompare(b.id)), ['id', 'dispositivo', 'n_chars']), 'O critério de parada do Ex. 2: a lista do Art. 75 tem de bater com o texto oficial (caput, incisos, alíneas, parágrafos e seus incisos). O corpus do guia tem só uma amostra do artigo.'],
+    ];
+    el.innerHTML = C.map((c, i) => `<button class="chip" data-i="${i}">${esc(c[0].split('(')[0].split('[')[0])}${c[0].includes('nlargest') ? ' (10 maiores)' : c[0].includes('nsmallest') ? ' (10 menores)' : c[0].includes('duplicated') ? ' (duplicados)' : c[0].includes('contains') ? ' (cabeçalho?)' : c[0].includes('art75') ? ' (Art. 75)' : c[0].includes('groupby') ? ' (por artigo)' : ''}</button>`).join('');
+    const show = (i) => { $$('#pd-cmds .chip').forEach((x, j) => x.setAttribute('aria-pressed', i === j ? 'true' : 'false')); $('#pd-code').textContent = '>>> ' + C[i][0]; $('#pd-out').textContent = C[i][1](); $('#pd-note').textContent = C[i][2]; };
+    $$('#pd-cmds .chip').forEach((b) => b.addEventListener('click', () => show(+b.dataset.i))); show(0);
+    const svg = $('#pd-hist'); const W = 760, H = 170, L = 40, B = 30;
+    const hist = () => {
+      const lim = +$('#pd-lim').value; $('#pd-limv').textContent = lim; const max = Math.max(...df.map((r) => r.n_chars)); const bw = 50; const nb = Math.ceil((max + 1) / bw); const bins = Array(nb).fill(0); df.forEach((r) => bins[Math.floor(r.n_chars / bw)]++); const mb = Math.max(...bins); const x = (i) => L + (i / nb) * (W - L - 10); const bwpx = (W - L - 10) / nb - 2; const y = (v) => H - B - (v / mb) * (H - B - 12);
+      svg.innerHTML = `<line x1="${L}" y1="${H - B}" x2="${W - 10}" y2="${H - B}" stroke="var(--line)"/>` + bins.map((v, i) => `<g class="bar${(i + 1) * bw <= lim || i * bw < lim ? ' pick' : ''}"><rect x="${x(i)}" y="${y(v)}" width="${bwpx}" height="${H - B - y(v)}" rx="2"/><text x="${x(i) + bwpx / 2}" y="${y(v) - 3}" text-anchor="middle">${v || ''}</text><text x="${x(i) + bwpx / 2}" y="${H - B + 14}" text-anchor="middle" class="lbl">${i * bw}</text></g>`).join('') + `<text x="${W - 10}" y="${H - 4}" text-anchor="end" class="lbl">n_chars (bins de ${bw})</text>`;
+      const below = df.filter((r) => r.n_chars < lim); $('#pd-hnote').textContent = `Faixas em laranja: as que contêm valores abaixo de ${lim}. ${below.length} trecho(s) abaixo de ${lim} caracteres${below.length ? ': ' + below.slice(0, 6).map((r) => r.id.replace('L14133-', '')).join(', ') + (below.length > 6 ? '…' : '') : ''}. No seu arquivo, é esta lista que você lê primeiro.`;
+    };
+    $('#pd-lim').addEventListener('input', hist); hist();
+  })();
+
+  /* ================= 8 · Validador Pydantic ================= */
+  (function py() {
+    const inp = $('#py-in'); if (!inp) return;
+    const OK = { id: 'L14133-art75-incI', dispositivo: 'Art. 75, I', conteudo: 'É dispensável a licitação: para contratação que envolva valores inferiores a R$ 100.000,00 (cem mil reais), no caso de obras e serviços de engenharia.', artigo: 75, tipo: 'inciso', vigencia_inicio: '2021-04-01', vigencia_fim: null };
+    const P = { ok: () => OK, id: () => ({ ...OK, id: 'art75-incI' }), curto: () => ({ ...OK, conteudo: 'Ver caput.' }), marcador: () => ({ ...OK, conteudo: '§ 1º Para fins de aplicação dos incisos I e II do caput deste artigo, deverão ser observados:' }), extra: () => { const o = { ...OK }; delete o.conteudo; o['conteúdo'] = OK.conteudo; return o; }, tipo: () => ({ ...OK, artigo: 'abc', tipo: 'inc' }), lax: () => ({ ...OK, artigo: '75' }), data: () => ({ ...OK, vigencia_inicio: '2021-13-01' }), vig: () => ({ ...OK, vigencia_fim: '2020-12-31' }), json: () => null };
+    const PATTERN = "^L\\d+-art\\d+[A-Z]?(-p(\\d+[A-Z]?|u))?(-inc[IVXL]+[A-Z]?)?(-[a-z])?$"; const IDRX = new RegExp(PATTERN);
+    const rep = (v) => typeof v === 'string' ? `'${v.length > 40 ? v.slice(0, 37) + '...' : v}'` : v === null ? 'None' : typeof v === 'object' ? '{...}' : String(v);
+    const ty = (v) => v === null ? 'NoneType' : Array.isArray(v) ? 'list' : typeof v === 'number' ? (Number.isInteger(v) ? 'int' : 'float') : typeof v === 'string' ? 'str' : typeof v === 'boolean' ? 'bool' : 'dict';
+    const parseDate = (s) => { if (typeof s !== 'string') return { err: 'Input should be a valid date [type=date_type' }; const m = s.match(/^(\d{4})-(\d{2})-(\d{2})$/); if (!m) return { err: 'Input should be a valid date or datetime, input is too short [type=date_from_datetime_parsing' }; const [, y, mo, d] = m.map(Number); if (mo < 1 || mo > 12) return { err: 'Input should be a valid date or datetime, month value is outside expected range of 1-12 [type=date_from_datetime_parsing' }; if (d < 1 || d > new Date(y, mo, 0).getDate()) return { err: 'Input should be a valid date or datetime, day value is outside expected range [type=date_from_datetime_parsing' }; return { v: new Date(y, mo - 1, d) }; };
+    const run = () => {
+      $$('#py-model .an').forEach((a) => a.classList.remove('lit')); const lit = (k) => { const a = $(`#py-model .an[data-k="${k}"]`); if (a) a.classList.add('lit'); };
+      let obj; try { obj = JSON.parse(inp.value); } catch (e) { $('#py-out').textContent = `1 validation error for Trecho\n  Invalid JSON: ${e.message} [type=json_invalid, input_value='${inp.value.slice(0, 30).replace(/\n/g, ' ')}...', input_type=str]\n\n# model_validate_json falha antes de olhar qualquer campo`; return; }
+      const errs = []; const notes = []; const E = (loc, msg, type, v) => errs.push(`${loc}\n  ${msg} [type=${type}, input_value=${rep(v)}, input_type=${ty(v)}]`);
+      const known = ['id', 'dispositivo', 'conteudo', 'artigo', 'tipo', 'vigencia_inicio', 'vigencia_fim'];
+      Object.keys(obj).forEach((k) => { if (!known.includes(k)) { E(k, 'Extra inputs are not permitted', 'extra_forbidden', obj[k]); lit('config'); } });
+      ['id', 'dispositivo', 'conteudo', 'artigo', 'tipo', 'vigencia_inicio'].forEach((k) => { if (!(k in obj)) { E(k, 'Field required', 'missing', obj); lit(k); } });
+      const str = (k) => { if (!(k in obj)) return null; if (typeof obj[k] !== 'string') { E(k, 'Input should be a valid string', 'string_type', obj[k]); lit(k); return null; } return obj[k].trim(); };
+      const id = str('id'); if (id !== null && !IDRX.test(id)) { E('id', `String should match pattern '${PATTERN}'`, 'string_pattern_mismatch', id); lit('id'); }
+      const disp = str('dispositivo'); if (disp !== null && disp.length < 3) { E('dispositivo', 'String should have at least 3 characters', 'string_too_short', disp); lit('dispositivo'); }
+      const cont = str('conteudo'); if (cont !== null) { if (cont.length < 20) { E('conteudo', 'String should have at least 20 characters', 'string_too_short', cont); lit('conteudo'); } else if (/^(Art\.|§|[IVXL]+\s*-|[a-z]\))/.test(cont)) { E('conteudo', 'Value error, conteúdo começa com marcador: segmentação incompleta', 'value_error', cont); lit('marcador'); } }
+      let art = null; if ('artigo' in obj) { const v = obj.artigo; if (typeof v === 'number' && Number.isInteger(v)) art = v; else if (typeof v === 'number') { E('artigo', 'Input should be a valid integer, got a number with a fractional part', 'int_from_float', v); lit('artigo'); } else if (typeof v === 'string' && /^\s*-?\d+\s*$/.test(v)) { art = parseInt(v, 10); notes.push(`artigo: '${v}' (str) convertido para ${art} (int) — modo lax; com strict=True seria erro int_type`); } else { E('artigo', 'Input should be a valid integer, unable to parse string as an integer', 'int_parsing', v); lit('artigo'); } if (art !== null && art < 1) { E('artigo', 'Input should be greater than or equal to 1', 'greater_than_equal', v); lit('artigo'); art = null; } }
+      if ('tipo' in obj && !['caput', 'paragrafo', 'inciso', 'alinea'].includes(obj.tipo)) { E('tipo', "Input should be 'caput', 'paragrafo', 'inciso' or 'alinea'", 'literal_error', obj.tipo); lit('tipo'); }
+      let vi = null, vf = null; if ('vigencia_inicio' in obj) { const r = parseDate(obj.vigencia_inicio); if (r.err) { errs.push(`vigencia_inicio\n  ${r.err}, input_value=${rep(obj.vigencia_inicio)}, input_type=${ty(obj.vigencia_inicio)}]`); lit('vigencia_inicio'); } else vi = r.v; }
+      if ('vigencia_fim' in obj && obj.vigencia_fim !== null) { const r = parseDate(obj.vigencia_fim); if (r.err) { errs.push(`vigencia_fim\n  ${r.err}, input_value=${rep(obj.vigencia_fim)}, input_type=${ty(obj.vigencia_fim)}]`); lit('vigencia_fim'); } else vf = r.v; }
+      if (!errs.length) { if (vf && vi && vf < vi) { errs.push(`  Value error, vigencia_fim anterior a vigencia_inicio [type=value_error, input_value={...}, input_type=dict]`); lit('modelo'); } else if (id && art !== null && +(id.match(/art(\d+)/) || [0, -1])[1] !== art) { errs.push(`  Value error, artigo não bate com o id [type=value_error, input_value={...}, input_type=dict]`); lit('modelo'); } }
+      if (errs.length) $('#py-out').textContent = `${errs.length} validation error${errs.length > 1 ? 's' : ''} for Trecho\n${errs.join('\n')}${notes.length ? '\n\n# ' + notes.join('\n# ') : ''}\n\n# carregar.py: esta linha vai para rejeitados.jsonl; as outras seguem`;
+      else $('#py-out').textContent = `Trecho(id='${id}', dispositivo='${disp}', conteudo='${cont.slice(0, 32)}…', artigo=${art}, tipo='${obj.tipo}', vigencia_inicio=datetime.date(${vi.getFullYear()}, ${vi.getMonth() + 1}, ${vi.getDate()}), vigencia_fim=${vf ? `datetime.date(${vf.getFullYear()}, ${vf.getMonth() + 1}, ${vf.getDate()})` : 'None'})${notes.length ? '\n\n# ' + notes.join('\n# ') : ''}\n\n# válido: segue para o hash e o upsert`;
+    };
+    $$('#py-presets .chip').forEach((c) => c.addEventListener('click', () => { const o = P[c.dataset.p](); inp.value = o === null ? '{"id": "L14133-art75-incI", "dispositivo": "Art. 75, I", "conteudo": "É dispensável a licitação: para contratação…",}' : JSON.stringify(o, null, 2); run(); }));
+    $('#py-run').addEventListener('click', run); inp.value = JSON.stringify(OK, null, 2); run();
+  })();
+
+  /* ================= 9 · Simulador de carga ================= */
+  (function up() {
+    const el = $('#up-before tbody'); if (!el) return;
+    const DB = [['art75', 'a1f3'], ['art75-incI', '7c02'], ['art75-incII', 'e9b4'], ['art75-incIII', '51d8'], ['art75-p1', 'b6e0']];
+    const FILE = [['art75', 'a1f3', ''], ['art75-incI', '3d9a', 'conteúdo mudou'], ['art75-incII', 'e9b4', ''], ['art75-incIII', '51d8', ''], ['art75-p2', 'c47e', 'novo']];
+    el.innerHTML = DB.map(([i, h]) => `<tr><td>${i}</td><td>${h}</td><td class="ok">✓</td></tr>`).join('');
+    $('#up-file tbody').innerHTML = FILE.map(([i, h, n]) => `<tr><td>${i}</td><td>${h}</td><td>${n}</td></tr>`).join('');
+    const S = {
+      insert: { after: DB, emb: 0, lost: 0, err: 'ERROR: duplicate key value violates unique constraint "trechos_pkey" · DETAIL: Key (id)=(L14133-art75) already exists. Transação abortada: nada entrou, nem o trecho novo.', note: 'INSERT sem ON CONFLICT falha na primeira chave repetida. Com transação, o banco volta ao estado anterior (bom); sem transação, entra o que veio antes do erro (pior: estado parcial). Zero embeddings porque nem chegou a embutir.' },
+      drop: { after: FILE.map(([i, h]) => [i, h, true]), emb: 5, lost: 1, err: '', note: 'DELETE FROM trechos; INSERT tudo. Funciona, custa 5 embeddings (todos, inclusive os 3 que não mudaram) e apaga art75-p1 em silêncio: pareceres antigos que o citam perdem a referência. Multiplique por 1.200 trechos e dez rodadas.' },
+      upsert: { after: [...FILE.map(([i, h]) => [i, h, true]), ['art75-p1', 'b6e0', true]], emb: 5, lost: 0, err: '', note: 'ON CONFLICT (id) DO UPDATE sem olhar o hash: nada se perde e nada duplica, mas o código reembute os 5 do arquivo, inclusive os 3 iguais. É a versão "quase certa": correta, cara.' },
+      hash: { after: [...FILE.map(([i, h]) => [i, h, true]), ['art75-p1', 'b6e0', true]], emb: 2, lost: 0, err: '', mark: 'art75-p1', note: 'Compara hash antes: art75, incII e incIII são iguais (nada a fazer); incI mudou (reembutir e atualizar); p2 é novo (embutir e inserir); p1 sumiu do arquivo e fica marcado para revisão, não apagado. Dois embeddings. Na segunda rodada com o mesmo arquivo: zero.' },
+    };
+    const run = (k) => {
+      const s = S[k]; $$('#up-strat .chip').forEach((x) => x.setAttribute('aria-pressed', x.dataset.s === k ? 'true' : 'false'));
+      $('#up-after tbody').innerHTML = s.after.map(([i, h, e]) => `<tr class="${s.mark === i ? 'warn' : ''}"><td>${i}${s.mark === i ? ' ⚠ revisar' : ''}</td><td>${h}</td><td class="${e === false ? '' : 'ok'}">${e === false ? '' : '✓'}</td></tr>`).join('');
+      $('#up-bars').innerHTML = [['embeddings calculados', s.emb, 5, s.emb > 2 ? 'f' : ''], ['trechos perdidos', s.lost, 5, s.lost ? 'f' : ''], ['trechos duplicados', 0, 5, '']].map(([l, v, m, c]) => `<div class="b"><span>${l}</span><i class="${c}" style="width:${(v / m) * 100}%"></i><span class="v">${v}</span></div>`).join('');
+      $('#up-note').innerHTML = `<span class="t">${$(`#up-strat .chip[data-s="${k}"]`).textContent}</span>${s.err ? `<p class="bad" style="font-family:var(--mono);font-size:.8rem">${esc(s.err)}</p>` : ''}<p>${esc(s.note)}</p>`;
+      $('#up-note').className = 'callout ' + (k === 'hash' ? 'ok' : k === 'insert' ? 'bad' : 'warn');
+    };
+    $$('#up-strat .chip').forEach((c) => c.addEventListener('click', () => run(c.dataset.s))); run('insert');
+  })();
+
+  /* ================= 9 · Parâmetros contra f-string ================= */
+  (function sq() {
+    const inp = $('#sq-in'); if (!inp) return;
+    const run = () => {
+      const v = inp.value; const f = `f"INSERT INTO trechos (id, dispositivo) VALUES ('L14133-art75-incI', '{dispositivo}')"`;
+      const composed = `INSERT INTO trechos (id, dispositivo) VALUES ('L14133-art75-incI', '${v}')`;
+      $('#sq-f').textContent = `${f}\n\n# o banco recebe:\n${composed}`;
+      const quotes = (v.match(/'/g) || []).length; const inj = /;\s*(drop|delete|update|insert)\b/i.test(v);
+      $('#sq-fnote').textContent = inj ? 'O valor fechou a string, encerrou o comando e começou outro: o banco executa o DROP. Não é hipotético: é o que acontece com qualquer valor vindo de fora.' : quotes ? `O valor tem ${quotes} aspa(s) simples: a string SQL fecha antes da hora e o comando quebra com erro de sintaxe. A lei tem dezenas de aspas.` : 'Neste valor funcionou. Funciona até o primeiro valor com aspas, e é indistinguível do caso perigoso.';
+      $('#sq-p').textContent = `cur.execute(\n    "INSERT INTO trechos (id, dispositivo) VALUES (%s, %s)",\n    ("L14133-art75-incI", dispositivo),\n)\n\n# o banco recebe o comando e os valores separados:\ncomando: INSERT INTO trechos (id, dispositivo) VALUES ($1, $2)\n$1 = 'L14133-art75-incI'\n$2 = ${JSON.stringify(v)}   # literal, ${cp(v).length} caracteres, inclusive aspas e ponto-e-vírgula`;
+      $('#sq-pnote').textContent = 'O valor nunca é interpretado como SQL: vai como dado, com o tipo certo (texto, data, vetor). É a única forma usada no projeto.';
+    };
+    $$('#sq-presets .chip').forEach((c) => c.addEventListener('click', () => { inp.value = c.dataset.v; run(); }));
+    inp.addEventListener('input', run); inp.value = "Art. 75, § 1º, 'a'"; run();
+  })();
+})();
+
+</script>
+</body>
+</html>

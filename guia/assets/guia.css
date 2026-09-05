@@ -268,6 +268,9 @@ label.chip{display:inline-flex;align-items:center;gap:6px}
 .fail .name{font-weight:600;color:var(--navy)}
 .fail .tag{margin-left:auto;font-family:var(--mono);font-size:.7rem;color:var(--muted);border:1px solid var(--line);border-radius:999px;padding:1px 7px}
 .fail .body p{margin:6px 0 0;font-size:.9rem}
+.fail:not(.open) .body .more{display:none}
+.fail.open .body .hint-open{display:none}
+.fail .body .hint-open{color:var(--teal);font-size:.78rem}
 .fail pre{margin:8px 0 0;font-size:.78rem}
 .fail pre code{white-space:pre-wrap;word-break:break-word}
 pre.anat{font-size:.85rem}
@@ -306,6 +309,56 @@ pre.anat .an:hover,pre.anat .an.lit{background:rgba(79,193,191,.28)}
 .hero p{font-size:1.06rem}
 .legend{display:flex;gap:14px;flex-wrap:wrap;font-size:.8rem;color:var(--muted);margin:6px 0 10px}
 .legend i{display:inline-block;width:12px;height:12px;border-radius:3px;vertical-align:-1px;margin-right:5px}
+/* ------- página 9: dados ------- */
+pre.raw{background:var(--surface-2);color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:12px;font-family:var(--mono);font-size:.8rem;line-height:1.55;white-space:pre-wrap;word-break:break-word;margin:0}
+pre.out{color:var(--ink);margin:0 0 8px}
+pre.raw.small{font-size:.74rem;max-height:340px;overflow:auto}
+pre.raw .pg{color:var(--muted);font-style:italic}
+.p-header{background:var(--red-soft);text-decoration:line-through;text-decoration-color:var(--red)}
+.p-hifen{background:var(--amber-soft);border-bottom:2px solid var(--amber)}
+.p-quebra{background:var(--teal-soft);color:var(--teal);font-weight:700}
+.p-inv{background:var(--surface);border:1px dashed var(--navy);font-size:.72em;padding:0 3px}
+.p-troca{background:var(--red-soft);border-bottom:2px solid var(--red);font-size:.9em}
+.p-marc{background:var(--green-soft);border-bottom:2px solid var(--green)}
+pre.raw.filt mark{opacity:.25}
+pre.raw.filt.f-header mark.p-header,pre.raw.filt.f-hifen mark.p-hifen,pre.raw.filt.f-quebra mark.p-quebra,pre.raw.filt.f-inv mark.p-inv,pre.raw.filt.f-troca mark.p-troca,pre.raw.filt.f-marc mark.p-marc{opacity:1}
+.sw{display:inline-block;width:10px;height:10px;border-radius:2px;vertical-align:middle;margin-right:2px;text-decoration:none}
+pre.raw mark.m1{background:var(--amber-soft);border-bottom:2px solid var(--amber)}
+pre.raw mark.m2{background:var(--teal-soft);border-bottom:2px solid var(--teal)}
+.tokens span{border:1px solid var(--line);min-width:1.3em;text-align:center;vertical-align:top;line-height:1.2;padding:2px 3px}
+.tokens span small{display:block;font-size:.5rem;color:var(--muted);line-height:1.1;font-family:var(--mono)}
+.tokens .u-inv{background:var(--red-soft);border-color:var(--red)}
+.tokens .u-troca{background:var(--amber-soft);border-color:var(--amber)}
+.tokens .u-comb{background:var(--teal-soft);border-color:var(--teal)}
+.tokens .u-ok{background:var(--green-soft);border-color:var(--green)}
+.tokens .u-sp{opacity:.55}
+#ro-svg{max-width:320px;display:block;margin:0 auto}
+#ro-svg .page{fill:var(--surface);stroke:var(--line)}
+#ro-svg .blk rect{fill:var(--surface-2);stroke:var(--navy);stroke-width:1.2}
+#ro-svg .blk.head rect,#ro-svg .blk.foot rect{stroke:var(--muted);stroke-dasharray:3 2}
+#ro-svg .blk .num{font-weight:700;fill:var(--teal);font-size:13px}
+#ro-svg .blk .fno{font-size:8px;fill:var(--muted);font-family:var(--mono)}
+#ro-svg .blk .txt{font-size:8.5px;fill:var(--ink)}
+.tree .tn{display:flex;gap:8px;padding:3px 0;font-size:.82rem;border-bottom:1px dashed var(--line);min-width:0}
+.tree .tn .id{font-family:var(--mono);color:var(--teal);white-space:nowrap;font-size:.76rem}
+.tree .tn .tx{color:var(--muted);min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tree .l1{padding-left:16px}.tree .l2{padding-left:32px}.tree .l3{padding-left:48px}
+.out.small{font-size:.74rem;max-height:340px;overflow:auto}
+#pd-hist{width:100%;height:auto}
+#pd-hist .bar rect{fill:var(--teal)}
+#pd-hist .bar.pick rect{fill:var(--amber)}
+#pd-hist text{font-size:10px;fill:var(--ink)}
+#pd-hist .lbl{fill:var(--muted)}
+tr.warn td{background:var(--amber-soft)}
+.uptbl td:nth-child(2){font-family:var(--mono)}
+.uptbl td:last-child{font-size:.78rem;color:var(--muted)}
+.lab .body h5.mini{margin:8px 0 4px;font-size:.78rem}
+#re-in{font-family:var(--mono)}
+#py-model{overflow:auto;font-size:.76rem;max-height:520px}
+#py-model code{white-space:pre;word-break:normal}
+#py-model .an{border-bottom:none;display:inline-block;min-width:100%;padding:1px 2px}
+#py-model .an.lit{background:rgba(79,193,191,.35)}
+
 /* ------- svg diagrams ------- */
 .diagram .node rect,.diagram .node ellipse{fill:var(--surface);stroke:var(--navy);stroke-width:1.4}
 .diagram .node.ia rect{stroke:var(--teal)}
