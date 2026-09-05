@@ -1,0 +1,806 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Busca lexical e híbrida · Guia RAG aplicado</title>
+<meta name="description" content="tsvector, BM25, RRF e rerankers.">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/guia.css">
+</head>
+<body data-page="p4">
+<a class="skip" href="#main">Pular para o conteúdo</a>
+<header class="topbar">
+  <button class="iconbtn" id="menu" aria-expanded="false" aria-controls="sidenav" aria-label="Abrir navegação">☰ Páginas</button>
+  <a class="brand" href="index.html">Guia de estudo · RAG aplicado<small>Plataforma de Conformidade e Risco · trilha dos exercícios VIN-5 a VIN-12</small></a>
+  <button class="iconbtn" id="theme" aria-pressed="false">Tema escuro</button>
+</header>
+<div class="scrim"></div>
+<div class="shell">
+  <nav class="side" id="sidenav" aria-label="Páginas do guia">
+    <div class="progress"><span id="prog-text">0 capítulos concluídos</span><div class="bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" aria-label="Progresso do estudo"><i id="prog-bar"></i></div></div>
+    <div class="group">Trilha</div><ol><li><a href="index.html" data-page="p0"><span class="num">0</span><span>Início</span><span class="done-mark" aria-hidden="true"></span></a></li><li><a href="01-modelos.html" data-page="p1"><span class="num">1</span><span>Modelos de linguagem</span><span class="done-mark" aria-hidden="true"></span></a></li><li><a href="02-embeddings.html" data-page="p2"><span class="num">2</span><span>Embeddings</span><span class="done-mark" aria-hidden="true"></span></a></li><li><a href="03-busca-vetorial.html" data-page="p3"><span class="num">3</span><span>Busca vetorial e índices</span><span class="done-mark" aria-hidden="true"></span></a></li><li><a href="04-busca-lexical-hibrida.html" data-page="p4" aria-current="page"><span class="num">4</span><span>Busca lexical e híbrida</span><span class="done-mark" aria-hidden="true"></span></a></li><li><span class="soon" title="Padrões de arquitetura, segmentação, identificadores, vigência."><span class="num">5</span><span>RAG e ingestão</span><span class="tag">em breve</span></span></li><li><span class="soon" title="Anatomia, delimitação, esquema, decomposição, versionamento e a biblioteca do projeto."><span class="num">6</span><span>Prompt engineering</span><span class="tag">em breve</span></span></li><li><span class="soon" title="Taxonomia das falhas, camadas de mitigação, juiz de aderência."><span class="num">7</span><span>Validação e guardrails</span><span class="tag">em breve</span></span></li><li><span class="soon" title="Conjuntos de avaliação, métricas de busca e de resposta, protocolo."><span class="num">8</span><span>Avaliação</span><span class="tag">em breve</span></span></li><li><span class="soon" title="PDF, limpeza, regex, JSONL, pandas, Pydantic, psycopg."><span class="num">9</span><span>Dados e Python</span><span class="tag">em breve</span></span></li><li><span class="soon" title="Tokens, cache, limites de taxa, retentativa, observabilidade, escolha de modelo."><span class="num">10</span><span>Custo e operação</span><span class="tag">em breve</span></span></li></ol><div class="group">Referência rápida</div><ol><li><a href="glossario.html" data-page="glossario"><span class="num">•</span><span>Glossário</span><span class="done-mark" aria-hidden="true"></span></a></li><li><span class="soon" title="Os oito exercícios com roteiro completo."><span class="num">•</span><span>Exercícios</span><span class="tag">em breve</span></span></li><li><span class="soon" title="Os prompts do projeto, versionados, para copiar."><span class="num">•</span><span>Biblioteca de prompts</span><span class="tag">em breve</span></span></li></ol>
+  </nav>
+  <main id="main" tabindex="-1"><div class="page-in">
+    <div class="toc-inline" ><label for="toc-select">Nesta página</label><select id="toc-select"><option value="">ir para o capítulo…</option></select></div>
+    <div id="keybanner" hidden><div class="callout warn"><span class="t">Sem chave do Gemini configurada</span><p>Os experimentos ao vivo desta página ficam desativados. Configure a chave na <a href="index.html#chave">página inicial</a>; os experimentos de brinquedo funcionam sem ela.</p></div></div>
+    <div class="page-head">
+  <div class="kicker">Página 4 · Recuperação</div>
+  <h1>Busca lexical e híbrida</h1>
+  <p class="lead">A página 2 mostrou o que o vetor não enxerga: "art. 75" contra "art. 74", "R$ 100.000" contra "R$ 50.000", uma sigla que o modelo nunca viu. A busca por palavras enxerga exatamente isso, e não enxerga sinônimos nem paráfrases. Esta página abre a busca textual do PostgreSQL (tsvector, tsquery, GIN), mostra o BM25 por dentro, e funde as duas buscas com RRF, do jeito que o projeto faz. Quase tudo roda no navegador sobre o corpus do guia; o duelo final e a avaliação usam o índice vetorial da página 2.</p>
+  <div class="meta"><a class="exlink" href="https://linear.app/vinicius-costa/issue/VIN-8" target="_blank" rel="noopener">VIN-8 · Ex. 4</a><span>·</span><span>10 capítulos · leitura ativa de 60 a 80 minutos · 10 experimentos, 7 sem chave</span></div>
+</div>
+
+<div class="goals">
+  <h3>Ao terminar esta página você consegue</h3>
+  <ul>
+    <li>Explicar o que o PostgreSQL faz com um texto ao construir um <code>tsvector</code> (parser, stopwords, radicais, posições) e por que a consulta precisa passar pelo mesmo caminho.</li>
+    <li>Escrever uma <code>tsquery</code> para cada situação: termos, frase, prefixo, exclusão, "ou".</li>
+    <li>Ler a fórmula do BM25 e dizer o que k1, b e o idf fazem; saber por que o <code>ts_rank</code> não é BM25 e quando isso importa.</li>
+    <li>Criar a coluna gerada, o índice GIN e a consulta que o usa; ler o <code>EXPLAIN</code>.</li>
+    <li>Fundir duas listas com RRF, explicar por que ela usa posições e não pontuações, e escolher K e o número de candidatos.</li>
+    <li>Medir recall@k das três buscas no conjunto de avaliação e decidir, com dados, quando um reranker vale o custo.</li>
+  </ul>
+</div>
+
+<!-- ============================================================ 1 -->
+<section class="chapter" id="c1" data-ch="p4-c1">
+  <div class="ch-head"><span class="n">Capítulo 1</span><h2>Duas buscas que erram em lugares diferentes</h2><label class="donebox"><input type="checkbox" data-done> Capítulo concluído</label></div>
+
+  <p>A busca vetorial encontra <em>sentido</em>: "qual o teto para contratar sem licitação?" acha o dispositivo sobre dispensa por valor, que não tem nenhuma dessas palavras. Ela falha onde o sentido é carregado por um detalhe de superfície: o número do artigo, o valor em reais, o inciso, a sigla. A busca lexical faz o oposto: encontra o trecho que contém <em>exatamente</em> "75" e "inciso" e "engenharia", e falha quando o analista escreve "teto" e a lei diz "valor inferior a".</p>
+  <p>Repare que os dois conjuntos de falhas se cruzam pouco. Uma pergunta que a vetorial erra por causa de um número costuma ter esse número na consulta, e a lexical o acha; uma pergunta que a lexical erra por vocabulário costuma ter o sentido claro, e a vetorial o acha. É a razão de o projeto rodar as duas <strong>sempre</strong>, e não "a vetorial, e a lexical quando parecer útil": a decisão de qual delas acertou é tomada depois, na fusão, sem que ninguém precise adivinhar antes.</p>
+  <p>O que esta página ensina, em uma frase: a busca lexical do PostgreSQL é uma máquina de transformar texto em um conjunto de radicais com posições, comparar conjuntos e pontuar; conhecer a máquina permite prever cada acerto e cada erro dela. E a fusão por RRF é uma regra tão simples que cabe numa linha, com uma propriedade valiosa: não exige que as duas buscas concordem sobre o que é uma "boa pontuação".</p>
+
+  <div class="tbl-wrap"><table>
+    <thead><tr><th>Consulta do analista</th><th>Vetorial</th><th>Lexical</th><th>Por quê</th></tr></thead>
+    <tbody>
+      <tr><td>"limite para contratar sem licitação em obra"</td><td class="ok">acha</td><td class="bad">erra</td><td>a lei diz "dispensável" e "valor inferior a"; nenhuma palavra em comum</td></tr>
+      <tr><td>"art. 75, inciso I"</td><td class="bad">confunde com 74 e II</td><td class="ok">acha</td><td>número e inciso são tokens exatos para a lexical; detalhe de superfície para o vetor</td></tr>
+      <tr><td>"ETP"</td><td class="bad">depende</td><td class="ok">acha se a sigla está no texto</td><td>sigla rara para o modelo; token exato para o índice</td></tr>
+      <tr><td>"prazo para pagamento"</td><td class="ok">acha</td><td class="ok">acha</td><td>vocabulário coincide e o sentido é claro: as duas concordam</td></tr>
+      <tr><td>"não é dispensável a licitação"</td><td class="bad">ignora o "não"</td><td class="bad">"não" é stopword</td><td>as duas falham; quem lê a negação é o modelo de linguagem (página 7)</td></tr>
+    </tbody>
+  </table></div>
+
+  <div class="doit"><span class="ic">faça agora</span><p>Antes de ler o resto, pule para o capítulo 7 e rode o duelo com a consulta "art. 75, inciso I" e depois com "limite para contratar sem licitação em obra" (a primeira funciona sem chave, só na coluna lexical). Volte com as duas posições anotadas: a página vai explicar cada uma.</p></div>
+
+  <div class="faq">
+    <h3>Perguntas que aparecem aqui</h3>
+    <details><summary>Se o modelo de linguagem lê os 12 trechos, por que a ordem da busca importa?</summary><p>Porque só os 12 entram. Se o trecho certo ficou em 15º na vetorial e em 30º na lexical, ele não chega ao prompt e a resposta sai errada ou "sem evidência". A busca não decide a resposta, mas decide o que o modelo tem para ler. Recall@12 é o número que mede isso, e é o que o capítulo 9 calcula.</p><p class="why">A busca escolhe o que o modelo pode ver.</p></details>
+    <details><summary>Não seria mais simples melhorar o embedding para ele enxergar números?</summary><p>Não há botão para isso: a insensibilidade a números e identificadores vem do treinamento, e um modelo ajustado para o domínio ainda a teria em algum grau. A lexical resolve o caso com custo quase zero e recall exato. Combinar é mais barato e mais robusto que consertar.</p><p class="why">Use cada ferramenta no que ela é exata.</p></details>
+    <details><summary>Busca lexical é "busca antiga"?</summary><p>É a busca mais testada que existe, e continua sendo a base de sistemas grandes. O BM25, de 1994, é o ponto de comparação de todo modelo de recuperação novo, e muitos não o superam em domínio específico. Em texto legal, com identificadores e vocabulário fixo, ela é forte.</p><p class="why">Antiga e forte; ignorá-la é perder o que ela acerta de graça.</p></details>
+  </div>
+
+  <div class="notes"><label for="n-p4-c1">Caderno · com as suas palavras</label><p class="hint">Escreva duas consultas do projeto que a vetorial acerta e a lexical erra, e duas ao contrário. Depois uma que as duas erram e quem resolve.</p><textarea class="prose" id="n-p4-c1" data-note="p4-c1"></textarea><div class="saved"></div></div>
+</section>
+
+<!-- ============================================================ 2 -->
+<section class="chapter" id="c2" data-ch="p4-c2">
+  <div class="ch-head"><span class="n">Capítulo 2</span><h2>Como o PostgreSQL lê um texto: tsvector e tsquery</h2><label class="donebox"><input type="checkbox" data-done> Capítulo concluído</label></div>
+
+  <p>A busca textual do PostgreSQL não compara strings. Ela transforma o texto em um <strong><code>tsvector</code></strong>: uma lista ordenada de <em>lexemas</em> (palavras normalizadas) com as <em>posições</em> em que ocorrem. A transformação é feita por uma <em>configuração de busca</em> (<code>'portuguese'</code>) em três passos. O <strong>parser</strong> quebra o texto em tokens e classifica cada um (palavra, número, e-mail, versão…). Os <strong>dicionários</strong> processam cada token: o de stopwords descarta palavras vazias ("de", "a", "que", "não"); o <em>stemmer</em> Snowball reduz cada palavra ao radical ("licitação", "licitações", "licitatório" → "licit"). O resultado guarda o radical e a posição; a palavra original some.</p>
+  <p>A consulta passa pela <em>mesma</em> configuração e vira uma <strong><code>tsquery</code></strong>: radicais ligados por operadores (<code>&amp;</code> e, <code>|</code> ou, <code>!</code> não, <code>&lt;-&gt;</code> seguido de). O operador <code>@@</code> testa se um tsvector satisfaz uma tsquery. A regra de ouro sai disso: <strong>documento e consulta precisam ser processados pela mesma configuração</strong>; se o índice foi feito com <code>'portuguese'</code> e a consulta com <code>'simple'</code> (sem stemmer), "licitações" não casa com "licitação" e ninguém avisa.</p>
+  <p>Três funções para montar consultas, da mais rígida à mais amigável: <code>to_tsquery</code> (você escreve os operadores), <code>plainto_tsquery</code> (todas as palavras com <code>&amp;</code>), <code>phraseto_tsquery</code> (todas com <code>&lt;-&gt;</code>, frase exata) e <code>websearch_to_tsquery</code> (sintaxe de buscador: aspas para frase, <code>or</code>, <code>-</code> para excluir; nunca dá erro de sintaxe, por isso é a certa para texto vindo do usuário). E uma para depurar: <code>ts_debug('portuguese', texto)</code> mostra token por token o que o parser e os dicionários fizeram.</p>
+
+  <div class="callout"><span class="t">O radicalizador do guia é uma aproximação</span><p>O navegador não tem o Snowball. O guia usa um radicalizador próprio, inspirado no RSLP (plurais, sufixos derivacionais, vogal final), que chega a radicais parecidos com os do PostgreSQL ("licitação", "licitações" e "licitatório" viram "licit" e "licitat") mas não idênticos em todos os casos. O mecanismo, tokens → stopwords → radicais com posições → comparação, é o mesmo. No Ex. 4 você confere o radical real com <code>ts_debug</code>.</p></div>
+
+  <div class="lab">
+    <header><h4>Experimento · O tsvector de um trecho e a tsquery de uma consulta</h4><span class="badge toy">roda no navegador</span></header>
+    <div class="body">
+      <p>Escolha um trecho (ou edite o texto) e veja os tokens, as stopwords riscadas, os radicais e o tsvector com posições. Escreva a consulta, escolha o tipo de tsquery e veja se <code>@@</code> dá verdadeiro, com os termos casados destacados no texto.</p>
+      <div class="row top">
+        <div><label class="f" for="lx-trecho">Trecho do corpus</label><select id="lx-trecho"></select></div>
+      </div>
+      <div class="row top"><div><label class="f" for="lx-text">Texto (edite à vontade)</label><textarea id="lx-text" rows="4"></textarea></div></div>
+      <div class="tokens" id="lx-tokens" aria-live="polite"></div>
+      <p class="mini" id="lx-stats"></p>
+      <pre><code id="lx-tsv" class="language-text"></code></pre>
+      <div class="chips" id="lx-presets" style="margin:10px 0"><button class="chip" type="button" data-q="licitações dispensáveis" data-mode="and">licitações dispensáveis</button><button class="chip" type="button" data-q="obras e serviços de engenharia" data-mode="phrase">frase: obras e serviços de engenharia</button><button class="chip" type="button" data-q="engenh" data-mode="prefix">prefixo: engenh</button><button class="chip" type="button" data-q='"serviços de engenharia" -compras' data-mode="web">websearch: "serviços de engenharia" -compras</button><button class="chip" type="button" data-q="não é dispensável" data-mode="and">não é dispensável</button></div>
+      <div class="row top">
+        <div><label class="f" for="lx-q">Consulta</label><input type="text" id="lx-q" value="licitações dispensáveis"></div>
+        <div><label class="f" for="lx-mode">Tipo de tsquery</label><select id="lx-mode"><option value="and">plainto_tsquery (todos os termos, &amp;)</option><option value="or">to_tsquery com | (qualquer termo)</option><option value="phrase">phraseto_tsquery (frase, &lt;-&gt;)</option><option value="prefix">to_tsquery com :* (prefixo)</option><option value="web">websearch_to_tsquery</option></select></div>
+      </div>
+      <pre><code id="lx-tsq" class="language-text"></code></pre>
+      <div class="status" id="lx-match"></div>
+      <div class="hl" id="lx-hl"></div>
+    </div>
+  </div>
+
+  <div class="doit"><span class="ic">faça agora</span><p>Clique em "não é dispensável": repare que "não" e "é" somem como stopwords e a consulta vira só "dispensavel". É a prova de que a negação não existe para a busca lexical, como não existia para o vetor. Depois teste a frase "obras e serviços de engenharia" contra o art. 75, I, e contra outro trecho que tenha as palavras em outra ordem.</p></div>
+
+  <div class="faq">
+    <h3>Perguntas que aparecem aqui</h3>
+    <details><summary>Por que "não" é stopword se ele inverte o sentido?</summary><p>Porque as listas de stopwords foram feitas para recuperação por assunto, e "não" aparece em quase todo documento: como termo de busca, não discrimina nada. Você pode criar uma configuração sem ele na lista, mas isso não faz a busca entender negação; só faz "não" virar um termo obrigatório, o que costuma piorar. Negação é problema do modelo de linguagem, com o trecho inteiro no prompt.</p><p class="why">Stopword é uma decisão estatística, não semântica.</p></details>
+    <details><summary>Acentos atrapalham?</summary><p>Na configuração <code>'portuguese'</code> padrão, "licitação" e "licitacao" viram radicais diferentes. Como o usuário digita de qualquer jeito e PDFs perdem acentos, o projeto usa a extensão <code>unaccent</code> numa configuração própria (capítulo 5) que remove acentos antes do stemmer, nos dois lados. O guia já faz isso no navegador.</p><p class="why">Normalize os dois lados; o que difere entre eles vira erro silencioso.</p></details>
+    <details><summary>Como o parser trata "R$ 100.000,00" e "§ 2º"?</summary><p>De um jeito que você precisa conferir com <code>ts_debug</code>: o parser reconhece números, decimais e até "versões" (1.2.3) como tipos de token diferentes, e o cifrão e o parágrafo podem ser descartados como pontuação. Para buscar por esses identificadores com precisão, o projeto mantém colunas próprias (<code>dispositivo</code>, <code>norma</code>) com índice B-tree ou <code>pg_trgm</code>, e não depende do tsvector para eles.</p><p class="why">Identificadores estruturados merecem coluna própria.</p></details>
+    <details><summary>O que são as posições e para que servem?</summary><p>Cada lexema guarda as posições (1, 2, 3…) em que ocorreu, contando também as stopwords descartadas. Servem para o operador de frase (<code>&lt;-&gt;</code> exige posições consecutivas), para o <code>ts_rank_cd</code> (proximidade entre termos) e para o <code>ts_headline</code> (destacar o trecho). Sem posições (função <code>strip</code>), o tsvector é menor mas perde isso.</p><p class="why">Posições custam espaço e compram frase e proximidade.</p></details>
+  </div>
+
+  <div class="notes"><label for="n-p4-c2">Caderno</label><p class="hint">Descreva os três passos que transformam texto em tsvector e a regra de ouro sobre a configuração. Dê um exemplo de erro silencioso.</p><textarea class="prose" id="n-p4-c2" data-note="p4-c2"></textarea><div class="saved"></div></div>
+</section>
+
+<!-- ============================================================ 3 -->
+<section class="chapter" id="c3" data-ch="p4-c3">
+  <div class="ch-head"><span class="n">Capítulo 3</span><h2>Pontuar: ts_rank, pesos e por que não é BM25</h2><label class="donebox"><input type="checkbox" data-done> Capítulo concluído</label></div>
+
+  <p>Casar (<code>@@</code>) diz quais trechos contêm os termos; para ordenar, é preciso pontuar. O PostgreSQL oferece duas funções. <strong><code>ts_rank</code></strong> pontua pela frequência dos termos casados: cada ocorrência soma um pouco, com saturação (a décima ocorrência vale quase nada), e os termos se combinam. <strong><code>ts_rank_cd</code></strong> ("cover density") pontua pela <em>proximidade</em> entre os termos casados: um trecho onde "dispensa" e "engenharia" aparecem juntos pontua mais que um onde estão longe. As duas aceitam <strong>pesos por origem</strong>: com <code>setweight(to_tsvector(dispositivo), 'A') || setweight(to_tsvector(conteudo), 'D')</code>, um termo casado no cabeçalho do dispositivo vale 1,0 e no corpo vale 0,1 (os pesos padrão de A, B, C, D são 1,0, 0,4, 0,2 e 0,1).</p>
+  <p>Há também as <strong>opções de normalização</strong>, um número de bits que desconta o comprimento do documento: 1 divide por 1 + log(comprimento), 2 divide pelo comprimento, 32 comprime a nota para o intervalo 0–1. Sem normalização (padrão 0), trechos longos levam vantagem porque têm mais ocorrências.</p>
+  <p>O que o <code>ts_rank</code> <em>não</em> faz, e importa: ele não olha para o corpus. Um termo que aparece em todos os trechos ("licitação", numa lei de licitações) pesa o mesmo que um termo raro ("engenharia"). Essa é a diferença central para o <strong>BM25</strong> do próximo capítulo, que multiplica cada termo pelo seu <em>idf</em> (raro pesa mais). Na prática, para o projeto, isso tem duas consequências: a ordem lexical do PostgreSQL é um pouco pior que a de um BM25 de verdade, e como a fusão por RRF usa só posições, o dano é pequeno; se um dia a lexical precisar ser melhor, há extensões que trazem BM25 nativo (por exemplo, o <code>pg_search</code> do ParadeDB), ou o BM25 pode ser calculado na aplicação para os candidatos.</p>
+
+  <div class="lab">
+    <header><h4>Experimento · ts_rank contra BM25 no corpus</h4><span class="badge toy">reimplementação simplificada</span></header>
+    <div class="body">
+      <p>A mesma consulta ordenada por uma reimplementação do <code>ts_rank</code> (saturação por ocorrência, pesos A/D, normalização) e pelo BM25. Compare as posições e olhe o número de lexemas de cada trecho: sem normalização, os longos sobem.</p>
+      <div class="chips" id="rk-presets" style="margin-bottom:10px"><button class="chip" type="button" data-q="licitação">licitação (termo comum)</button><button class="chip" type="button" data-q="engenharia">engenharia (termo raro)</button><button class="chip" type="button" data-q="licitação dispensável obras engenharia">licitação dispensável obras engenharia</button><button class="chip" type="button" data-q="garantia contrato">garantia contrato</button></div>
+      <div class="row">
+        <div><label class="f" for="rk-q">Consulta</label><input type="text" id="rk-q" value="licitação dispensável obras engenharia"></div>
+        <div><label class="f" for="rk-norm">Normalização (ts_rank)</label><select id="rk-norm"><option value="0" selected>0 · nenhuma</option><option value="1">1 · ÷ (1 + log comprimento)</option><option value="2">2 · ÷ comprimento</option><option value="16">16 · ÷ (1 + log lexemas únicos)</option><option value="32">32 · rank ÷ (rank + 1)</option></select></div>
+        <div class="fixed"><label class="f" style="display:flex;gap:8px;align-items:center;margin-top:22px"><input type="checkbox" id="rk-w" checked> peso A no dispositivo, D no conteúdo</label></div>
+      </div>
+      <p class="mini" id="rk-note"></p>
+      <div class="cmp"><div class="col"><h5>ts_rank (aprox.)</h5><div id="rk-a"></div></div><div class="col"><h5>BM25</h5><div id="rk-b"></div></div></div>
+    </div>
+  </div>
+
+  <div class="doit"><span class="ic">faça agora</span><p>Consulta "licitação": o ts_rank ordena por quem repete mais a palavra; o BM25 dá idf baixo a ela (aparece em muitos trechos) e a ordem muda. Consulta "licitação dispensável obras engenharia": o BM25 coloca no topo quem tem "engenharia" (raro), e o ts_rank, quem tem mais ocorrências no total. Ligue a normalização 1 e veja os trechos longos descerem.</p></div>
+
+  <div class="faq">
+    <h3>Perguntas que aparecem aqui</h3>
+    <details><summary>Qual usar no projeto: ts_rank ou ts_rank_cd?</summary><p><code>ts_rank_cd</code> com normalização 1 ou 32 e pesos A no dispositivo. A proximidade entre termos é um sinal bom para texto legal (uma expressão como "serviços de engenharia" quase sempre aparece junta), e as posições já estão no tsvector. Mas como a lista lexical vai para o RRF, a diferença entre os dois é pequena; meça no capítulo 9 antes de discutir.</p><p class="why">cd para proximidade; a fusão suaviza a escolha.</p></details>
+    <details><summary>Os pesos A/B/C/D substituem o idf?</summary><p>Não; são outra coisa. Peso é "onde no documento" (cabeçalho ou corpo); idf é "quão raro no corpus". Um sistema pode ter os dois. No PostgreSQL nativo você tem pesos; para idf, BM25 por extensão ou na aplicação.</p><p class="why">Posição no documento ≠ raridade no corpus.</p></details>
+    <details><summary>Dá para calcular idf no SQL e emular BM25?</summary><p>Dá, com <code>ts_stat</code> para contar em quantos documentos cada lexema aparece e uma função que aplica a fórmula sobre os termos da consulta. É trabalhoso e frágil (o idf precisa ser recalculado quando a base muda). Para o projeto, a escolha foi <code>ts_rank_cd</code> + RRF; se a avaliação mostrar que a lexical é o elo fraco, a extensão com BM25 é o caminho.</p><p class="why">Possível, mas só se a medição justificar.</p></details>
+  </div>
+
+  <div class="notes"><label for="n-p4-c3">Caderno</label><p class="hint">Explique a diferença entre ts_rank, ts_rank_cd e BM25 em uma frase cada, e o que os pesos A/D fazem.</p><textarea class="prose" id="n-p4-c3" data-note="p4-c3"></textarea><div class="saved"></div></div>
+</section>
+<!-- ============================================================ 4 -->
+<section class="chapter" id="c4" data-ch="p4-c4">
+  <div class="ch-head"><span class="n">Capítulo 4</span><h2>BM25 por dentro</h2><label class="donebox"><input type="checkbox" data-done> Capítulo concluído</label></div>
+
+  <p>BM25 é a fórmula de pontuação lexical de referência há trinta anos, e é o que o guia usa na busca lexical dos experimentos. A nota de um trecho para uma consulta é a soma, sobre os termos da consulta que aparecem no trecho, de três fatores multiplicados.</p>
+  <p><strong>idf</strong> (frequência inversa nos documentos): log(1 + (N − df + 0,5) ÷ (df + 0,5)), onde N é o total de trechos e df é em quantos o termo aparece. Termo raro, idf alto; termo que está em tudo, idf perto de zero. É o fator que o <code>ts_rank</code> não tem.</p>
+  <p><strong>tf saturado</strong>: tf × (k1 + 1) ÷ (tf + k1 × …). A primeira ocorrência de um termo vale muito; a segunda, menos; a décima, quase nada. O teto é k1 + 1. Com <strong>k1</strong> = 1,2 (padrão) a saturação é rápida; k1 maior deixa as repetições valerem mais.</p>
+  <p><strong>normalização por comprimento</strong>, dentro do denominador: (1 − b + b × comprimento ÷ comprimento médio). Com <strong>b</strong> = 0,75 (padrão), um trecho duas vezes mais longo que a média precisa de mais ocorrências para a mesma nota; b = 0 ignora o comprimento; b = 1 normaliza por completo. Para dispositivos legais, que variam de uma linha a um parágrafo longo, b faz diferença: sem ele, o caput comprido vence o inciso curto que responde exatamente.</p>
+
+  <div class="lab">
+    <header><h4>Experimento · A fórmula viva</h4><span class="badge toy">brinquedo</span></header>
+    <div class="body">
+      <p>A curva mostra o peso de um termo em função do número de ocorrências (tf), para os valores de k1, b e comprimento relativo que você escolher; a tracejada é o padrão. Abaixo, a decomposição termo a termo da nota dos seis melhores trechos do corpus para a consulta, usando os mesmos k1 e b.</p>
+      <div class="row">
+        <div><label class="f" for="bm-k1">k1 = <span id="bm-k1v">1.2</span></label><input type="range" id="bm-k1" min="0" max="3" step="0.1" value="1.2"></div>
+        <div><label class="f" for="bm-b">b = <span id="bm-bv">0.75</span></label><input type="range" id="bm-b" min="0" max="1" step="0.05" value="0.75"></div>
+        <div><label class="f" for="bm-dl">comprimento ÷ média = <span id="bm-dlv">1</span></label><input type="range" id="bm-dl" min="0.25" max="3" step="0.25" value="1"></div>
+      </div>
+      <figure class="diagram" style="margin:0"><svg id="bm-svg" viewBox="0 0 760 230" role="img" aria-label="Curva do peso de um termo em função da frequência"></svg><figcaption id="bm-cap"></figcaption></figure>
+      <div class="chips" id="bm-presets" style="margin:12px 0 6px"><button class="chip" type="button" data-q="dispensa licitação obras engenharia">dispensa licitação obras engenharia</button><button class="chip" type="button" data-q="garantia contratual valor">garantia contratual valor</button><button class="chip" type="button" data-q="prazo pagamento contratado">prazo pagamento contratado</button><button class="chip" type="button" data-q="pregão bens comuns">pregão bens comuns</button></div>
+      <div class="row"><div><label class="f" for="bm-q">Consulta</label><input type="text" id="bm-q" value="dispensa licitação obras engenharia"></div></div>
+      <div class="tbl-wrap" id="bm-idf"></div>
+      <div id="bm-out"></div>
+    </div>
+  </div>
+
+  <div class="doit"><span class="ic">faça agora</span><p>Com a consulta padrão, olhe a tabela de idf: "licitação" tem df alto e idf baixo; "engenharia", o contrário. Agora mova b para 0 e veja um trecho longo subir na lista; volte para 0,75. Depois k1 para 0: todas as ocorrências passam a valer o mesmo que a primeira (tf saturado vira constante), e a nota vira quase só o idf. Cada botão muda um pedaço da fórmula, e você viu os três.</p></div>
+
+  <div class="faq">
+    <h3>Perguntas que aparecem aqui</h3>
+    <details><summary>Os padrões k1 = 1,2 e b = 0,75 servem para texto legal?</summary><p>São o ponto de partida universal e raramente estão longe do ótimo. Como dispositivos legais são curtos e o vocabulário se repete pouco dentro de um trecho, k1 importa menos (tf raramente passa de 2) e b importa mais (comprimentos variam muito). Se for ajustar, ajuste b, e só com o conjunto de avaliação medindo.</p><p class="why">Em trechos curtos, o comprimento pesa mais que a repetição.</p></details>
+    <details><summary>BM25 entende sinônimos ou radicais?</summary><p>Radicais, sim, porque opera sobre o tsvector (ou o equivalente) já radicalizado. Sinônimos, não: "teto" e "limite" são termos diferentes. Um dicionário de sinônimos (thesaurus) na configuração de busca pode mapear alguns; para o resto, é a vetorial que resolve, e é por isso que elas se combinam.</p><p class="why">Radical sim, sinônimo não; o vetor cobre o resto.</p></details>
+    <details><summary>Por que a nota do BM25 não é comparável entre consultas?</summary><p>Porque depende de quantos termos a consulta tem e do idf de cada um: uma consulta de cinco termos raros produz notas de 15; uma de um termo comum, notas de 0,5. Não existe "limiar de BM25". É o motivo central de a fusão usar posições (RRF), não notas.</p><p class="why">Nota absoluta não tem escala; posição tem.</p></details>
+  </div>
+
+  <div class="notes"><label for="n-p4-c4">Caderno</label><p class="hint">Escreva a fórmula do BM25 com as suas palavras (três fatores) e o que k1 e b controlam. Diga qual dos dois você ajustaria primeiro para dispositivos legais e por quê.</p><textarea class="prose" id="n-p4-c4" data-note="p4-c4"></textarea><div class="saved"></div></div>
+</section>
+
+<!-- ============================================================ 5 -->
+<section class="chapter" id="c5" data-ch="p4-c5">
+  <div class="ch-head"><span class="n">Capítulo 5</span><h2>O índice GIN: como a busca por palavras é rápida</h2><label class="donebox"><input type="checkbox" data-done> Capítulo concluído</label></div>
+
+  <p>Sem índice, <code>WHERE tsv @@ tsquery</code> é uma varredura: o banco lê cada tsvector e testa. O índice <strong>GIN</strong> (<em>Generalized Inverted Index</em>) inverte a relação: em vez de "trecho → lexemas", guarda "lexema → lista de trechos que o contêm" (a <em>lista de postagens</em>). Uma consulta por "engenharia &amp; dispensa" abre as duas listas, cruza, e só toca nos trechos que estão nas duas. É a mesma estrutura de todo buscador de texto, e é exata: não há recall a perder, só desempenho a ganhar.</p>
+  <p>No projeto, o tsvector é uma <strong>coluna gerada</strong> (<code>GENERATED ALWAYS AS (…) STORED</code>): calculada pelo banco a cada inserção, com a configuração fixa no DDL, o que garante que todo trecho passa pela mesma normalização e que ninguém esquece de atualizá-la. O GIN vai sobre essa coluna. Duas observações operacionais: o GIN é lento para atualizar um a um (ele agrupa as atualizações numa lista pendente, <code>fastupdate</code>, e as incorpora depois; em cargas grandes, é mais rápido carregar e criar o índice ao final); e o <code>EXPLAIN</code> de uma consulta que usa GIN mostra <code>Bitmap Index Scan</code> seguido de <code>Bitmap Heap Scan</code>, não <code>Index Scan</code> simples.</p>
+  <p>A configuração de busca do projeto é própria, criada a partir da <code>'portuguese'</code> com o <code>unaccent</code> na frente do stemmer, para que "licitacao" e "licitação" produzam o mesmo radical nos dois lados. A alternativa (<code>'simple'</code>, sem stemmer nem stopwords) tem o seu lugar: para a coluna de identificadores (<code>dispositivo</code>), onde "art. 75" deve casar exatamente, uma configuração simples ou um índice <code>pg_trgm</code> é melhor que a radicalização.</p>
+
+  <div class="lab">
+    <header><h4>Experimento · O índice invertido do corpus</h4><span class="badge toy">roda no navegador</span></header>
+    <div class="body">
+      <p>O guia construiu, ao carregar a página, o índice invertido dos 48 trechos: para cada radical, os trechos e as posições. Digite um termo (ou o começo de um) para ver a lista de postagens dele. É o que o GIN guarda; a consulta cruza essas listas.</p>
+      <p class="mini" id="gn-stats"></p>
+      <div class="chips" id="gn-top" style="margin-bottom:10px"></div>
+      <div class="row"><div><label class="f" for="gn-term">Termo (radical ou prefixo)</label><input type="text" id="gn-term" value="engenharia"></div></div>
+      <div id="gn-post"></div>
+    </div>
+  </div>
+
+  <div class="doit"><span class="ic">faça agora</span><p>Digite "licit" e veja quantos trechos o radical alcança: é o termo de idf baixo do capítulo anterior. Digite "engenh": poucos trechos, idf alto. Agora pense na consulta "licitação &amp; engenharia": o GIN cruza uma lista longa com uma curta e toca só na interseção. Depois digite "art": o radical de "art." está em quase todo trecho, e é por isso que o identificador merece coluna própria.</p></div>
+
+  <div class="faq">
+    <h3>Perguntas que aparecem aqui</h3>
+    <details><summary>GIN ou GiST para texto?</summary><p>GIN para busca: é exato, mais rápido para consultar e o padrão recomendado; ocupa mais espaço e é mais lento para atualizar. GiST é menor e mais rápido para atualizar, mas é <em>com perda</em> (pode devolver falsos positivos que o banco reconfere) e mais lento em consultas. Para uma base normativa que muda por versão, GIN.</p><p class="why">Consulta frequente, atualização rara: GIN.</p></details>
+    <details><summary>Preciso de um GIN por idioma?</summary><p>Não; o GIN indexa lexemas, indiferente à configuração que os produziu. Mas a coluna gerada tem uma configuração fixa. Se um dia houver documentos em outro idioma, o caminho é outra coluna gerada com a configuração daquele idioma (e outro GIN), não misturar.</p><p class="why">Uma configuração por coluna; o índice segue a coluna.</p></details>
+    <details><summary>O que é pg_trgm e quando usar?</summary><p>Uma extensão que indexa trigramas (sequências de três letras) e permite busca por semelhança e por <code>LIKE '%…%'</code> com índice. Serve para identificadores e nomes com erros de digitação ("inexigibilidade" escrito errado, "art 75" sem ponto). No projeto, é a escolha para a coluna <code>dispositivo</code>; o tsvector fica para o conteúdo.</p><p class="why">Trigramas para tolerar erro; tsvector para significado lexical.</p></details>
+  </div>
+
+  <div class="notes"><label for="n-p4-c5">Caderno</label><p class="hint">Explique o que o GIN guarda e como responde a "A &amp; B". Diga por que o tsvector é coluna gerada e o que o EXPLAIN mostra quando o GIN é usado.</p><textarea class="prose" id="n-p4-c5" data-note="p4-c5"></textarea><div class="saved"></div></div>
+</section>
+
+<!-- ============================================================ 6 -->
+<section class="chapter" id="c6" data-ch="p4-c6">
+  <div class="ch-head"><span class="n">Capítulo 6</span><h2>As consultas que a lexical resolve</h2><label class="donebox"><input type="checkbox" data-done> Capítulo concluído</label></div>
+
+  <p>A força da busca lexical está nas consultas em que o usuário sabe <em>qual palavra</em> quer, e o índice devolve exatamente quem a tem. Cinco situações do projeto, com a forma de tsquery certa para cada uma.</p>
+  <p><strong>Termos obrigatórios</strong> (<code>&amp;</code>): "dispensa engenharia" traz só trechos com os dois radicais; é o padrão de <code>plainto_tsquery</code> e de <code>websearch_to_tsquery</code> sem operadores. Bom para consultas curtas e específicas; ruim para perguntas longas em linguagem natural, onde exigir todos os termos zera o resultado (por isso a lexical do projeto recebe a consulta em modo "ou" ponderado, e a exigência de todos os termos fica como um modo extra).</p>
+  <p><strong>Frase exata</strong> (<code>&lt;-&gt;</code>): "serviços de engenharia" como expressão, com as posições consecutivas (as stopwords no meio contam como posições: <code>phraseto_tsquery</code> gera <code>serviç &lt;2&gt; engenh</code>). É o modo certo para expressões jurídicas fixas: "estudo técnico preliminar", "matriz de riscos".</p>
+  <p><strong>Prefixo</strong> (<code>:*</code>): "engenh:*" casa "engenharia", "engenheiro", "engenhosa". Útil para siglas e para autocompletar; perigoso quando o prefixo é curto ("con:*" casa metade da língua).</p>
+  <p><strong>Exclusão</strong> (<code>!</code>): "dispensa &amp; !inexigibilidade" para separar os dois institutos vizinhos, que costumam aparecer no mesmo artigo. E <strong>"ou"</strong> (<code>|</code>) para sinônimos que você conhece: "dispensa | dispensável | contratação direta".</p>
+  <p>Para o texto que vem do analista, a regra é <code>websearch_to_tsquery</code>: aceita aspas, <code>or</code> e <code>-</code>, e nunca dá erro de sintaxe. O <code>ts_headline</code> completa o quadro: devolve o trecho com os termos casados marcados, que é o que a interface mostra e o que o experimento abaixo imita.</p>
+
+  <div class="lab">
+    <header><h4>Experimento · Construtor de consultas com destaque</h4><span class="badge toy">roda no navegador</span></header>
+    <div class="body">
+      <p>Escreva a consulta, escolha o modo, e veja a tsquery gerada, quantos trechos casam e os termos destacados no texto (como o <code>ts_headline</code> faria). Os botões cobrem as cinco situações.</p>
+      <div class="chips" id="qb-presets" style="margin-bottom:10px"><button class="chip" type="button" data-q="dispensa engenharia" data-mode="and">obrigatórios: dispensa engenharia</button><button class="chip" type="button" data-q="serviços de engenharia" data-mode="phrase">frase: serviços de engenharia</button><button class="chip" type="button" data-q="engenh" data-mode="prefix">prefixo: engenh</button><button class="chip" type="button" data-q='dispensa -inexigibilidade' data-mode="web">exclusão: dispensa -inexigibilidade</button><button class="chip" type="button" data-q="dispensa or inexigibilidade" data-mode="web">ou: dispensa or inexigibilidade</button><button class="chip" type="button" data-q="qual o limite de valor para dispensa de licitação em obras e serviços de engenharia" data-mode="and">pergunta longa com &amp;</button><button class="chip" type="button" data-q="qual o limite de valor para dispensa de licitação em obras e serviços de engenharia" data-mode="or">a mesma com |</button></div>
+      <div class="row">
+        <div><label class="f" for="qb-q">Consulta</label><input type="text" id="qb-q" value="dispensa engenharia"></div>
+        <div><label class="f" for="qb-mode">Modo</label><select id="qb-mode"><option value="and">todos os termos (&amp;)</option><option value="or">qualquer termo (|)</option><option value="phrase">frase (&lt;-&gt;)</option><option value="prefix">prefixo (:*)</option><option value="web">websearch</option></select></div>
+      </div>
+      <pre><code id="qb-tsq" class="language-text"></code></pre>
+      <p class="mini" id="qb-n"></p>
+      <div id="qb-res"></div>
+    </div>
+  </div>
+
+  <div class="doit"><span class="ic">faça agora</span><p>Clique em "pergunta longa com &amp;": zero resultados, porque nenhum trecho tem todas as palavras. Clique em "a mesma com |": muitos resultados, e a ordem passa a depender da pontuação. É a razão de a lexical do projeto rodar em modo "ou" e deixar o BM25 ordenar: exigir tudo mata o recall; aceitar qualquer coisa e ordenar bem preserva.</p></div>
+
+  <div class="faq">
+    <h3>Perguntas que aparecem aqui</h3>
+    <details><summary>Se uso "ou", não vou trazer lixo?</summary><p>Vai trazer trechos com um termo em comum, sim, mas ordenados: os que têm vários termos raros ficam no topo, os de um termo comum ficam no fim. E só os 50 primeiros vão para a fusão. Lixo em 40º lugar não custa nada; trecho certo excluído por um termo a mais custa a resposta.</p><p class="why">Recall primeiro, precisão pela ordenação.</p></details>
+    <details><summary>Como tratar erros de digitação do analista?</summary><p>O tsvector não tolera: "inexigibilidade" com uma letra errada não casa. Duas defesas: <code>pg_trgm</code> com busca por similaridade para sugerir a correção ("você quis dizer"), e a vetorial, que é tolerante a erros pequenos porque o tokenizador do modelo ainda reconhece a palavra. É outro caso em que as duas buscas se cobrem.</p><p class="why">Lexical exata; vetorial tolerante; use as duas.</p></details>
+    <details><summary>Vale expandir a consulta com sinônimos automaticamente?</summary><p>Com um dicionário de sinônimos curado (thesaurus do PostgreSQL) para o vocabulário fixo do domínio ("dispensa" ~ "contratação direta"), sim, e é barato. Expansão automática por modelo de linguagem (gerar variações da pergunta) é uma técnica válida para RAG, custa uma chamada, e a página 5 discute onde ela entra.</p><p class="why">Sinônimos do domínio: dicionário; variações abertas: modelo, com custo.</p></details>
+  </div>
+
+  <div class="notes"><label for="n-p4-c6">Caderno</label><p class="hint">Para cada uma das cinco situações (obrigatórios, frase, prefixo, exclusão, ou), uma consulta do projeto e o operador. Depois explique por que a lexical do projeto roda em modo "ou".</p><textarea class="prose" id="n-p4-c6" data-note="p4-c6"></textarea><div class="saved"></div></div>
+</section>
+<!-- ============================================================ 7 -->
+<section class="chapter" id="c7" data-ch="p4-c7">
+  <div class="ch-head"><span class="n">Capítulo 7</span><h2>Fundir: RRF e a busca híbrida</h2><label class="donebox"><input type="checkbox" data-done> Capítulo concluído</label></div>
+
+  <p>Você tem duas listas ordenadas, uma da vetorial (cossenos entre 0,4 e 0,8) e uma da lexical (notas BM25 entre 0 e 20). Como juntar? Somar as notas não funciona: escalas diferentes, e cada uma muda de consulta para consulta. Normalizar (min-max, z-score) funciona às vezes e quebra quando uma lista tem um único resultado ou todos empatados. A solução robusta é ignorar as notas e usar só as <strong>posições</strong>: <strong>Reciprocal Rank Fusion</strong>. Cada trecho recebe, de cada lista em que aparece, 1 ÷ (K + posição), e a nota final é a soma. Um trecho em 1º numa lista e ausente na outra recebe 1/61 ≈ 0,0164 (com K = 60); um trecho em 5º nas duas recebe 2/65 ≈ 0,0308 e passa na frente. É isso que a fórmula premia: <strong>concordância entre as buscas</strong>.</p>
+  <p>A constante <strong>K</strong> controla quanto as primeiras posições dominam. Com K pequeno (1), a diferença entre 1º e 2º é enorme (1/2 contra 1/3) e uma lista sozinha manda; com K grande (60, o valor do artigo original, e o do projeto), as posições se aproximam e a soma pesa mais que o topo de cada lista. Você vai ver o efeito no primeiro experimento, com listas feitas à mão.</p>
+  <p>A busca híbrida do projeto: as duas buscas pedem <strong>50 candidatos</strong> cada (um número que cobre a variação de posição entre elas; 10 seria pouco, 200 traria lixo para a fusão sem ganho medido), o RRF funde com K = 60, e os <strong>12 primeiros</strong> vão para o prompt. Só entram na fusão os candidatos que cada busca devolveu: um trecho fora do top-50 das duas está fora. Por isso o <code>ef_search</code> da página 3 precisa ser pelo menos 50, e por isso a lexical roda em modo "ou".</p>
+
+  <div class="lab">
+    <header><h4>Experimento · Calculadora de RRF</h4><span class="badge toy">brinquedo</span></header>
+    <div class="body">
+      <p>Duas listas (um identificador por linha, do 1º ao último) e o K. A lista fundida mostra a contribuição de cada posição; os que aparecem nas duas listas ficam destacados. Edite as listas: coloque o mesmo item em 1º numa e ausente na outra, e em 3º nas duas, e veja quem vence conforme o K.</p>
+      <div class="row top">
+        <div><label class="f" for="rf-a">Lista A (vetorial)</label><textarea id="rf-a" rows="6">art75-I
+art75-II
+art74-caput
+art6-XXII
+art92</textarea></div>
+        <div><label class="f" for="rf-b">Lista B (lexical)</label><textarea id="rf-b" rows="6">art74-caput
+art75-II
+art75-I
+art55-I
+art17</textarea></div>
+        <div><label class="f" for="rf-k">K = <span id="rf-kv">60</span></label><input type="range" id="rf-k" min="1" max="200" step="1" value="60"><p class="mini">nota = Σ 1 ÷ (K + posição)</p><div id="rf-out"></div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="lab">
+    <header><h4>Experimento · O duelo: vetorial, lexical e híbrida no corpus</h4><span class="badge live">ao vivo · 1 lote por consulta</span><span class="badge toy">lexical sem chave</span></header>
+    <div class="body">
+      <p>A mesma consulta pelas três buscas, com os candidatos e o K ajustáveis. Trechos em verde são os esperados (quando a consulta é do conjunto de avaliação). O botão "só lexical" funciona sem chave. A híbrida usa o índice vetorial da página 2 (é construído aqui se ainda não existir).</p>
+      <div class="row top">
+        <div><label class="f" for="hy-q">Consulta</label><input type="text" id="hy-q" value="Qual é o limite de valor para dispensa de licitação em obras e serviços de engenharia?"></div>
+        <div class="fixed"><label class="f" for="hy-eval">Do conjunto de avaliação</label><select id="hy-eval"><option value="">—</option></select></div>
+      </div>
+      <div class="row">
+        <div><label class="f" for="hy-cand">Candidatos por lista</label><select id="hy-cand"><option value="10">10</option><option value="25">25</option><option value="50" selected>50 (projeto)</option></select></div>
+        <div><label class="f" for="hy-k">K = <span id="hy-kv">60</span></label><input type="range" id="hy-k" min="1" max="200" step="1" value="60"></div>
+        <div class="fixed"><button class="btn" id="hy-run">Rodar as três</button></div>
+        <div class="fixed"><button class="btn ghost" id="hy-lex">Só lexical (sem chave)</button></div>
+      </div>
+      <div class="cmp"><div class="col"><h5>vetorial (cosseno)</h5><div id="hy-v"></div></div><div class="col"><h5>lexical (BM25)</h5><div id="hy-l"></div></div><div class="col"><h5>híbrida (RRF)</h5><div id="hy-h"></div></div></div>
+      <div class="status" id="hy-status"></div>
+    </div>
+  </div>
+
+  <div class="doit"><span class="ic">faça agora</span><p>Na calculadora, K = 60: "art75-II" (2º nas duas) vence "art75-I" (1º numa, 3º na outra)? Baixe K para 1 e veja a resposta mudar. No duelo, rode a consulta padrão e depois "art. 75, inciso I": anote em que coluna o esperado subiu. Por fim, candidatos = 10 com uma pergunta longa: veja o esperado sumir da híbrida quando não entra no top-10 de nenhuma.</p></div>
+
+  <div class="faq">
+    <h3>Perguntas que aparecem aqui</h3>
+    <details><summary>Por que não dar peso maior à vetorial na fusão?</summary><p>Dá para fazer (multiplicar a contribuição de uma lista por um fator), e às vezes vale. Mas o peso certo depende do tipo de consulta: perguntas por número favorecem a lexical, perguntas por sentido, a vetorial. Sem um classificador de consulta, o peso igual é a aposta mais segura, e a medição do capítulo 9 diz se um peso fixo melhora. O projeto começa com peso igual.</p><p class="why">Peso igual é robusto; peso ajustado precisa de evidência.</p></details>
+    <details><summary>Existe fusão melhor que RRF?</summary><p>Existem variantes (RRF ponderado, fusão por notas normalizadas, aprendizado de ranking com um modelo). RRF ganha por ser sem parâmetros de escala, estável e explicável: dá para dizer para o auditor por que um trecho ficou em 3º. Para superar, um reranker (capítulo 8) costuma render mais que uma fusão mais sofisticada.</p><p class="why">Simples e explicável; o ganho seguinte está no reranker.</p></details>
+    <details><summary>Posso rodar a híbrida inteira em SQL?</summary><p>Sim, e é como o projeto faz: duas CTEs (uma <code>ORDER BY embedding &lt;=&gt; q LIMIT 50</code>, outra <code>ORDER BY ts_rank_cd … LIMIT 50</code>), um <code>FULL OUTER JOIN</code> pelo id, e a soma de <code>1.0/(60 + posição)</code> com <code>ROW_NUMBER()</code>. O capítulo 10 tem a consulta completa; o Ex. 4 é escrevê-la e medi-la.</p><p class="why">Uma consulta, duas buscas, uma fusão: tudo no banco.</p></details>
+  </div>
+
+  <div class="notes"><label for="n-p4-c7">Caderno</label><p class="hint">Escreva a fórmula do RRF, o que K faz, e os três números da híbrida do projeto (candidatos, K, top-k) com a razão de cada um.</p><textarea class="prose" id="n-p4-c7" data-note="p4-c7"></textarea><div class="saved"></div></div>
+</section>
+
+<!-- ============================================================ 8 -->
+<section class="chapter" id="c8" data-ch="p4-c8">
+  <div class="ch-head"><span class="n">Capítulo 8</span><h2>Reordenar: o reranker</h2><label class="donebox"><input type="checkbox" data-done> Capítulo concluído</label></div>
+
+  <p>As duas buscas e a fusão trabalham com representações comprimidas: um vetor por trecho, um conjunto de radicais por trecho. Nenhuma delas <em>lê</em> o trecho junto com a pergunta. Um <strong>reranker</strong> faz exatamente isso: recebe a pergunta e cada candidato, lê os dois juntos, e devolve uma nota de relevância. Como lê o texto, ele enxerga o que as buscas não enxergam: negação, números no contexto certo, se o trecho responde ou só menciona o assunto. Custa proporcionalmente ao número de candidatos, por isso vem <em>depois</em> da fusão e trabalha sobre poucos (os 12 ou 20 primeiros), nunca sobre a base inteira.</p>
+  <p>Há duas famílias. <strong>Cross-encoders</strong> dedicados (modelos pequenos treinados para pontuar pares pergunta–trecho, como os da família bge-reranker, que rodam localmente): rápidos, baratos, muito bons em ordenar. <strong>Modelo de linguagem como juiz</strong>: pedir ao Gemini uma nota por trecho, com esquema de saída; mais caro e mais lento, mas usa o mesmo modelo que já está no projeto e aceita instruções ("julgue se responde, não se menciona"). O experimento usa a segunda forma porque é a que roda aqui.</p>
+  <p>No projeto o reranker é <strong>opcional e desligado por padrão</strong>: a híbrida com 12 candidatos e o modelo lendo os 12 já cobre a maior parte dos casos, e o reranker adicionaria uma chamada por consulta. Ele entra se a avaliação mostrar que o trecho certo costuma estar entre os 12 mas em posição baixa e o modelo o ignora (o efeito "perdido no meio" da página 1), ou se o orçamento de contexto pedir cortar de 12 para 5.</p>
+
+  <div class="lab">
+    <header><h4>Experimento · O modelo como reranker</h4><span class="badge live">ao vivo · 1 geração</span></header>
+    <div class="body">
+      <p>Pega os 12 primeiros da última híbrida do capítulo 7 e pede ao modelo uma nota de 0 a 3 para cada um, com o motivo, em uma única chamada com esquema de saída. Compare a ordem antes e depois e onde o esperado ficou.</p>
+      <div class="row"><div class="fixed"><button class="btn" id="rr-run">Reordenar os 12 da híbrida</button></div></div>
+      <div class="cmp"><div class="col"><h5>antes (RRF)</h5><div id="rr-a"></div></div><div class="col"><h5>depois (nota do modelo)</h5><div id="rr-b"></div></div></div>
+      <div class="status" id="rr-status"></div>
+    </div>
+  </div>
+
+  <div class="doit"><span class="ic">faça agora</span><p>Rode o duelo com "não é dispensável a licitação para obras de grande valor" e depois o reranker. As buscas trazem os trechos de dispensa; o reranker lê "não" e "grande valor" e deve rebaixá-los. Depois rode com uma pergunta do conjunto de avaliação em que o esperado ficou em 5º ou pior na híbrida e veja se ele sobe.</p></div>
+
+  <div class="faq">
+    <h3>Perguntas que aparecem aqui</h3>
+    <details><summary>Se o reranker é tão bom, por que não usá-lo sempre?</summary><p>Custo e latência: uma chamada com 12 trechos por consulta, várias centenas de milissegundos. Na auditoria da Camada 5, cada critério já é uma chamada; dobrar isso precisa de justificativa medida. E ele não corrige recall: se o trecho certo não está entre os candidatos, não há o que reordenar.</p><p class="why">Reranker melhora ordem, não recall; e não é grátis.</p></details>
+    <details><summary>Reranker local ou pelo modelo de linguagem?</summary><p>Local (cross-encoder pequeno, via Ollama ou biblioteca) quando o volume é alto e a latência importa; pelo modelo de linguagem quando o volume é baixo e as instruções de julgamento importam ("considere a vigência", "penalize menção sem resposta"). Para o projeto, se entrar, entra pelo Gemini, com esquema, porque a explicabilidade do "motivo" ajuda o analista.</p><p class="why">Volume alto: local; julgamento instruído: modelo.</p></details>
+    <details><summary>A nota do reranker pode servir de limiar para "sem evidência"?</summary><p>Pode, e é um uso bom: se nenhum candidato recebe nota 2 ou 3, o sistema tem um sinal forte de que a base não responde, antes de gastar a chamada de resposta. É uma das camadas da página 7.</p><p class="why">Nota baixa em todos = evidência de ausência.</p></details>
+  </div>
+
+  <div class="notes"><label for="n-p4-c8">Caderno</label><p class="hint">Explique o que o reranker vê que as buscas não veem, onde ele entra no pipeline e a condição do projeto para ligá-lo.</p><textarea class="prose" id="n-p4-c8" data-note="p4-c8"></textarea><div class="saved"></div></div>
+</section>
+
+<!-- ============================================================ 9 -->
+<section class="chapter" id="c9" data-ch="p4-c9">
+  <div class="ch-head"><span class="n">Capítulo 9</span><h2>Medir: recall@k das três buscas</h2><label class="donebox"><input type="checkbox" data-done> Capítulo concluído</label></div>
+
+  <p>Tudo o que esta página afirmou ("as duas erram em lugares diferentes", "a fusão preserva", "K = 60 é bom") é verificável com o conjunto de avaliação: perguntas com o trecho esperado marcado. Para cada busca, recall@k é a fração das perguntas em que o esperado está entre os k primeiros. A comparação que importa é lado a lado: vetorial, lexical, híbrida, no mesmo conjunto, no mesmo k. Se a híbrida não ganha das duas, algo está errado (candidatos de menos, K ruim, lexical em modo "e").</p>
+  <p>O conjunto do guia tem 12 perguntas: pouco para conclusões finas, suficiente para ver o padrão. O Ex. 7 (página 8) constrói um conjunto maior, com perguntas "sem resposta na base" para medir recusa, e é lá que os números viram critério de aceitação. Aqui, o objetivo é ver o mecanismo: quais perguntas cada busca perde e por quê, olhando o texto de cada uma.</p>
+
+  <div class="lab">
+    <header><h4>Experimento · As 12 perguntas pelas três buscas</h4><span class="badge live">ao vivo · 1 lote</span><span class="badge toy">lexical sem chave</span></header>
+    <div class="body">
+      <p>Cada linha é uma pergunta; cada coluna, a posição do trecho esperado naquela busca (verde se está entre os k). Os candidatos e o K vêm do duelo do capítulo 7. As perguntas são embutidas em um único lote.</p>
+      <div class="row">
+        <div><label class="f" for="ev-k">k</label><select id="ev-k"><option value="3">3</option><option value="5">5</option><option value="12" selected>12 (projeto)</option></select></div>
+        <div class="fixed"><button class="btn" id="ev-run">Medir as três</button></div>
+        <div class="fixed"><button class="btn ghost" id="ev-lex">Só lexical (sem chave)</button></div>
+      </div>
+      <div class="bars" id="ev-out" aria-live="polite"></div>
+      <div class="status" id="ev-status"></div>
+      <div class="tbl-wrap" style="margin-top:12px"><table id="ev-tbl" class="evtbl"><thead><tr><th>Pergunta</th><th>vetorial</th><th>lexical</th><th>híbrida</th></tr></thead><tbody></tbody></table></div>
+    </div>
+  </div>
+
+  <div class="doit"><span class="ic">faça agora</span><p>Meça com k = 12, depois com k = 3. Anote as perguntas que só uma das buscas acerta e leia o texto delas: são número, sigla ou vocabulário? Volte ao capítulo 7, baixe os candidatos para 10 e meça de novo: o recall da híbrida cai? Por fim, K = 5: melhora ou piora? Você acabou de fazer, em pequeno, o Ex. 4 e metade do Ex. 7.</p></div>
+
+  <div class="faq">
+    <h3>Perguntas que aparecem aqui</h3>
+    <details><summary>Recall@12 de 100% no guia significa que o projeto está pronto?</summary><p>Significa que 12 perguntas fáceis, escritas por quem montou o corpus, são encontradas num corpus de 48 trechos. O projeto terá dezenas de milhares de trechos, perguntas escritas por analistas e casos sem resposta. A página 8 é sobre construir um conjunto que meça isso; o alvo do projeto (recall@k ≥ 0,80) foi definido para esse conjunto, não para este.</p><p class="why">Medida pequena mostra mecanismo; medida grande dá o critério.</p></details>
+    <details><summary>E se a lexical sozinha ganhar da híbrida em alguma pergunta?</summary><p>Acontece: a fusão pode empurrar para baixo um trecho que só a lexical achou, se a vetorial trouxe muitos concorrentes. Uma pergunta isolada não decide; a média decide. Se o padrão se repetir para um tipo de pergunta (por número, por exemplo), é o sinal para um peso maior na lexical, ou para rotear consultas curtas com identificador direto para ela.</p><p class="why">Olhe o padrão, não o caso.</p></details>
+    <details><summary>Como medir sem o vetorial, no Ex. 4?</summary><p>O botão "só lexical" mostra: você pode avaliar a lexical e a tsquery isoladas sem cota nenhuma, e é um bom primeiro passo do exercício. A híbrida entra quando o índice vetorial do Ex. 3 estiver de pé.</p><p class="why">Meça a parte que já existe; junte depois.</p></details>
+  </div>
+
+  <div class="notes"><label for="n-p4-c9">Caderno</label><p class="hint">Registre os três recalls que você mediu, as perguntas que cada busca perdeu e a causa de cada perda.</p><textarea class="prose" id="n-p4-c9" data-note="p4-c9"></textarea><div class="saved"></div></div>
+</section>
+<!-- ============================================================ 10 -->
+<section class="chapter" id="c10" data-ch="p4-c10">
+  <div class="ch-head"><span class="n">Capítulo 10</span><h2>No projeto, checklist e autoavaliação</h2><label class="donebox"><input type="checkbox" data-done> Capítulo concluído</label></div>
+
+  <h3>No projeto</h3>
+  <p>A tabela <code>rag.trecho_normativo</code> tem uma coluna gerada <code>tsv</code> com o tsvector do dispositivo (peso A) e do conteúdo (peso D), produzida por uma configuração própria <code>pt_unaccent</code> (a <code>'portuguese'</code> com <code>unaccent</code> antes do stemmer), e um índice GIN sobre ela. A coluna <code>dispositivo</code> tem um índice <code>pg_trgm</code> para busca exata e tolerante de identificadores. A consulta híbrida roda inteira no banco: duas CTEs de 50 candidatos (vetorial com <code>ef_search</code> = 100 e varredura iterativa; lexical com <code>websearch_to_tsquery</code> em modo "ou" e <code>ts_rank_cd</code> com normalização 32), fusão por RRF com K = 60 via <code>FULL OUTER JOIN</code>, e <code>LIMIT 12</code>. O ia-worker recebe os 12 com as posições em cada lista (para o log e para o analista ver "por que este trecho"), e o reranker fica atrás de uma flag. O recall@k das três buscas é medido pelo Ex. 7 sobre o conjunto de avaliação e registrado por versão da base.</p>
+  <p>O Ex. 4 (VIN-8) é escrever essa consulta sobre a tabela do Ex. 3, com os candidatos e o K parametrizados, e medir as três buscas nas perguntas do conjunto, como o capítulo 9 fez aqui.</p>
+
+  <h3>Código de referência</h3>
+<pre><code class="language-sql">-- configuração de busca: português + unaccent (uma vez por banco)
+CREATE EXTENSION IF NOT EXISTS unaccent;
+CREATE EXTENSION IF NOT EXISTS pg_trgm;
+CREATE TEXT SEARCH CONFIGURATION pt_unaccent (COPY = portuguese);
+ALTER TEXT SEARCH CONFIGURATION pt_unaccent
+  ALTER MAPPING FOR hword, hword_part, word WITH unaccent, portuguese_stem;
+
+-- coluna gerada com pesos (A = dispositivo, D = conteúdo) e índices
+ALTER TABLE rag.trecho_normativo ADD COLUMN tsv tsvector
+  GENERATED ALWAYS AS (
+    setweight(to_tsvector('pt_unaccent', coalesce(dispositivo, '')), 'A') ||
+    setweight(to_tsvector('pt_unaccent', coalesce(conteudo, '')), 'D')
+  ) STORED;
+CREATE INDEX trecho_tsv_gin ON rag.trecho_normativo USING gin (tsv);
+CREATE INDEX trecho_disp_trgm ON rag.trecho_normativo USING gin (dispositivo gin_trgm_ops);
+ANALYZE rag.trecho_normativo;
+
+-- conferir a normalização token a token
+SELECT * FROM ts_debug('pt_unaccent', 'Art. 75, inc. I — obras e serviços de engenharia');</code></pre>
+
+<pre><code class="language-sql">-- busca híbrida: 50 + 50 candidatos, RRF com K = 60, 12 finais
+-- parâmetros: %(qv)s vetor da consulta, %(q)s texto, %(modelo)s, %(data)s data do documento
+BEGIN;
+SET LOCAL hnsw.ef_search = 100;
+SET LOCAL hnsw.iterative_scan = relaxed_order;
+WITH vet AS (
+  SELECT id, ROW_NUMBER() OVER (ORDER BY dist) AS pos
+  FROM (
+    SELECT id, embedding <=> %(qv)s::vector AS dist
+    FROM rag.trecho_normativo
+    WHERE modelo_embedding = %(modelo)s
+      AND vigencia_inicio <= %(data)s::date AND (vigencia_fim IS NULL OR vigencia_fim > %(data)s::date)
+    ORDER BY dist
+    LIMIT 50
+  ) v
+),
+lex AS (
+  SELECT id, ROW_NUMBER() OVER (ORDER BY nota DESC) AS pos
+  FROM (
+    SELECT id, ts_rank_cd(tsv, q, 32) AS nota
+    FROM rag.trecho_normativo,
+         -- modo "ou": qualquer termo casa; a ordenação decide
+         replace(websearch_to_tsquery('pt_unaccent', %(q)s)::text, '&', '|')::tsquery AS q
+    WHERE tsv @@ q
+      AND vigencia_inicio <= %(data)s::date AND (vigencia_fim IS NULL OR vigencia_fim > %(data)s::date)
+    ORDER BY nota DESC
+    LIMIT 50
+  ) l
+)
+SELECT t.id, t.dispositivo, t.conteudo,
+       vet.pos AS pos_vetorial, lex.pos AS pos_lexical,
+       COALESCE(1.0 / (60 + vet.pos), 0) + COALESCE(1.0 / (60 + lex.pos), 0) AS rrf
+FROM vet FULL OUTER JOIN lex USING (id)
+JOIN rag.trecho_normativo t USING (id)
+ORDER BY rrf DESC
+LIMIT 12;
+COMMIT;</code></pre>
+  <p class="mini">A troca de <code>&amp;</code> por <code>|</code> no texto da tsquery, com o <code>::tsquery</code> em vez de <code>to_tsquery</code> (para não radicalizar duas vezes), é o jeito mais simples de obter o modo "ou" a partir do <code>websearch_to_tsquery</code>; preserva aspas (frases) e exclusões. Na CTE vetorial, o alias <code>dist</code> no <code>ORDER BY</code> resolve para o operador e o índice continua sendo usado; confira com <code>EXPLAIN</code>.</p>
+
+<pre><code class="language-python"># hibrida.py — chama a consulta acima e registra as posições (Ex. 4)
+import psycopg
+from embutir import embutir            # do Ex. 3: RETRIEVAL_QUERY, 768 dims, normalizado
+
+SQL_HIBRIDA = open("sql/hibrida.sql").read()   # a consulta do capítulo 10
+
+def buscar(conn, pergunta: str, data_documento: str, modelo="gemini-embedding-001", k=12):
+    [qv] = embutir([pergunta], "RETRIEVAL_QUERY")
+    with conn.transaction():
+        conn.execute("SET LOCAL hnsw.ef_search = 100")
+        conn.execute("SET LOCAL hnsw.iterative_scan = relaxed_order")
+        rows = conn.execute(SQL_HIBRIDA, {"qv": str(qv), "q": pergunta, "modelo": modelo, "data": data_documento}).fetchall()
+    return [dict(id=r[0], dispositivo=r[1], conteudo=r[2], pos_vetorial=r[3], pos_lexical=r[4], rrf=float(r[5])) for r in rows[:k]]
+
+def recall_at_k(conn, avaliacao: list[dict], k=12) -> dict:
+    """avaliacao: [{'pergunta': str, 'esperado': [ids]}]. Devolve recall das três buscas."""
+    acertos = {"vetorial": 0, "lexical": 0, "hibrida": 0}
+    for item in avaliacao:
+        res = buscar(conn, item["pergunta"], "2026-01-01", k=50)
+        ids_h = [r["id"] for r in res][:k]
+        ids_v = [r["id"] for r in sorted((r for r in res if r["pos_vetorial"]), key=lambda r: r["pos_vetorial"])][:k]
+        ids_l = [r["id"] for r in sorted((r for r in res if r["pos_lexical"]), key=lambda r: r["pos_lexical"])][:k]
+        for nome, ids in (("vetorial", ids_v), ("lexical", ids_l), ("hibrida", ids_h)):
+            if any(e in ids for e in item["esperado"]): acertos[nome] += 1
+    return {nome: n / len(avaliacao) for nome, n in acertos.items()}</code></pre>
+
+  <h3>Checklist de domínio</h3>
+  <p>Marque só o que você faria sem consultar a página.</p>
+  <ul class="checklist">
+    <li><input type="checkbox" id="ck4-1"><label for="ck4-1">Descrevo parser, stopwords e stemmer, e a regra "mesma configuração nos dois lados".</label></li>
+    <li><input type="checkbox" id="ck4-2"><label for="ck4-2">Escrevo tsquery de termos, frase, prefixo, exclusão e "ou", e sei quando usar websearch_to_tsquery.</label></li>
+    <li><input type="checkbox" id="ck4-3"><label for="ck4-3">Explico ts_rank, ts_rank_cd, pesos A–D e normalização, e por que nenhum deles é BM25.</label></li>
+    <li><input type="checkbox" id="ck4-4"><label for="ck4-4">Escrevo a fórmula do BM25 e o que k1, b e idf fazem.</label></li>
+    <li><input type="checkbox" id="ck4-5"><label for="ck4-5">Crio a coluna gerada, a configuração com unaccent e o GIN; reconheço o Bitmap Index Scan.</label></li>
+    <li><input type="checkbox" id="ck4-6"><label for="ck4-6">Explico o RRF, K e por que ele usa posições; sei os três números da híbrida do projeto.</label></li>
+    <li><input type="checkbox" id="ck4-7"><label for="ck4-7">Digo o que um reranker vê que as buscas não veem e quando ligá-lo.</label></li>
+    <li><input type="checkbox" id="ck4-8"><label for="ck4-8">Meço recall@k das três buscas e leio o padrão de erro de cada uma.</label></li>
+  </ul>
+
+  <h3>Autoavaliação</h3>
+  <div class="quiz" id="quiz-p4">
+    <fieldset><legend>1. O que um tsvector guarda de "obras e serviços de engenharia"?</legend>
+      <label class="opt"><input type="radio" name="q1" data-correct="1"> Os radicais das palavras não vazias, com as posições (o "e" e o "de" somem, mas contam posições).</label><div class="why">Correto. Parser → stopwords → stemmer, com posições; a palavra original some.</div>
+      <label class="opt"><input type="radio" name="q1"> O texto original em minúsculas.</label><div class="why">O tsvector não guarda o texto; guarda lexemas normalizados.</div>
+      <label class="opt"><input type="radio" name="q1"> Um vetor numérico de 768 dimensões.</label><div class="why">Isso é embedding; tsvector é lexical.</div>
+    </fieldset>
+    <fieldset><legend>2. O índice foi criado com <code>to_tsvector('portuguese', …)</code> e a consulta usa <code>plainto_tsquery('simple', 'licitações')</code>. O que acontece?</legend>
+      <label class="opt"><input type="radio" name="q2"> Casa normalmente.</label><div class="why">'simple' não radicaliza: "licitações" fica inteiro e não casa com o radical do índice.</div>
+      <label class="opt"><input type="radio" name="q2" data-correct="1"> Não casa com "licitação", sem nenhum erro.</label><div class="why">Correto. Configurações diferentes nos dois lados: erro silencioso.</div>
+      <label class="opt"><input type="radio" name="q2"> Dá erro de configuração incompatível.</label><div class="why">O banco não sabe que os lados deveriam combinar.</div>
+    </fieldset>
+    <fieldset><legend>3. Qual fator o BM25 tem e o ts_rank não tem?</legend>
+      <label class="opt"><input type="radio" name="q3"> Saturação da frequência do termo.</label><div class="why">Os dois saturam.</div>
+      <label class="opt"><input type="radio" name="q3" data-correct="1"> idf: termos raros no corpus pesam mais.</label><div class="why">Correto. O ts_rank não olha para o corpus.</div>
+      <label class="opt"><input type="radio" name="q3"> Pesos por origem (título, corpo).</label><div class="why">Pesos A–D são do ts_rank; BM25 puro não os tem.</div>
+    </fieldset>
+    <fieldset><legend>4. O que o parâmetro b do BM25 controla?</legend>
+      <label class="opt"><input type="radio" name="q4"> Quantas ocorrências valem antes de saturar.</label><div class="why">Isso é k1.</div>
+      <label class="opt"><input type="radio" name="q4" data-correct="1"> Quanto o comprimento do trecho desconta a nota.</label><div class="why">Correto. b = 0 ignora o comprimento; b = 1 normaliza por completo.</div>
+      <label class="opt"><input type="radio" name="q4"> A raridade do termo no corpus.</label><div class="why">Isso é o idf.</div>
+    </fieldset>
+    <fieldset><legend>5. O que o GIN guarda?</legend>
+      <label class="opt"><input type="radio" name="q5" data-correct="1"> Para cada lexema, a lista dos trechos que o contêm.</label><div class="why">Correto. Índice invertido: lexema → postagens.</div>
+      <label class="opt"><input type="radio" name="q5"> Para cada trecho, o seu tsvector ordenado.</label><div class="why">Isso é a coluna; o índice inverte a relação.</div>
+      <label class="opt"><input type="radio" name="q5"> Um grafo de trechos parecidos.</label><div class="why">Grafo é o HNSW, da página 3.</div>
+    </fieldset>
+    <fieldset><legend>6. Por que a lexical do projeto roda em modo "ou" (|)?</legend>
+      <label class="opt"><input type="radio" name="q6"> Porque "e" não é suportado com GIN.</label><div class="why">É suportado; a razão é de recall.</div>
+      <label class="opt"><input type="radio" name="q6" data-correct="1"> Porque exigir todos os termos de uma pergunta longa zera o resultado; "ou" preserva candidatos e a pontuação ordena.</label><div class="why">Correto. Recall primeiro; a ordenação e a fusão cuidam da precisão.</div>
+      <label class="opt"><input type="radio" name="q6"> Porque "ou" é mais rápido.</label><div class="why">Costuma ser mais lento (mais candidatos); a escolha é por recall.</div>
+    </fieldset>
+    <fieldset><legend>7. Com K = 60, um trecho em 1º só na vetorial e outro em 4º nas duas listas. Quem vence no RRF?</legend>
+      <label class="opt"><input type="radio" name="q7"> O 1º da vetorial (1/61 ≈ 0,0164).</label><div class="why">2/64 ≈ 0,031 é maior.</div>
+      <label class="opt"><input type="radio" name="q7" data-correct="1"> O que está em 4º nas duas (2/64 ≈ 0,031).</label><div class="why">Correto. O RRF premia concordância entre as buscas.</div>
+      <label class="opt"><input type="radio" name="q7"> Empate.</label><div class="why">As notas são diferentes; não há empate.</div>
+    </fieldset>
+    <fieldset><legend>8. Por que o RRF usa posições e não as notas das buscas?</legend>
+      <label class="opt"><input type="radio" name="q8" data-correct="1"> Porque cosseno e BM25 têm escalas diferentes e não comparáveis entre consultas; posições sempre são.</label><div class="why">Correto. Fusão sem parâmetros de escala, estável e explicável.</div>
+      <label class="opt"><input type="radio" name="q8"> Porque as notas são secretas.</label><div class="why">Estão disponíveis; só não são comparáveis.</div>
+      <label class="opt"><input type="radio" name="q8"> Porque posições são mais precisas que notas.</label><div class="why">Perdem informação; a vantagem é comparabilidade.</div>
+    </fieldset>
+    <fieldset><legend>9. O que o reranker corrige e o que ele não corrige?</legend>
+      <label class="opt"><input type="radio" name="q9"> Corrige recall: acha trechos que as buscas não acharam.</label><div class="why">Ele só vê os candidatos que recebeu.</div>
+      <label class="opt"><input type="radio" name="q9" data-correct="1"> Corrige a ordem dos candidatos lendo pergunta e trecho juntos; não corrige o que ficou fora dos candidatos.</label><div class="why">Correto. Ordem sim, recall não; por isso vem depois da fusão.</div>
+      <label class="opt"><input type="radio" name="q9"> Substitui a busca híbrida.</label><div class="why">Custa por candidato; não escala para a base inteira.</div>
+    </fieldset>
+    <fieldset><legend>10. O EXPLAIN de uma consulta que usa o GIN mostra:</legend>
+      <label class="opt"><input type="radio" name="q10"> Index Scan using trecho_tsv_gin.</label><div class="why">GIN não faz Index Scan simples.</div>
+      <label class="opt"><input type="radio" name="q10" data-correct="1"> Bitmap Index Scan seguido de Bitmap Heap Scan.</label><div class="why">Correto. É a forma de acesso do GIN.</div>
+      <label class="opt"><input type="radio" name="q10"> Seq Scan com Filter.</label><div class="why">Isso é quando o índice não foi usado.</div>
+    </fieldset>
+    <button class="btn grade">Corrigir</button>
+    <div class="score"></div>
+  </div>
+
+  <div class="callout"><span class="t">Próxima página</span><p>A página 5, RAG de ponta a ponta e ingestão, sobe um nível: o pipeline inteiro (ingestão, segmentação por dispositivo, identificadores naturais, vigência, cache, o ciclo pergunta → busca → prompt → resposta → validação), com um RAG completo rodando no navegador sobre o corpus do guia.</p></div>
+</section>
+
+    <div class="pager"><a class="prev" href="03-busca-vetorial.html"><small>anterior</small>Busca vetorial e índices</a><a class="next disabled" href="#"><small>próxima</small>em construção</a></div>
+    <p class="foot">Guia de estudo pessoal. Corpus com redação adaptada da Lei 14.133/2021 para fins didáticos; confira o texto oficial antes de qualquer uso real. A chave da API fica apenas neste navegador; experimentos ao vivo chamam a API do Google diretamente e consomem a sua cota.</p>
+  </div></main>
+  <aside class="toc" aria-label="Nesta página" ><div class="t">Nesta página</div><ol id="toc-list"></ol></aside>
+</div>
+<script>window.GUIA_MANIFEST = {pages: [{"id": "p0", "file": "index.html", "num": "0", "title": "Início", "chapters": [], "issue": null}, {"id": "p1", "file": "01-modelos.html", "num": "1", "title": "Como um modelo de linguagem funciona", "chapters": ["p1-c1", "p1-c2", "p1-c3", "p1-c4", "p1-c5", "p1-c6", "p1-c7", "p1-c8", "p1-c9", "p1-c10"], "issue": "VIN-5"}, {"id": "p2", "file": "02-embeddings.html", "num": "2", "title": "Embeddings", "chapters": ["p2-c1", "p2-c2", "p2-c3", "p2-c4", "p2-c5", "p2-c6", "p2-c7", "p2-c8", "p2-c9", "p2-c10"], "issue": "VIN-7"}, {"id": "p3", "file": "03-busca-vetorial.html", "num": "3", "title": "Busca vetorial e índices", "chapters": ["p3-c1", "p3-c2", "p3-c3", "p3-c4", "p3-c5", "p3-c6", "p3-c7", "p3-c8", "p3-c9", "p3-c10"], "issue": "VIN-7"}, {"id": "p4", "file": "04-busca-lexical-hibrida.html", "num": "4", "title": "Busca lexical e híbrida", "chapters": ["p4-c1", "p4-c2", "p4-c3", "p4-c4", "p4-c5", "p4-c6", "p4-c7", "p4-c8", "p4-c9", "p4-c10"], "issue": "VIN-8"}, {"id": "p5", "file": "05-rag.html", "num": "5", "title": "RAG de ponta a ponta e ingestão", "chapters": [], "issue": "VIN-6"}, {"id": "p6", "file": "06-prompt.html", "num": "6", "title": "Prompt engineering", "chapters": [], "issue": "VIN-9"}, {"id": "p7", "file": "07-validacao.html", "num": "7", "title": "Alucinação, validação e guardrails", "chapters": [], "issue": "VIN-10"}, {"id": "p8", "file": "08-avaliacao.html", "num": "8", "title": "Avaliação", "chapters": [], "issue": "VIN-11"}, {"id": "p9", "file": "09-dados-python.html", "num": "9", "title": "Dados e Python para RAG", "chapters": [], "issue": "VIN-6"}, {"id": "p10", "file": "10-custo-operacao.html", "num": "10", "title": "Custo, modelos e operação", "chapters": [], "issue": "VIN-12"}, {"id": "glossario", "file": "glossario.html", "num": "•", "title": "Glossário", "chapters": [], "issue": null}, {"id": "exercicios", "file": "exercicios.html", "num": "•", "title": "Exercícios", "chapters": [], "issue": null}, {"id": "prompts", "file": "prompts.html", "num": "•", "title": "Biblioteca de prompts", "chapters": [], "issue": null}]};</script>
+<script src="assets/corpus.js"></script>
+<script src="assets/core.js"></script>
+<script src="assets/site.js"></script>
+<script>
+(function () {
+  const needKey = () => { if (!gemini.ready()) throw new Error('Precisa de chave (configure na página inicial).'); };
+  const bar = (label, val, max = 1, cls = '', txt = null) => `<div class="b"><span>${esc(label)}</span><i class="${cls}" style="width:${Math.max(0, Math.min(100, ((val / max) * 100)))}%"></i><span class="v">${txt ?? fmt(val, 3)}</span></div>`;
+  const norm = (s) => String(s).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+  const docText = (t) => `${t.dispositivo} ${t.conteudo}`;
+
+  /* ============ analisador lexical (espelha to_tsvector: tokens → stopwords → radicais com posições) ============ */
+  function analyze(text) {
+    const out = []; let pos = 0;
+    const re = /[\p{L}\p{N}§º°ª$.,]+/gu; let m;
+    while ((m = re.exec(text))) {
+      const raw = m[0]; const parts = norm(raw).replace(/[^a-z0-9§]+/g, ' ').trim().split(/\s+/).filter(Boolean);
+      for (const p of parts) { pos++; const stop = STOP.has(p); out.push({ raw, tok: p, stop, stem: stop ? null : stem(p), pos, start: m.index, end: m.index + raw.length }); }
+    }
+    return out;
+  }
+  function tsvector(text) { const m = {}; analyze(text).forEach((t) => { if (t.stop) return; (m[t.stem] = m[t.stem] || []).push(t.pos); }); return m; }
+  const tsvString = (tv) => Object.keys(tv).sort().map((k) => `'${k}':${tv[k].join(',')}`).join(' ');
+  // frase com as lacunas das stopwords, como phraseto_tsquery: 'obra' <2> 'serv' <2> 'engenh'
+  function phraseParts(text) { const a = analyze(text).filter((t) => !t.stop); return a.map((t, i) => ({ stem: t.stem, gap: i ? t.pos - a[i - 1].pos : 0 })); }
+  const phraseStr = (parts) => parts.map((p, i) => (i ? (p.gap === 1 ? ' <-> ' : ` <${p.gap}> `) : '') + `'${p.stem}'`).join('');
+  const phraseMatch = (tv, parts) => parts.length > 0 && parts.every((p) => tv[p.stem]) && tv[parts[0].stem].some((p0) => { let pos = p0; return parts.every((p, i) => { if (i === 0) return true; pos += p.gap; return tv[p.stem].includes(pos); }); });
+  function tsquery(q, mode) {
+    const toks = analyze(q).filter((t) => !t.stop).map((t) => t.stem);
+    if (!toks.length) return { toks, str: '(vazia)' };
+    const quote = (s) => `'${s}'`;
+    if (mode === 'and') return { toks, str: toks.map(quote).join(' & ') };
+    if (mode === 'or') return { toks, str: toks.map(quote).join(' | ') };
+    if (mode === 'phrase') return { toks, str: phraseStr(phraseParts(q)) };
+    if (mode === 'prefix') return { toks, str: toks.map((t) => quote(t) + ':*').join(' & ') };
+    if (mode === 'web') { // aspas → frase; or → |; -termo → !termo
+      const parts = []; const re = /"([^"]+)"|(\S+)/g; let m; let pendingOr = false;
+      while ((m = re.exec(q))) {
+        if (m[1]) { const pp = phraseParts(m[1]); const ph = phraseStr(pp); if (ph) parts.push({ s: pp.length > 1 ? `(${ph})` : ph, or: pendingOr }); pendingOr = false; continue; }
+        const w = m[2]; if (/^or$/i.test(w)) { pendingOr = true; continue; }
+        const neg = w.startsWith('-'); const a = analyze(neg ? w.slice(1) : w).filter((t) => !t.stop); if (!a.length) continue;
+        parts.push({ s: (neg ? '!' : '') + quote(a[0].stem), or: pendingOr }); pendingOr = false;
+      }
+      return { toks, str: parts.map((p, i) => (i ? (p.or ? ' | ' : ' & ') : '') + p.s).join('') };
+    }
+    return { toks, str: toks.map(quote).join(' & ') };
+  }
+  function matches(tv, q, mode) {
+    const toks = analyze(q).filter((t) => !t.stop).map((t) => t.stem); if (!toks.length) return false;
+    if (mode === 'or') return toks.some((t) => tv[t]);
+    if (mode === 'prefix') return toks.every((t) => Object.keys(tv).some((k) => k.startsWith(t)));
+    if (mode === 'phrase') return phraseMatch(tv, phraseParts(q));
+    if (mode === 'web') {
+      const neg = [], pos = [], phrases = []; const re = /"([^"]+)"|(\S+)/g; let m;
+      while ((m = re.exec(q))) { if (m[1]) { phrases.push(phraseParts(m[1])); continue; } const w = m[2]; if (/^or$/i.test(w)) continue; const n = w.startsWith('-'); const a = analyze(n ? w.slice(1) : w).filter((t) => !t.stop).map((t) => t.stem); (n ? neg : pos).push(...a); }
+      if (neg.some((t) => tv[t])) return false; const anyOr = /\bor\b/i.test(q);
+      const okPh = phrases.map((p) => phraseMatch(tv, p)), okTerms = pos.map((t) => !!tv[t]); const all = okPh.concat(okTerms); if (!all.length) return false;
+      return anyOr ? all.some(Boolean) : all.every(Boolean);
+    }
+    return toks.every((t) => tv[t]);
+  }
+  function highlight(text, stems) {
+    const set = new Set(stems); const a = analyze(text); let out = '', last = 0;
+    for (const t of a) { if (t.stop || !set.has(t.stem)) continue; if (t.start < last) continue; out += esc(text.slice(last, t.start)) + '<mark>' + esc(text.slice(t.start, t.end)) + '</mark>'; last = t.end; }
+    return out + esc(text.slice(last));
+  }
+  // índice invertido do corpus
+  const INV = {}; const TV = {}; corpus.trechos.forEach((t) => { const tv = tsvector(docText(t)); TV[t.id] = tv; for (const k in tv) (INV[k] = INV[k] || []).push({ id: t.id, pos: tv[k] }); });
+
+  /* ============ c2 · visualizador de tsvector e tsquery ============ */
+  (function () {
+    const ta = $('#lx-text'); if (!ta) return;
+    const sel = $('#lx-trecho'); corpus.trechos.forEach((t) => sel.add(new Option(`${t.dispositivo} · ${t.conteudo.slice(0, 50)}…`, t.id)));
+    sel.value = corpus.byId['L14133-art75-incI'] ? 'L14133-art75-incI' : corpus.trechos[0].id; ta.value = docText(corpus.byId[sel.value]);
+    sel.addEventListener('change', () => { ta.value = docText(corpus.byId[sel.value]); render(); });
+    function render() {
+      const a = analyze(ta.value); const tv = tsvector(ta.value);
+      $('#lx-tokens').innerHTML = a.map((t) => `<span class="tk ${t.stop ? 'stop' : ''}" title="posição ${t.pos}">${esc(t.tok)}${t.stop ? '' : ` <b>→ ${esc(t.stem)}</b>`}</span>`).join(' ');
+      $('#lx-tsv').textContent = tsvString(tv);
+      $('#lx-stats').textContent = `${a.length} tokens · ${a.filter((t) => t.stop).length} stopwords removidas · ${Object.keys(tv).length} lexemas distintos com posições.`;
+      const q = $('#lx-q').value, mode = $('#lx-mode').value; const tq = tsquery(q, mode); $('#lx-tsq').textContent = tq.str;
+      const ok = matches(tv, q, mode); setStatus($('#lx-match'), ok ? `@@ verdadeiro: o tsvector satisfaz a tsquery.` : `@@ falso: a tsquery não casa com este tsvector.`, ok ? 'ok' : 'err');
+      $('#lx-hl').innerHTML = highlight(ta.value, tq.toks);
+    }
+    ['#lx-text', '#lx-q'].forEach((s) => $(s).addEventListener('input', render)); $('#lx-mode').addEventListener('change', render);
+    $$('#lx-presets .chip').forEach((c) => c.addEventListener('click', () => { $('#lx-q').value = c.dataset.q; if (c.dataset.mode) $('#lx-mode').value = c.dataset.mode; render(); }));
+    render();
+  })();
+
+  /* ============ c3 · ts_rank (reimplementação simplificada) × BM25 ============ */
+  function tsRankLike(tv, qstems, { weightHead = false, headStems = new Set(), normFlag = 0, len = 1, uniq = 1 }) {
+    // aproximação do calc_rank_or do PostgreSQL: por termo, ocorrências saturam; entre termos, combinação 1-(1-a)(1-b)
+    let res = 0;
+    for (const t of qstems) { const ps = tv[t]; if (!ps) continue; let resj = 0; ps.forEach((p, j) => { const w = weightHead && headStems.has(t) ? 1.0 : 0.1; resj = resj + (w - resj) / ((j + 2) * (j + 2)); }); res = res + (1 - res) * resj; }
+    if (normFlag & 1) res /= 1 + Math.log(len); if (normFlag & 2) res /= len; if (normFlag & 8) res /= uniq; if (normFlag & 16) res /= 1 + Math.log(uniq); if (normFlag & 32) res = res / (res + 1);
+    return res;
+  }
+  (function () {
+    const q = $('#rk-q'); if (!q) return;
+    function render() {
+      const qs = analyze(q.value).filter((t) => !t.stop).map((t) => t.stem); const flag = +$('#rk-norm').value; const wh = $('#rk-w').checked;
+      const rows = corpus.trechos.map((t) => { const tv = TV[t.id]; const len = Object.values(tv).reduce((a, b) => a + b.length, 0); const head = new Set(Object.keys(tsvector(t.dispositivo))); return { id: t.id, ts: tsRankLike(tv, qs, { weightHead: wh, headStems: head, normFlag: flag, len, uniq: Object.keys(tv).length }), len }; }).filter((r) => r.ts > 0).sort((a, b) => b.ts - a.ts).slice(0, 8);
+      const bm = bm25.search(q.value, 8);
+      const list = (arr, key) => arr.length ? '<ol class="rank">' + arr.map((r, i) => { const t = corpus.byId[r.id]; return `<li><span class="pos">${i + 1}</span><span><span class="id">${esc(t.dispositivo)}</span><br>${esc(t.conteudo.slice(0, 80))}… <span class="mini">(${Object.values(TV[r.id]).reduce((a, b) => a + b.length, 0)} lexemas)</span></span><span class="sc">${fmt(r[key], 3)}</span></li>`; }).join('') + '</ol>' : '<p class="mini">Nenhum trecho casa.</p>';
+      $('#rk-a').innerHTML = list(rows, 'ts'); $('#rk-b').innerHTML = list(bm, 'score');
+      const idf = qs.map((t) => `${t}: df=${(INV[t] || []).length}`).join(' · ');
+      $('#rk-note').textContent = `Termos da consulta (radicais): ${qs.join(', ') || '—'}. Frequência em documentos: ${idf || '—'}. O ts_rank não usa esses df; o BM25 usa (termos raros pesam mais).`;
+    }
+    ['#rk-q'].forEach((s) => $(s).addEventListener('input', render)); ['#rk-norm', '#rk-w'].forEach((s) => $(s).addEventListener('change', render));
+    $$('#rk-presets .chip').forEach((c) => c.addEventListener('click', () => { q.value = c.dataset.q; render(); }));
+    render();
+  })();
+
+  /* ============ c4 · BM25: fórmula viva e decomposição por termo ============ */
+  (function () {
+    const svg = $('#bm-svg'); if (!svg) return;
+    function curve() {
+      const k1 = +$('#bm-k1').value, b = +$('#bm-b').value, dl = +$('#bm-dl').value; $('#bm-k1v').textContent = k1; $('#bm-bv').textContent = b; $('#bm-dlv').textContent = dl;
+      const W = 760, H = 220, x0 = 40, y0 = 190; let s = `<line x1="${x0}" y1="${y0}" x2="${W - 10}" y2="${y0}" stroke="var(--line)"/><line x1="${x0}" y1="10" x2="${x0}" y2="${y0}" stroke="var(--line)"/>`;
+      const f = (tf, K1, B, DL) => (tf * (K1 + 1)) / (tf + K1 * (1 - B + B * DL));
+      const maxY = 3.2; const pts = (K1, B, DL) => Array.from({ length: 41 }, (_, i) => { const tf = i * 0.5; return `${x0 + (tf / 20) * (W - 60)},${y0 - (f(tf, K1, B, DL) / maxY) * (y0 - 20)}`; }).join(' ');
+      s += `<polyline points="${pts(1.2, 0.75, 1)}" fill="none" stroke="var(--line)" stroke-width="2" stroke-dasharray="5 4"/>`;
+      s += `<polyline points="${pts(k1, b, dl)}" fill="none" stroke="var(--teal)" stroke-width="3"/>`;
+      for (let tf = 0; tf <= 20; tf += 5) s += `<text x="${x0 + (tf / 20) * (W - 60)}" y="${y0 + 16}" font-size="11" text-anchor="middle" fill="var(--muted)">${tf}</text>`;
+      s += `<text x="${W - 10}" y="${y0 + 30}" font-size="11" text-anchor="end" fill="var(--muted)">tf (ocorrências do termo no trecho)</text><text x="${x0 - 6}" y="16" font-size="11" text-anchor="end" fill="var(--muted)">peso</text>`;
+      s += `<text x="${x0 + 8}" y="24" font-size="11" fill="var(--muted)">tracejada: k1 = 1,2 · b = 0,75 · comprimento = média</text>`;
+      svg.innerHTML = s;
+      $('#bm-cap').textContent = `Com tf = 1 o peso é ${f(1, k1, b, dl).toFixed(2)}; com tf = 5, ${f(5, k1, b, dl).toFixed(2)}; com tf = 20, ${f(20, k1, b, dl).toFixed(2)}. O teto é k1 + 1 = ${(k1 + 1).toFixed(1)}. ${dl > 1 ? 'Trecho mais longo que a média: cada ocorrência vale menos.' : dl < 1 ? 'Trecho mais curto que a média: cada ocorrência vale mais.' : ''}`;
+      bm25.k1 = k1; bm25.b = b; breakdown();
+    }
+    function breakdown() {
+      const q = $('#bm-q').value; const qs = analyze(q).filter((t) => !t.stop).map((t) => t.stem); const N = corpus.trechos.length; if (!bm25.docs) bm25.build();
+      const res = bm25.search(q, 6);
+      $('#bm-idf').innerHTML = qs.length ? '<table><thead><tr><th>radical</th><th>df (trechos com o termo)</th><th>idf</th></tr></thead><tbody>' + qs.map((t) => { const df = bm25.df[t] || 0; const idf = Math.log(1 + (N - df + 0.5) / (df + 0.5)); return `<tr><td><code>${esc(t)}</code></td><td>${df} de ${N}</td><td>${idf.toFixed(2)}</td></tr>`; }).join('') + '</tbody></table>' : '';
+      $('#bm-out').innerHTML = res.length ? res.map((r, i) => { const d = bm25.docs.find((x) => x.id === r.id); const t = corpus.byId[r.id]; const parts = qs.map((w) => { const f = d.tf[w]; if (!f) return null; const df = bm25.df[w]; const idf = Math.log(1 + (N - df + 0.5) / (df + 0.5)); const tfp = (f * (bm25.k1 + 1)) / (f + bm25.k1 * (1 - bm25.b + bm25.b * d.len / bm25.avgdl)); return `<span class="chip" title="idf ${idf.toFixed(2)} × tf-saturado ${tfp.toFixed(2)}">${esc(w)} ×${f} = ${(idf * tfp).toFixed(2)}</span>`; }).filter(Boolean).join(' '); return `<div class="bmrow"><div><b>${i + 1}.</b> <span class="id">${esc(t.dispositivo)}</span> <span class="mini">(${d.len} lexemas; média ${bm25.avgdl.toFixed(0)})</span><br>${esc(t.conteudo.slice(0, 110))}…</div><div class="chips">${parts}</div><div class="sc">${r.score.toFixed(2)}</div></div>`; }).join('') : '<p class="mini">Nenhum trecho casa com a consulta.</p>';
+    }
+    ['#bm-k1', '#bm-b', '#bm-dl'].forEach((s) => $(s).addEventListener('input', curve)); $('#bm-q').addEventListener('input', breakdown);
+    $$('#bm-presets .chip').forEach((c) => c.addEventListener('click', () => { $('#bm-q').value = c.dataset.q; breakdown(); }));
+    curve();
+  })();
+
+  /* ============ c5 · índice invertido do corpus ============ */
+  (function () {
+    const inp = $('#gn-term'); if (!inp) return;
+    const keys = Object.keys(INV).sort(); const postings = keys.reduce((a, k) => a + INV[k].length, 0);
+    $('#gn-stats').textContent = `${corpus.trechos.length} trechos · ${keys.length} lexemas distintos · ${postings} entradas na lista de postagens (média ${(postings / keys.length).toFixed(1)} trechos por lexema). O lexema mais frequente: "${keys.slice().sort((a, b) => INV[b].length - INV[a].length)[0]}" em ${Math.max(...keys.map((k) => INV[k].length))} trechos.`;
+    const top = keys.slice().sort((a, b) => INV[b].length - INV[a].length).slice(0, 14);
+    $('#gn-top').innerHTML = top.map((k) => `<button class="chip" type="button" data-k="${esc(k)}">${esc(k)} · ${INV[k].length}</button>`).join(' ');
+    $$('#gn-top .chip').forEach((c) => c.addEventListener('click', () => { inp.value = c.dataset.k; render(); }));
+    function render() {
+      const t = analyze(inp.value).filter((x) => !x.stop).map((x) => x.stem)[0] || norm(inp.value).trim();
+      const hits = keys.filter((k) => k.startsWith(t)).slice(0, 12);
+      $('#gn-post').innerHTML = !t ? '<p class="mini">Digite um termo.</p>' : hits.length ? hits.map((k) => `<div class="posting"><div class="lex"><code>${esc(k)}</code> <span class="mini">${INV[k].length} trecho(s)</span></div><div class="ids">${INV[k].map((p) => `<span class="chip" title="posições ${p.pos.join(', ')}">${esc(corpus.byId[p.id].dispositivo)} <span class="mini">@${p.pos.join(',')}</span></span>`).join(' ')}</div></div>`).join('') : `<p class="mini">Nenhum lexema começa com "${esc(t)}". Lembre: a chave do índice é o radical ("licitação" vira "licitaca").</p>`;
+    }
+    inp.addEventListener('input', render); render();
+  })();
+
+  /* ============ c6 · construtor de consultas com destaque ============ */
+  (function () {
+    const q = $('#qb-q'); if (!q) return;
+    function render() {
+      const mode = $('#qb-mode').value; const tq = tsquery(q.value, mode); $('#qb-tsq').textContent = tq.str;
+      const hits = corpus.trechos.filter((t) => matches(TV[t.id], q.value, mode));
+      $('#qb-res').innerHTML = hits.length ? hits.slice(0, 10).map((t) => `<div class="hit"><span class="id">${esc(t.dispositivo)}</span><br>${highlight(t.conteudo, tq.toks)}</div>`).join('') : '<p class="mini">Nenhum trecho satisfaz a consulta.</p>';
+      $('#qb-n').textContent = `${hits.length} de ${corpus.trechos.length} trechos casam${hits.length > 10 ? ' (mostrando 10)' : ''}.`;
+    }
+    q.addEventListener('input', render); $('#qb-mode').addEventListener('change', render);
+    $$('#qb-presets .chip').forEach((c) => c.addEventListener('click', () => { q.value = c.dataset.q; if (c.dataset.mode) $('#qb-mode').value = c.dataset.mode; render(); }));
+    render();
+  })();
+
+  /* ============ c7 · calculadora de RRF (brinquedo) ============ */
+  (function () {
+    const a = $('#rf-a'); if (!a) return;
+    function render() {
+      const K = +$('#rf-k').value; $('#rf-kv').textContent = K;
+      const la = a.value.split('\n').map((s) => s.trim()).filter(Boolean), lb = $('#rf-b').value.split('\n').map((s) => s.trim()).filter(Boolean);
+      const acc = {}; const contrib = {};
+      la.forEach((id, i) => { acc[id] = (acc[id] || 0) + 1 / (K + i + 1); (contrib[id] = contrib[id] || []).push(`A:${i + 1}º→${(1 / (K + i + 1)).toFixed(4)}`); });
+      lb.forEach((id, i) => { acc[id] = (acc[id] || 0) + 1 / (K + i + 1); (contrib[id] = contrib[id] || []).push(`B:${i + 1}º→${(1 / (K + i + 1)).toFixed(4)}`); });
+      const fused = Object.entries(acc).sort((x, y) => y[1] - x[1]);
+      $('#rf-out').innerHTML = '<ol class="rank">' + fused.map(([id, s], i) => `<li class="${contrib[id].length > 1 ? 'hit' : ''}"><span class="pos">${i + 1}</span><span><b>${esc(id)}</b><br><span class="mini">${contrib[id].join(' + ')}</span></span><span class="sc">${s.toFixed(4)}</span></li>`).join('') + '</ol>';
+    }
+    ['#rf-a', '#rf-b'].forEach((s) => $(s).addEventListener('input', render)); $('#rf-k').addEventListener('input', render); render();
+  })();
+
+  /* ============ c7 · duelo ao vivo: vetorial × lexical × híbrida ============ */
+  let LAST = null;
+  async function ensureIndexed(statusEl) { if (corpus.indexed()) return; needKey(); setStatus(statusEl, 'Indexando o corpus (uma vez; 3 lotes)…'); await corpus.index((i, n) => setStatus(statusEl, `Indexando ${i}/${n}…`)); }
+  const expectedFor = (q) => { const e = corpus.avaliacao.find((a) => a.pergunta === q); return e ? e.esperado : []; };
+  (function () {
+    const btn = $('#hy-run'); if (!btn) return;
+    const sel = $('#hy-eval'); corpus.avaliacao.forEach((a) => sel.add(new Option(a.pergunta.slice(0, 70) + (a.pergunta.length > 70 ? '…' : ''), a.pergunta)));
+    sel.addEventListener('change', () => { if (sel.value) $('#hy-q').value = sel.value; });
+    ['#hy-k'].forEach((s) => $(s).addEventListener('input', () => ($(s + 'v').textContent = $(s).value)));
+    $('#hy-lex').addEventListener('click', () => { const q = $('#hy-q').value.trim(); const hits = expectedFor(q); const l = bm25.search(q, +$('#hy-cand').value); $('#hy-l').innerHTML = rankHTML(l.slice(0, 12), hits); $('#hy-v').innerHTML = '<p class="mini">(precisa de chave e índice)</p>'; $('#hy-h').innerHTML = ''; setStatus($('#hy-status'), `Só a lexical (BM25), sem chave. ${l.length} candidatos com pelo menos um termo em comum.`, 'ok'); });
+    async function run() {
+      await ensureIndexed($('#hy-status')); const q = $('#hy-q').value.trim(); if (!q) throw new Error('Escreva a consulta.');
+      const K = +$('#hy-k').value, cand = +$('#hy-cand').value; setStatus($('#hy-status'), 'Embutindo a consulta (um lote)…');
+      const r = await hybridSearch(q, { K, cand, k: 12 }); const hits = expectedFor(q); LAST = { q, ...r, hits };
+      $('#hy-v').innerHTML = rankHTML(r.vetorial.slice(0, 12), hits); $('#hy-l').innerHTML = rankHTML(r.lexical.slice(0, 12), hits); $('#hy-h').innerHTML = rankHTML(r.hibrida, hits);
+      const posIn = (list, id) => { const i = list.findIndex((x) => x.id === id); return i < 0 ? '—' : `${i + 1}º`; };
+      setStatus($('#hy-status'), hits.length ? `Esperado ${hits.join(', ')}: vetorial ${hits.map((h) => posIn(r.vetorial, h)).join('/')} · lexical ${hits.map((h) => posIn(r.lexical, h)).join('/')} · híbrida ${hits.map((h) => posIn(r.hibrida, h)).join('/')}. Só entram na fusão os ${cand} primeiros de cada lista.` : `Pronto. Os ${cand} primeiros de cada lista foram fundidos com K = ${K}.`, 'ok');
+      $('#rr-run').disabled = false;
+    }
+    btn.addEventListener('click', () => guard($('#hy-status'), run));
+  })();
+
+  /* ============ c8 · reranking com o modelo de linguagem ============ */
+  (function () {
+    const btn = $('#rr-run'); if (!btn) return; btn.disabled = true;
+    btn.addEventListener('click', () => guard($('#rr-status'), async () => {
+      needKey(); if (!LAST) throw new Error('Rode o duelo do capítulo 7 primeiro.');
+      const cands = LAST.hibrida.slice(0, 12); setStatus($('#rr-status'), `Pedindo ao ${gemini.model} uma nota de relevância para ${cands.length} trechos (1 chamada)…`);
+      const schema = { type: 'OBJECT', properties: { notas: { type: 'ARRAY', items: { type: 'OBJECT', properties: { id: { type: 'STRING' }, nota: { type: 'INTEGER' }, motivo: { type: 'STRING' } }, required: ['id', 'nota'] } } }, required: ['notas'] };
+      const user = `Pergunta: ${LAST.q}\n\nPara cada trecho abaixo, atribua uma nota de 0 a 3 de quanto ele RESPONDE à pergunta (3 = responde diretamente; 2 = responde em parte; 1 = só relacionado; 0 = irrelevante). Julgue apenas pelo texto do trecho. Devolva um item por trecho, com o id exato.\n\n${buildContext(cands.map((c) => c.id))}`;
+      const r = await gemini.generate({ system: 'Você é um avaliador de relevância. Não responda à pergunta; só avalie os trechos.', user, json: true, schema, maxTokens: 4096 });
+      const j = parseJSON(r.text); const notas = {}; (j.notas || []).forEach((n) => { if (corpus.byId[n.id]) notas[n.id] = n; });
+      const re = cands.slice().sort((a, b) => ((notas[b.id]?.nota ?? -1) - (notas[a.id]?.nota ?? -1)) || (LAST.hibrida.findIndex((x) => x.id === a.id) - LAST.hibrida.findIndex((x) => x.id === b.id)));
+      $('#rr-a').innerHTML = rankHTML(cands, LAST.hits);
+      $('#rr-b').innerHTML = '<ol class="rank">' + re.map((c, i) => { const t = corpus.byId[c.id]; const n = notas[c.id]; const before = cands.findIndex((x) => x.id === c.id) + 1; return `<li class="${LAST.hits.includes(c.id) ? 'hit' : ''}"><span class="pos">${i + 1}</span><span><span class="id">${esc(c.id)}</span> <span class="mini">(era ${before}º)</span><br>${esc(t.dispositivo)} · ${esc(t.conteudo.slice(0, 70))}…${n && n.motivo ? `<br><span class="mini">${esc(n.motivo.slice(0, 120))}</span>` : ''}</span><span class="sc">nota ${n ? n.nota : '?'}</span></li>`; }).join('') + '</ol>';
+      const posIn = (list, id) => { const i = list.findIndex((x) => x.id === id); return i < 0 ? '—' : `${i + 1}º`; };
+      setStatus($('#rr-status'), `${r.ms} ms · ${r.usage.totalTokenCount ?? '?'} tokens. ${LAST.hits.length ? `Esperado: antes ${LAST.hits.map((h) => posIn(cands, h)).join('/')}, depois ${LAST.hits.map((h) => posIn(re, h)).join('/')}.` : ''} O reranker lê o texto, então enxerga negação e números que a busca não vê; custa uma chamada e centenas de ms.`, 'ok');
+    }));
+  })();
+
+  /* ============ c9 · avaliação: recall@k das três buscas nas 12 perguntas ============ */
+  (function () {
+    const btn = $('#ev-run'); if (!btn) return;
+    const K = () => +($('#hy-k') ? $('#hy-k').value : 60), cand = () => +($('#hy-cand') ? $('#hy-cand').value : 50);
+    function table(rows, k) {
+      const posIn = (list, id) => { const i = list.findIndex((x) => x.id === id); return i < 0 ? '—' : `${i + 1}º`; };
+      const cell = (list, hits) => { const ok = hits.some((h) => list.slice(0, k).some((x) => x.id === h)); return `<td class="${ok ? 'ok' : 'bad'}">${hits.map((h) => posIn(list, h)).join(' / ')}</td>`; };
+      $('#ev-tbl tbody').innerHTML = rows.map((r) => `<tr><td>${esc(r.q.slice(0, 60))}…</td>${cell(r.v, r.hits)}${cell(r.l, r.hits)}${cell(r.h, r.hits)}</tr>`).join('');
+      const rc = (key) => rows.filter((r) => r.hits.some((h) => r[key].slice(0, k).some((x) => x.id === h))).length / rows.length;
+      $('#ev-out').innerHTML = bar(`recall@${k} vetorial`, rc('v'), 1, '', (rc('v') * 100).toFixed(0) + '%') + bar(`recall@${k} lexical (BM25)`, rc('l'), 1, '', (rc('l') * 100).toFixed(0) + '%') + bar(`recall@${k} híbrida (RRF)`, rc('h'), 1, 'f', (rc('h') * 100).toFixed(0) + '%');
+    }
+    btn.addEventListener('click', () => guard($('#ev-status'), async () => {
+      await ensureIndexed($('#ev-status')); const k = +$('#ev-k').value; setStatus($('#ev-status'), `Embutindo as ${corpus.avaliacao.length} perguntas (um lote)…`);
+      const qv = await gemini.embedItems(corpus.avaliacao.map((a) => ({ text: a.pergunta, taskType: 'RETRIEVAL_QUERY' })));
+      const rows = corpus.avaliacao.map((a, i) => { const v = corpus.trechos.map((t) => ({ id: t.id, score: dot(qv[i], corpus.emb[t.id]) })).sort((x, y) => y.score - x.score).slice(0, cand()); const l = bm25.search(a.pergunta, cand()); return { q: a.pergunta, hits: a.esperado, v, l, h: rrf([v, l], K(), k) }; });
+      table(rows, k); setStatus($('#ev-status'), `Pronto: ${rows.length} perguntas, ${cand()} candidatos por lista, K = ${K()}. Verde = o esperado está entre os ${k}; o número é a posição.`, 'ok');
+    }));
+    $('#ev-lex').addEventListener('click', () => { const k = +$('#ev-k').value; const rows = corpus.avaliacao.map((a) => ({ q: a.pergunta, hits: a.esperado, v: [], l: bm25.search(a.pergunta, cand()), h: [] })); table(rows, k); setStatus($('#ev-status'), 'Só a lexical, sem chave: as colunas vetorial e híbrida ficam vazias.', 'ok'); });
+    $('#ev-k').addEventListener('change', () => {});
+  })();
+})();
+
+</script>
+</body>
+</html>

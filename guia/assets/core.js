@@ -154,15 +154,24 @@ const corpus = {
 };
 
 /* ---------- busca lexical (BM25 simples, português) ---------- */
-const STOP = new Set('a o os as um uma uns umas de do da dos das em no na nos nas por para com sem sob sobre e ou que se ao à aos às este esta isto esse essa isso aquele aquela aquilo seu sua seus suas ser é são foi era será como mais menos muito já não sim quando onde qual quais cujo cuja'.split(' '));
+const STOP = new Set('a o os as um uma uns umas de do da dos das em no na nos nas por para com sem sob sobre e ou que se ao à aos às este esta isto esse essa isso aquele aquela aquilo seu sua seus suas ser é são foi era será como mais menos muito já não sim quando onde qual quais cujo cuja'.split(' ').map((w) => w.normalize('NFD').replace(/[̀-ͯ]/g, '')));
 function tokenize(s) {
   return String(s).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')
     .replace(/[^a-z0-9§]+/g, ' ').split(' ').filter((w) => w && !STOP.has(w))
     .map(stem);
 }
-function stem(w) { // radicalização leve: plurais e algumas terminações
-  if (w.length <= 3) return w;
-  return w.replace(/(coes|oes)$/, 'ao').replace(/(ais|eis|ois)$/, 'al').replace(/(mente)$/, '').replace(/(s)$/, '').replace(/(ada|ado|idas|idos|ida|ido)$/, '');
+function stem(w) { // radicalização leve inspirada no RSLP: plural → sufixos derivacionais → vogal final. Aproxima o Snowball do PostgreSQL.
+  if (w.length <= 3 || /^\d/.test(w) || w === '§') return w;
+  // plural
+  if (/coes$/.test(w)) w = w.replace(/coes$/, 'cao'); else if (/oes$/.test(w)) w = w.replace(/oes$/, 'ao'); else if (/aes$/.test(w)) w = w.replace(/aes$/, 'ao');
+  else if (/veis$/.test(w)) w = w.replace(/veis$/, 'vel'); else if (/eis$/.test(w) && w.length > 5) w = w.replace(/eis$/, 'el'); else if (/ais$/.test(w) && w.length > 4) w = w.replace(/ais$/, 'al'); else if (/ois$/.test(w) && w.length > 4) w = w.replace(/ois$/, 'ol');
+  else if (/ns$/.test(w)) w = w.replace(/ns$/, 'm'); else if (/[rzl]es$/.test(w) && w.length > 5) w = w.replace(/es$/, ''); else if (/s$/.test(w) && !/ss$/.test(w)) w = w.replace(/s$/, '');
+  // sufixos derivacionais (do mais longo para o mais curto), mantendo pelo menos 3 letras
+  const SUF = ['amento', 'imento', 'idade', 'mente', 'ancia', 'encia', 'acao', 'icao', 'ucao', 'ador', 'edor', 'idor', 'ante', 'ente', 'avel', 'ivel', 'orio', 'oria', 'ario', 'aria', 'ando', 'endo', 'indo', 'ado', 'ada', 'ido', 'ida', 'oso', 'osa', 'ivo', 'iva', 'ico', 'ica', 'cao', 'ao', 'ar', 'er', 'ir'];
+  for (const sf of SUF) { if (w.endsWith(sf) && w.length - sf.length >= 3) { w = w.slice(0, -sf.length); break; } }
+  // vogal final
+  if (w.length > 3 && /[aeo]$/.test(w)) w = w.slice(0, -1);
+  return w;
 }
 const bm25 = {
   k1: 1.2, b: 0.75, docs: null, df: null, avgdl: 0,

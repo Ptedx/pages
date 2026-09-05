@@ -212,6 +212,23 @@ a.btn{text-decoration:none}
 .rank li .id{font-family:var(--mono);font-size:.76rem;color:var(--teal)}
 .rank li .sc{margin-left:auto;font-family:var(--mono);font-size:.76rem;color:var(--muted);white-space:nowrap}
 .rank li.hit{background:var(--green-soft);border-radius:6px}
+.tokens .tk{display:inline-block;border:1px solid var(--line);border-radius:6px;padding:1px 7px;margin:2px;font-size:.85rem;background:var(--surface)}
+.tokens .tk.stop{text-decoration:line-through;color:var(--muted);background:transparent}
+.tokens .tk b{color:var(--teal);font-weight:600}
+#lx-tsv,#lx-tsq,#qb-tsq{white-space:pre-wrap;word-break:break-word}
+mark{background:var(--amber-soft);color:inherit;padding:0 2px;border-radius:3px}
+.hl{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:12px;margin-top:8px;font-size:.92rem}
+.hit{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:8px 12px;margin:6px 0;font-size:.9rem}
+.hit .id{font-family:var(--mono);color:var(--teal);font-size:.78rem}
+.posting{padding:8px 0;border-bottom:1px dashed var(--line)}
+.posting .lex{margin-bottom:6px}
+.posting .ids{display:flex;flex-wrap:wrap;gap:6px}
+.bmrow{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr) 64px;gap:10px;align-items:start;padding:8px 0;border-bottom:1px dashed var(--line);font-size:.88rem}
+.bmrow .id{font-family:var(--mono);color:var(--teal);font-size:.78rem}
+.bmrow .sc{font-family:var(--mono);text-align:right}
+table td.ok{color:var(--green);font-weight:600}
+table td.bad{color:var(--red)}
+.evtbl td:not(:first-child){font-family:var(--mono);white-space:nowrap}
 .tokens{line-height:2;font-size:1rem}
 .tokens span{display:inline-block;border-radius:4px;padding:0 3px;margin:0 1px}
 .map{width:100%;border-collapse:collapse;font-size:.88rem}
@@ -270,6 +287,7 @@ a.btn{text-decoration:none}
   .dl{grid-template-columns:1fr}
   .dl dd{margin-bottom:6px}
   .cmp,.grid2,.grid3{grid-template-columns:1fr}
+  .bmrow{grid-template-columns:1fr}
   .pager{flex-direction:column}
 }
 @media (prefers-reduced-motion:reduce){nav.side{transition:none}}
