@@ -1,0 +1,816 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>RAG de ponta a ponta e ingestão · Guia RAG aplicado</title>
+<meta name="description" content="Padrões de arquitetura, segmentação, identificadores, vigência.">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/guia.css">
+</head>
+<body data-page="p5">
+<a class="skip" href="#main">Pular para o conteúdo</a>
+<header class="topbar">
+  <button class="iconbtn" id="menu" aria-expanded="false" aria-controls="sidenav" aria-label="Abrir navegação">☰ Páginas</button>
+  <a class="brand" href="index.html">Guia de estudo · RAG aplicado<small>Plataforma de Conformidade e Risco · trilha dos exercícios VIN-5 a VIN-12</small></a>
+  <button class="iconbtn" id="theme" aria-pressed="false">Tema escuro</button>
+</header>
+<div class="scrim"></div>
+<div class="shell">
+  <nav class="side" id="sidenav" aria-label="Páginas do guia">
+    <div class="progress"><span id="prog-text">0 capítulos concluídos</span><div class="bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" aria-label="Progresso do estudo"><i id="prog-bar"></i></div></div>
+    <div class="group">Trilha</div><ol><li><a href="index.html" data-page="p0"><span class="num">0</span><span>Início</span><span class="done-mark" aria-hidden="true"></span></a></li><li><a href="01-modelos.html" data-page="p1"><span class="num">1</span><span>Modelos de linguagem</span><span class="done-mark" aria-hidden="true"></span></a></li><li><a href="02-embeddings.html" data-page="p2"><span class="num">2</span><span>Embeddings</span><span class="done-mark" aria-hidden="true"></span></a></li><li><a href="03-busca-vetorial.html" data-page="p3"><span class="num">3</span><span>Busca vetorial e índices</span><span class="done-mark" aria-hidden="true"></span></a></li><li><a href="04-busca-lexical-hibrida.html" data-page="p4"><span class="num">4</span><span>Busca lexical e híbrida</span><span class="done-mark" aria-hidden="true"></span></a></li><li><a href="05-rag.html" data-page="p5" aria-current="page"><span class="num">5</span><span>RAG e ingestão</span><span class="done-mark" aria-hidden="true"></span></a></li><li><span class="soon" title="Anatomia, delimitação, esquema, decomposição, versionamento e a biblioteca do projeto."><span class="num">6</span><span>Prompt engineering</span><span class="tag">em breve</span></span></li><li><span class="soon" title="Taxonomia das falhas, camadas de mitigação, juiz de aderência."><span class="num">7</span><span>Validação e guardrails</span><span class="tag">em breve</span></span></li><li><span class="soon" title="Conjuntos de avaliação, métricas de busca e de resposta, protocolo."><span class="num">8</span><span>Avaliação</span><span class="tag">em breve</span></span></li><li><span class="soon" title="PDF, limpeza, regex, JSONL, pandas, Pydantic, psycopg."><span class="num">9</span><span>Dados e Python</span><span class="tag">em breve</span></span></li><li><span class="soon" title="Tokens, cache, limites de taxa, retentativa, observabilidade, escolha de modelo."><span class="num">10</span><span>Custo e operação</span><span class="tag">em breve</span></span></li></ol><div class="group">Referência rápida</div><ol><li><a href="glossario.html" data-page="glossario"><span class="num">•</span><span>Glossário</span><span class="done-mark" aria-hidden="true"></span></a></li><li><span class="soon" title="Os oito exercícios com roteiro completo."><span class="num">•</span><span>Exercícios</span><span class="tag">em breve</span></span></li><li><span class="soon" title="Os prompts do projeto, versionados, para copiar."><span class="num">•</span><span>Biblioteca de prompts</span><span class="tag">em breve</span></span></li></ol>
+  </nav>
+  <main id="main" tabindex="-1"><div class="page-in">
+    <div class="toc-inline" ><label for="toc-select">Nesta página</label><select id="toc-select"><option value="">ir para o capítulo…</option></select></div>
+    <div id="keybanner" hidden><div class="callout warn"><span class="t">Sem chave do Gemini configurada</span><p>Os experimentos ao vivo desta página ficam desativados. Configure a chave na <a href="index.html#chave">página inicial</a>; os experimentos de brinquedo funcionam sem ela.</p></div></div>
+    <div class="page-head">
+  <div class="kicker">Página 5 · Sistema</div>
+  <h1>RAG de ponta a ponta e ingestão</h1>
+  <p class="lead">As páginas 1 a 4 abriram as peças: modelo, vetor, índice, busca. Esta página as monta. Primeiro o ciclo de consulta inteiro, rodando aqui, com cada etapa exposta; depois o ciclo que ninguém vê e que decide a qualidade de tudo: a ingestão, com extração, limpeza, segmentação por dispositivo, identificadores naturais e vigência. Ao fim, o que medir e o que cachear para o sistema aguentar produção.</p>
+  <div class="meta"><a class="exlink" href="https://linear.app/vinicius-costa/issue/VIN-6" target="_blank" rel="noopener">VIN-6 · Ex. 2</a><span>·</span><span>10 capítulos · leitura ativa de 60 a 80 minutos · 9 experimentos, 7 sem chave</span></div>
+</div>
+
+<div class="goals">
+  <h3>Ao terminar esta página você consegue</h3>
+  <ul>
+    <li>Desenhar os dois ciclos do RAG (ingestão e consulta), dizer o que cada etapa recebe e devolve, e onde cada tipo de erro nasce.</li>
+    <li>Escolher, com custo e ganho na mesa, quais etapas "avançadas" (reescrita, multi-consulta, reranker, juiz) entram no pipeline e quais ficam de fora.</li>
+    <li>Limpar o texto de um PDF oficial e segmentá-lo por dispositivo, com o caput como contexto, sem trechos que misturam ideias nem trechos cortados.</li>
+    <li>Gerar identificadores naturais e metadados (norma, hierarquia, vigência, hash) que sobrevivem à reindexação e permitem citar.</li>
+    <li>Montar o prompt com orçamento, ordem e delimitação, e validar a resposta em código.</li>
+    <li>Instrumentar o pipeline (rastro por etapa) e estimar custo, cota e cache para um volume dado.</li>
+  </ul>
+</div>
+
+<!-- ============================================================ 1 -->
+<section class="chapter" id="c1" data-ch="p5-c1">
+  <div class="ch-head"><span class="n">Capítulo 1</span><h2>O ciclo de consulta, etapa por etapa</h2><label class="donebox"><input type="checkbox" data-done> Capítulo concluído</label></div>
+
+  <p>RAG, <em>retrieval-augmented generation</em>, é um nome grande para uma sequência curta: a pergunta chega; a busca escolhe os trechos; os trechos e a pergunta viram um prompt; o modelo escreve a resposta citando os trechos; um código confere se as citações existem e estão no que foi enviado. Cinco etapas, duas chamadas de rede (uma de embedding, uma de geração), tudo o mais determinístico. O que torna o sistema confiável não é nenhuma etapa isolada; é que cada uma tem uma saída inspecionável e uma medida própria.</p>
+  <p>Repare no que <em>não</em> está no ciclo: nenhum treinamento, nenhuma memória entre perguntas, nenhuma decisão do modelo sobre o que buscar. No projeto o ciclo é <strong>determinístico e auditável</strong> de propósito: o mesmo documento, a mesma base e o mesmo prompt produzem os mesmos trechos, e a resposta só é aceita se as citações resistirem à validação. Variantes em que o modelo decide os passos (RAG "agêntico") existem, e o capítulo 2 diz quando fazem sentido; para auditar conformidade, previsibilidade vale mais que autonomia.</p>
+
+  <figure class="diagram" data-caps='["A pergunta do analista (ou o critério de auditoria) entra como texto.","A busca híbrida: embedding da pergunta, vetorial + lexical, fusão por RRF, os 12 primeiros.","Os trechos viram o contexto: cada um delimitado com o seu id, para o modelo citar.","O prompt: instrução de sistema fixa + contexto + pergunta, com esquema de saída.","O modelo gera a resposta em JSON: texto, citações (ids), ou sem_evidencia.","A validação em código: cada citação existe? está no contexto enviado? Sem citação válida, a resposta não passa.","O que sai: resposta com as fontes conferidas, ou uma recusa honesta."]' aria-label="Ciclo de consulta do RAG em sete passos">
+    <div class="dtools"><button class="btn small" data-stepper="qc">Passo a passo</button><button class="btn small ghost" data-stepper-reset="qc">Reiniciar</button><span class="mini" id="qc-cap"></span></div>
+    <svg viewBox="0 0 760 250" role="img" aria-labelledby="qct"><title id="qct">Ciclo de consulta</title>
+      <defs><marker id="ar5" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="var(--muted)"/></marker></defs>
+      <g class="node stage" data-stage="qc-0"><rect x="10" y="30" width="110" height="56" rx="8"/><text x="65" y="53" text-anchor="middle" class="t">Pergunta</text><text x="65" y="71" text-anchor="middle">texto</text></g>
+      <g class="node ia stage" data-stage="qc-1"><rect x="150" y="30" width="130" height="56" rx="8"/><text x="215" y="53" text-anchor="middle" class="t">Busca híbrida</text><text x="215" y="71" text-anchor="middle">1 embedding · top-12</text></g>
+      <g class="node stage" data-stage="qc-2"><rect x="310" y="30" width="120" height="56" rx="8"/><text x="370" y="53" text-anchor="middle" class="t">Contexto</text><text x="370" y="71" text-anchor="middle">trechos com id</text></g>
+      <g class="node stage" data-stage="qc-3"><rect x="460" y="30" width="120" height="56" rx="8"/><text x="520" y="53" text-anchor="middle" class="t">Prompt</text><text x="520" y="71" text-anchor="middle">sistema + contexto + q</text></g>
+      <g class="node ext stage" data-stage="qc-4"><rect x="610" y="30" width="140" height="56" rx="8"/><text x="680" y="53" text-anchor="middle" class="t">Modelo</text><text x="680" y="71" text-anchor="middle">JSON com citações</text></g>
+      <g class="node gate stage" data-stage="qc-5"><rect x="460" y="150" width="150" height="56" rx="8"/><text x="535" y="173" text-anchor="middle" class="t">Validação</text><text x="535" y="191" text-anchor="middle">citação existe? no contexto?</text></g>
+      <g class="node ok stage" data-stage="qc-6"><rect x="200" y="150" width="200" height="56" rx="8"/><text x="300" y="173" text-anchor="middle" class="t">Resposta com fontes</text><text x="300" y="191" text-anchor="middle">ou recusa (sem_evidencia)</text></g>
+      <path class="edge" d="M120 58 H146" marker-end="url(#ar5)"/><path class="edge" d="M280 58 H306" marker-end="url(#ar5)"/><path class="edge" d="M430 58 H456" marker-end="url(#ar5)"/><path class="edge" d="M580 58 H606" marker-end="url(#ar5)"/>
+      <path class="edge" d="M680 86 V178 H614" marker-end="url(#ar5)"/><path class="edge" d="M460 178 H404" marker-end="url(#ar5)"/>
+      <text class="lbl" x="640" y="130">2 chamadas de rede</text><text class="lbl" x="20" y="130">o resto é código</text>
+    </svg>
+    <figcaption>Cada caixa tem uma saída inspecionável e uma medida: recall@k para a busca, orçamento de tokens para o contexto, fidelidade e recusa para a resposta, descartes por motivo para a validação.</figcaption>
+  </figure>
+
+  <div class="lab">
+    <header><h4>Experimento · O RAG completo, com cada etapa aberta</h4><span class="badge live">ao vivo · 1 lote + 1 geração</span></header>
+    <div class="body">
+      <p>Faça uma pergunta ao corpus. Cada painel abaixo mostra a saída da etapa: as três listas da busca, o contexto montado, o prompt, o JSON do modelo e o veredito da validação, com o tempo de cada uma. Inclui uma pergunta sem resposta na base para ver a recusa.</p>
+      <div class="row top">
+        <div><label class="f" for="rag-q">Pergunta</label><input type="text" id="rag-q" value="Qual é o limite de valor para dispensa de licitação em obras e serviços de engenharia?"></div>
+        <div class="fixed"><label class="f" for="rag-eval">Do conjunto de avaliação</label><select id="rag-eval"><option value="">—</option></select></div>
+        <div class="fixed"><label class="f" for="rag-k">top-k</label><select id="rag-k"><option value="3">3</option><option value="6">6</option><option value="12" selected>12</option></select></div>
+        <div class="fixed"><button class="btn" id="rag-run">Rodar</button></div>
+      </div>
+      <div class="status" id="rag-status"></div>
+      <div class="stages">
+        <div class="stage" id="rag-s1"><h5>1 · Busca híbrida</h5><div class="res"></div></div>
+        <div class="stage" id="rag-s2"><h5>2 · Contexto</h5><div class="res"></div></div>
+        <div class="stage" id="rag-s3"><h5>3 · Prompt</h5><div class="res"></div></div>
+        <div class="stage" id="rag-s4"><h5>4 · Resposta do modelo</h5><div class="res"></div></div>
+        <div class="stage" id="rag-s5"><h5>5 · Validação</h5><div class="res"></div></div>
+      </div>
+      <div class="bars" id="rag-trace" style="margin-top:12px"></div>
+    </div>
+  </div>
+
+  <div class="doit"><span class="ic">faça agora</span><p>Rode a pergunta padrão e leia os cinco painéis na ordem. Depois escolha a pergunta "sem resposta na base" (ISS): a busca vai trazer trechos mesmo assim (ela sempre traz algo), e o que tem que acontecer é o modelo devolver sem_evidencia e a validação aceitar a recusa. Por fim, top-k = 3 com uma pergunta do conjunto: veja se o esperado ainda entra.</p></div>
+
+  <div class="faq">
+    <h3>Perguntas que aparecem aqui</h3>
+    <details><summary>Por que a busca trouxe trechos para uma pergunta que a base não responde?</summary><p>Porque busca é ranking: sempre existe um "mais próximo", mesmo que longe. A busca não sabe dizer "nada serve"; quem decide isso é o modelo, lendo os trechos, e a validação confere que ele não citou nada fora. Um limiar de score (página 2) ou a nota do reranker (página 4) podem antecipar a recusa e economizar a geração.</p><p class="why">Ranking sempre devolve algo; "não há" é uma decisão de leitura.</p></details>
+    <details><summary>O que acontece se o modelo citar um id que não existe?</summary><p>A validação descarta a citação e conta o motivo (fonte_inexistente). Se sobrar alguma citação válida, a resposta passa com as citações restantes; se não sobrar, é rejeitada e o sistema registra. É o mecanismo do Ex. 6 e da página 7: o modelo pode errar, o código não deixa o erro chegar ao analista.</p><p class="why">Validação em código é a última barreira, e é determinística.</p></details>
+    <details><summary>Duas chamadas por pergunta é o mínimo?</summary><p>É. Uma para embutir a pergunta (a lexical não precisa de rede), uma para gerar. Dá para chegar a uma se a pergunta já estiver embutida (cache por hash, capítulo 9) ou se a resposta estiver em cache. Cada etapa "avançada" do capítulo 2 adiciona chamadas, e é por isso que elas precisam se justificar.</p><p class="why">Duas é o piso; tudo acima custa e precisa de prova.</p></details>
+  </div>
+
+  <div class="notes"><label for="n-p5-c1">Caderno · com as suas palavras</label><p class="hint">Descreva as cinco etapas com o que cada uma recebe, devolve e como se mede. Diga por que o projeto quer o ciclo determinístico.</p><textarea class="prose" id="n-p5-c1" data-note="p5-c1"></textarea><div class="saved"></div></div>
+</section>
+
+<!-- ============================================================ 2 -->
+<section class="chapter" id="c2" data-ch="p5-c2">
+  <div class="ch-head"><span class="n">Capítulo 2</span><h2>Padrões: do RAG mínimo ao agêntico, e o que o projeto escolheu</h2><label class="donebox"><input type="checkbox" data-done> Capítulo concluído</label></div>
+
+  <p>O ciclo do capítulo 1 é o <strong>RAG mínimo</strong> (às vezes chamado de "ingênuo", o que é injusto: com busca híbrida, esquema de saída e validação, ele é a base de sistemas sérios). Sobre ele existem etapas opcionais, cada uma com um ganho específico e um custo em chamadas e latência.</p>
+  <p><strong>Reescrita da consulta</strong>: o modelo transforma a pergunta do usuário numa consulta melhor para a busca (expande siglas, tira ruído, explicita o que se quer). Ganha quando as perguntas chegam mal escritas; custa uma geração. <strong>Multi-consulta</strong>: gera três ou quatro variações da pergunta, busca com todas e funde (RRF de novo). Ganha recall em perguntas ambíguas; custa uma geração e várias embeddings. <strong>HyDE</strong>: o modelo escreve uma resposta hipotética e é <em>ela</em> que se embute e busca, porque uma resposta se parece mais com o documento do que a pergunta. Ganha em consultas curtas com vocabulário diferente do corpus; custa uma geração e corre o risco de embutir uma alucinação. <strong>Decomposição</strong>: quebra perguntas compostas ("o edital atende aos prazos e à garantia?") em subperguntas, cada uma com a sua busca, e sintetiza. <strong>Reranker</strong> e <strong>juiz de aderência</strong> (páginas 4 e 7): reordenam e conferem.</p>
+  <p>O <strong>RAG agêntico</strong> deixa o modelo decidir, a cada passo, se busca de novo, com qual consulta, e quando parar. É poderoso para perguntas exploratórias e péssimo para auditoria: duas execuções do mesmo documento podem seguir caminhos diferentes, e o custo é imprevisível. <strong>GraphRAG</strong> e variantes constroem um grafo de entidades e relações sobre o corpus; vale quando as perguntas são sobre relações entre muitas partes ("quais dispositivos foram alterados pela lei X e afetam Y"), não para "o que diz o art. 75". E há a alternativa de <strong>não fazer RAG</strong>: colocar a lei inteira no contexto de um modelo de janela longa. A página 1 explicou o custo (tokens por chamada, "perdido no meio"); para uma base de dezenas de milhares de dispositivos, não é opção.</p>
+  <p>O projeto escolheu o mínimo, com busca híbrida forte, esquema, validação e <strong>um critério por chamada</strong> na auditoria: em vez de decompor perguntas com o modelo, a decomposição já está na lista de critérios, feita por quem sabe. As etapas extras ficam atrás de flags, para entrar quando a avaliação (página 8) mostrar onde o mínimo falha.</p>
+
+  <div class="lab">
+    <header><h4>Experimento · Montador de pipeline: o que cada etapa custa</h4><span class="badge toy">estimativa</span></header>
+    <div class="body">
+      <p>Ligue etapas e veja chamadas, latência e tokens por pergunta, e quantas perguntas por dia cabem na cota gratuita. Os números são ordens de grandeza (latências típicas de um Flash-Lite); o ponto é a proporção.</p>
+      <div id="pb-form">
+        <div class="chips" style="margin-bottom:10px">
+          <label class="chip"><input type="checkbox" id="pb-rewrite"> reescrita da consulta</label>
+          <label class="chip"><input type="checkbox" id="pb-multi"> multi-consulta</label>
+          <label class="chip"><input type="checkbox" id="pb-hyde"> HyDE</label>
+          <label class="chip"><input type="checkbox" id="pb-decomp"> decomposição</label>
+          <label class="chip"><input type="checkbox" id="pb-rerank"> reranker</label>
+          <label class="chip"><input type="checkbox" id="pb-judge"> juiz de aderência</label>
+        </div>
+        <div class="row"><div><label class="f" for="pb-rpd">Cota gratuita de geração (chamadas/dia)</label><select id="pb-rpd"><option value="20">20 (Flash 3.x)</option><option value="500" selected>500 (Flash-Lite, aprox.)</option><option value="100000">sem limite (conta paga)</option></select></div></div>
+      </div>
+      <div class="bars" id="pb-out" aria-live="polite"></div>
+      <p class="mini" id="pb-note"></p>
+    </div>
+  </div>
+
+  <div class="doit"><span class="ic">faça agora</span><p>Com tudo desligado, anote as perguntas por dia. Ligue reranker e juiz (as duas que mais tendem a valer): as chamadas triplicam. Ligue tudo: a latência passa de vários segundos e a cota gratuita acaba em poucas dezenas de perguntas. Agora responda: para a auditoria com 40 critérios por documento, quantas chamadas por documento tem o pipeline mínimo? E o completo?</p></div>
+
+  <div class="faq">
+    <h3>Perguntas que aparecem aqui</h3>
+    <details><summary>Como sei se uma etapa extra vale a pena?</summary><p>Só de um jeito: rodar o conjunto de avaliação com e sem ela e comparar recall, fidelidade e recusa (página 8), com o custo ao lado. Uma etapa que sobe o recall de 0,88 para 0,90 e dobra a latência não vale; uma que sobe de 0,70 para 0,85 vale mesmo cara. Sem medição, é opinião.</p><p class="why">A avaliação decide; a intuição só propõe.</p></details>
+    <details><summary>Multi-consulta não é só "buscar mais"?</summary><p>É buscar com formulações diferentes, o que muda o que a busca acha, não só quanto. Ajuda quando a pergunta do usuário está longe do vocabulário do corpus. Mas cada variação é uma embedding e a fusão traz mais candidatos para o reranker filtrar. No projeto, a busca híbrida já cobre parte disso (a lexical acha o vocabulário exato; a vetorial, o sentido), e por isso a multi-consulta ficou de fora do mínimo.</p><p class="why">Híbrida resolve parte do que multi-consulta resolveria, sem chamada extra.</p></details>
+    <details><summary>O modelo de janela longa não vai tornar o RAG obsoleto?</summary><p>Para bases pequenas e perguntas ocasionais, colocar tudo no contexto já é razoável. Para uma base grande, com muitas perguntas por dia, custo, latência e "perdido no meio" mantêm o RAG. E há uma razão que não é técnica: a busca produz uma lista curta e citável do que foi usado, que é o que um auditor quer ver. Um contexto de 200 mil tokens não é auditável.</p><p class="why">RAG não é só economia; é rastreabilidade.</p></details>
+  </div>
+
+  <div class="notes"><label for="n-p5-c2">Caderno</label><p class="hint">Liste as etapas opcionais com o ganho e o custo de cada uma, e explique por que "um critério por chamada" substitui a decomposição no projeto.</p><textarea class="prose" id="n-p5-c2" data-note="p5-c2"></textarea><div class="saved"></div></div>
+</section>
+
+<!-- ============================================================ 3 -->
+<section class="chapter" id="c3" data-ch="p5-c3">
+  <div class="ch-head"><span class="n">Capítulo 3</span><h2>O ciclo de ingestão: da fonte ao índice</h2><label class="donebox"><input type="checkbox" data-done> Capítulo concluído</label></div>
+
+  <p>Tudo o que o ciclo de consulta faz depende do que a ingestão colocou na base. E a ingestão é onde a sujeira entra: PDFs com cabeçalho em toda página, palavras hifenizadas na quebra de linha, "Este texto não substitui o publicado no DOU", tabelas viradas em texto corrido, notas de rodapé no meio do artigo. Um trecho com esse ruído ganha um vetor deslocado e um tsvector com lexemas inúteis. A ingestão é um pipeline próprio, que roda <em>fora</em> do ciclo de consulta, com sete etapas: <strong>fonte</strong> (o PDF oficial, ou o HTML do Planalto, com a data de captura), <strong>extração</strong> (PDF → texto, com a ferramenta certa para o layout; página 9), <strong>normalização</strong> (limpeza, que o experimento abaixo faz), <strong>segmentação</strong> (por dispositivo; capítulo 4), <strong>enriquecimento</strong> (identificador, hierarquia, vigência, hash; capítulos 5 e 6), <strong>embedding</strong> (em lotes, com tipo de tarefa; página 2) e <strong>indexação</strong> (inserção idempotente; página 3).</p>
+  <p>Duas propriedades fazem a ingestão confiável. <strong>Idempotência</strong>: rodar duas vezes sobre a mesma fonte não duplica nada, porque o identificador é natural e o hash do texto diz se o trecho mudou. <strong>Versionamento</strong>: cada carga tem uma versão (fonte, data, modelo de embedding), e a consulta sabe contra qual versão rodou. Com as duas, reprocessar é seguro e barato, e é isso que permite melhorar a segmentação ou trocar o modelo sem medo.</p>
+  <p>Sobre a decisão da base normativa do projeto: <strong>curada, não ao vivo</strong>. A jurisprudência do TCU é buscada, selecionada e ingerida por um processo controlado, com revisão, e não consultada em tempo real. Ao vivo daria "atualidade" ao custo de conteúdo não revisado entrando no contexto de uma auditoria; curado dá previsibilidade e rastreabilidade, ao custo de uma rotina de atualização. Para conformidade, a segunda vale mais.</p>
+
+  <figure class="diagram" data-caps='["A fonte: PDF oficial ou página do Planalto, com data de captura e hash do arquivo.","Extração: o PDF vira texto. A ferramenta importa (pdfplumber, pymupdf, OCR quando é imagem).","Normalização: cabeçalhos, rodapés, hifenização, espaços; o texto fica limpo e contínuo.","Segmentação: o texto vira dispositivos (artigo, parágrafo, inciso, alínea), com o caput como contexto.","Enriquecimento: identificador natural, hierarquia, norma, vigência, hash do texto.","Embedding: lotes de 16, RETRIEVAL_DOCUMENT, 768 dimensões, normalizado.","Indexação: inserção idempotente por id; versão da carga registrada; índices atualizados."]' aria-label="Ciclo de ingestão em sete etapas">
+    <div class="dtools"><button class="btn small" data-stepper="ig">Passo a passo</button><button class="btn small ghost" data-stepper-reset="ig">Reiniciar</button><span class="mini" id="ig-cap"></span></div>
+    <svg viewBox="0 0 760 170" role="img" aria-labelledby="igt"><title id="igt">Ciclo de ingestão</title>
+      <defs><marker id="ar6" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="var(--muted)"/></marker></defs>
+      <g class="node ext stage" data-stage="ig-0"><rect x="10" y="30" width="95" height="52" rx="8"/><text x="57" y="52" text-anchor="middle" class="t">Fonte</text><text x="57" y="69" text-anchor="middle">PDF · HTML</text></g>
+      <g class="node stage" data-stage="ig-1"><rect x="120" y="30" width="95" height="52" rx="8"/><text x="167" y="52" text-anchor="middle" class="t">Extração</text><text x="167" y="69" text-anchor="middle">texto bruto</text></g>
+      <g class="node stage" data-stage="ig-2"><rect x="230" y="30" width="110" height="52" rx="8"/><text x="285" y="52" text-anchor="middle" class="t">Normalização</text><text x="285" y="69" text-anchor="middle">limpeza</text></g>
+      <g class="node stage" data-stage="ig-3"><rect x="355" y="30" width="110" height="52" rx="8"/><text x="410" y="52" text-anchor="middle" class="t">Segmentação</text><text x="410" y="69" text-anchor="middle">por dispositivo</text></g>
+      <g class="node stage" data-stage="ig-4"><rect x="480" y="30" width="120" height="52" rx="8"/><text x="540" y="52" text-anchor="middle" class="t">Enriquecimento</text><text x="540" y="69" text-anchor="middle">id · vigência · hash</text></g>
+      <g class="node ia stage" data-stage="ig-5"><rect x="615" y="30" width="60" height="52" rx="8"/><text x="645" y="52" text-anchor="middle" class="t">Emb.</text><text x="645" y="69" text-anchor="middle">lotes</text></g>
+      <g class="node ok stage" data-stage="ig-6"><rect x="690" y="30" width="60" height="52" rx="8"/><text x="720" y="52" text-anchor="middle" class="t">Índice</text><text x="720" y="69" text-anchor="middle">versão</text></g>
+      <path class="edge" d="M105 56 H116" marker-end="url(#ar6)"/><path class="edge" d="M215 56 H226" marker-end="url(#ar6)"/><path class="edge" d="M340 56 H351" marker-end="url(#ar6)"/><path class="edge" d="M465 56 H476" marker-end="url(#ar6)"/><path class="edge" d="M600 56 H611" marker-end="url(#ar6)"/><path class="edge" d="M675 56 H686" marker-end="url(#ar6)"/>
+      <text class="lbl" x="10" y="120">idempotente: rodar de novo não duplica; hash decide o que reembutir</text><text class="lbl" x="10" y="140">versionado: fonte + data + modelo em cada carga; a consulta registra contra qual versão rodou</text>
+    </svg>
+    <figcaption>A ingestão roda fora do ciclo de consulta, em fila (SQS no projeto), e é a única parte que escreve na base.</figcaption>
+  </figure>
+
+  <div class="lab">
+    <header><h4>Experimento · Linha de limpeza</h4><span class="badge toy">roda no navegador</span></header>
+    <div class="body">
+      <p>Um trecho como sai de um PDF oficial, com cabeçalho de página, hifenização na quebra de linha e a nota de rodapé. Ligue e desligue cada etapa de limpeza e veja o texto e a estrutura detectável mudarem. Edite o texto bruto para testar os seus casos.</p>
+      <div class="row top"><div><label class="f" for="ing-raw">Texto bruto (como extraído)</label><textarea id="ing-raw" rows="9"></textarea></div></div>
+      <div class="chips" style="margin:8px 0">
+        <label class="chip"><input type="checkbox" id="ing-hdr" checked> cabeçalhos e rodapés</label>
+        <label class="chip"><input type="checkbox" id="ing-hyph" checked> hifenização</label>
+        <label class="chip"><input type="checkbox" id="ing-lines" checked> juntar linhas</label>
+        <label class="chip"><input type="checkbox" id="ing-ws" checked> espaços</label>
+        <label class="chip"><input type="checkbox" id="ing-num"> números por extenso</label>
+        <button class="btn ghost small" id="ing-reset" type="button">Restaurar o exemplo</button>
+      </div>
+      <div id="ing-steps"></div>
+      <pre><code id="ing-out" class="language-text"></code></pre>
+      <p class="mini" id="ing-stats"></p>
+    </div>
+  </div>
+
+  <div class="doit"><span class="ic">faça agora</span><p>Desligue "hifenização" e leia "re- ais" e "veí- culos": esses dois pedaços virariam lexemas que ninguém busca e deslocariam o vetor. Desligue "cabeçalhos": o trecho do § 3º ganharia "LEI Nº 14.133 … Página 13" no meio. Ligue "números por extenso" e decida: "3 (três) dias" deve virar "3 dias"? A busca lexical por "três" perderia; a redação legal tem os dois. Anote a sua regra.</p></div>
+
+  <div class="faq">
+    <h3>Perguntas que aparecem aqui</h3>
+    <details><summary>Limpar demais tem risco?</summary><p>Tem. Toda regra de limpeza é uma regra que pode apagar conteúdo: um regex de "rodapé" que pega uma linha do texto, uma junção de linhas que cola dois dispositivos. Por isso a limpeza é feita com regras explícitas, testadas em amostras, e o texto bruto é guardado ao lado do limpo (com o hash de cada um): dá para reprocessar quando uma regra melhora.</p><p class="why">Guarde o bruto; a limpeza é reprocessável.</p></details>
+    <details><summary>Por que a ingestão roda em fila e não no upload?</summary><p>Porque é lenta (extração, embeddings em lote) e falha por motivos externos (PDF corrompido, cota da API). Numa fila com retentativa e fila de erros (SQS + DLQ no projeto), a falha de um documento não trava o sistema e pode ser reprocessada. O upload só registra o documento e enfileira.</p><p class="why">Trabalho lento e falível vai para a fila.</p></details>
+    <details><summary>Quando o TCU publica um acórdão novo, como ele entra?</summary><p>Pela rotina de curadoria: alguém seleciona, o acórdão entra como fonte com data, passa pelo pipeline e recebe versão. Não há busca ao vivo no site do TCU durante uma auditoria. É mais lento e é intencional: o que entra no contexto de uma auditoria passou por revisão.</p><p class="why">Curado: previsível e rastreável; ao vivo: atual e sem controle.</p></details>
+  </div>
+
+  <div class="notes"><label for="n-p5-c3">Caderno</label><p class="hint">Escreva as sete etapas da ingestão com um erro típico de cada uma, e explique idempotência e versionamento com um exemplo de reprocessamento.</p><textarea class="prose" id="n-p5-c3" data-note="p5-c3"></textarea><div class="saved"></div></div>
+</section>
+<!-- ============================================================ 4 -->
+<section class="chapter" id="c4" data-ch="p5-c4">
+  <div class="ch-head"><span class="n">Capítulo 4</span><h2>Segmentação: um dispositivo, um trecho</h2><label class="donebox"><input type="checkbox" data-done> Capítulo concluído</label></div>
+
+  <p>Segmentar é decidir o que é "um trecho": a unidade que recebe um vetor, um tsvector e um id, e que o modelo lê inteira. A página 2 mostrou o custo de errar para cima (diluição: um trecho com três assuntos fica no meio de todos) e a página 1 o custo de errar para baixo (um inciso sem o caput não diz do que trata). As estratégias genéricas de segmentação existem porque a maioria dos textos não tem estrutura; texto legal tem, e é a melhor notícia desta página.</p>
+  <p><strong>Tamanho fixo</strong> (N caracteres, com sobreposição): simples, cego, corta frases no meio e junta dispositivos. Serve para texto sem estrutura nenhuma. <strong>Por frase</strong> (agrupa frases até um tamanho): não corta no meio, mas ainda junta o fim de um artigo com o começo do outro. <strong>Recursiva</strong> (tenta parágrafos, depois frases, depois caracteres): o padrão das bibliotecas, razoável para documentos comuns. <strong>Semântica</strong> (corta onde o embedding de frases consecutivas muda muito): cara, e para lei é redundante, porque a estrutura já diz onde cortar. <strong>Estrutural</strong>: um trecho por dispositivo (caput, parágrafo, inciso, alínea), com o caput como prefixo dos incisos e parágrafos. É a do projeto e a do Ex. 2.</p>
+  <p>Os critérios para julgar uma segmentação estão no experimento: número de trechos, tamanho médio e máximo (o limite de entrada do embedding é 2048 tokens), quantos trechos misturam mais de um dispositivo (diluição) e quantos cortam no meio de uma frase. A estrutural zera os dois últimos por construção. A <strong>sobreposição</strong>, tão comum nos tutoriais, é um remendo para cortes cegos: quando o corte é estrutural, ela não faz sentido; o contexto que a sobreposição tentaria preservar é o caput, e ele entra como prefixo, não como repetição.</p>
+
+  <div class="lab">
+    <header><h4>Experimento · Segmentador</h4><span class="badge toy">roda no navegador</span></header>
+    <div class="body">
+      <p>Alguns artigos do corpus, reconstruídos como texto de lei. Escolha a estratégia (e, nas cegas, tamanho e sobreposição) e compare os indicadores. Edite o texto para ver como cada estratégia reage a um artigo longo ou a um inciso curto.</p>
+      <div class="row top"><div><label class="f" for="ch-text">Texto</label><textarea id="ch-text" rows="8"></textarea></div></div>
+      <div class="row">
+        <div><label class="f" for="ch-strat">Estratégia</label><select id="ch-strat"><option value="fixed">tamanho fixo</option><option value="sentence">por frase</option><option value="recursive">recursiva</option><option value="struct" selected>estrutural (por dispositivo, caput como prefixo)</option></select></div>
+        <div><label class="f" for="ch-size">Tamanho = <span id="ch-sizev">400</span> caracteres</label><input type="range" id="ch-size" min="100" max="1500" step="50" value="400"></div>
+        <div><label class="f" for="ch-overlap">Sobreposição = <span id="ch-overlapv">0</span></label><input type="range" id="ch-overlap" min="0" max="200" step="10" value="0"></div>
+      </div>
+      <div class="bars" id="ch-out" aria-live="polite"></div>
+      <div id="ch-list" style="margin-top:10px"></div>
+    </div>
+  </div>
+
+  <div class="doit"><span class="ic">faça agora</span><p>Tamanho fixo com 400 e sobreposição 0: conte os trechos cortados no meio da frase. Suba a sobreposição para 100: os cortes continuam, só repetidos. Troque para "por frase": cortes zero, mas "mais de um dispositivo" sobe. Troque para estrutural: os dois indicadores zeram e o inciso ganha o caput como prefixo. Depois cole um artigo longo de verdade e veja o "maior trecho" contra o limite de 2048 tokens.</p></div>
+
+  <div class="faq">
+    <h3>Perguntas que aparecem aqui</h3>
+    <details><summary>E quando um único dispositivo é enorme (um caput de meia página)?</summary><p>Fica como um trecho enquanto couber no limite do embedding (2048 tokens no <code>embedding-001</code>); acima disso, corta por frase dentro do dispositivo, mantendo o mesmo id com um sufixo de parte (<code>-p1</code>, <code>-p2</code>) e o cabeçalho repetido. É raro em lei; é comum em acórdãos, e é a regra do projeto para eles.</p><p class="why">Estrutura primeiro; tamanho só quando a estrutura estoura o limite.</p></details>
+    <details><summary>O caput como prefixo não duplica texto no índice?</summary><p>Duplica um pouco (as primeiras palavras do caput em cada inciso), e vale: o inciso "I – para obras e serviços de engenharia" sozinho não diz que é sobre dispensa de licitação. O prefixo torna cada trecho legível isolado, para o vetor e para o modelo. O custo em tokens é pequeno porque o prefixo é curto (o guia corta em 80 caracteres).</p><p class="why">Legibilidade isolada vale mais que economia de tokens.</p></details>
+    <details><summary>Como segmentar um edital, que não tem "art."?</summary><p>Editais têm estrutura própria (itens numerados 1, 1.1, 1.1.1; anexos; cláusulas do contrato). A mesma ideia vale: um trecho por item, com o item pai como prefixo, e um id natural (<code>EDITAL-2024-12-item-7.3</code>). O que muda é o regex; o princípio, não. A página 9 trata da extração e dos regex.</p><p class="why">Todo documento normativo tem hierarquia; ache a dele.</p></details>
+  </div>
+
+  <div class="notes"><label for="n-p5-c4">Caderno</label><p class="hint">Explique por que a segmentação estrutural vence as cegas para texto legal, usando os dois indicadores (diluição e corte), e o que fazer quando um dispositivo estoura o limite.</p><textarea class="prose" id="n-p5-c4" data-note="p5-c4"></textarea><div class="saved"></div></div>
+</section>
+
+<!-- ============================================================ 5 -->
+<section class="chapter" id="c5" data-ch="p5-c5">
+  <div class="ch-head"><span class="n">Capítulo 5</span><h2>Identificadores naturais e metadados</h2><label class="donebox"><input type="checkbox" data-done> Capítulo concluído</label></div>
+
+  <p>Cada trecho precisa de um nome que não mude. Se o id fosse um número sequencial ou um UUID gerado na carga, reindexar a base daria ids novos e toda citação antiga ("a resposta X citou o trecho 4821") ficaria órfã. O projeto usa <strong>identificadores naturais</strong>: derivados do conteúdo, <code>L14133-art75-incI</code>, <code>L14133-art75-p3</code>, <code>DEC10024-art3-incII-b</code>. O mesmo dispositivo produz o mesmo id em qualquer carga; um id que aparece numa citação pode ser resolvido para o texto anos depois; e o analista lê o id e sabe do que se trata.</p>
+  <p>A convenção: <em>norma</em> (sigla e número sem pontuação), <em>artigo</em>, e a subdivisão na ordem da hierarquia: parágrafo (<code>p2</code>, <code>pu</code> para parágrafo único), inciso (<code>incIII</code>, em romano como na lei), alínea (<code>b</code>). Caput explícito quando o artigo tem subdivisões (<code>-caput</code>), para não confundir o artigo inteiro com a cabeça dele. Tudo derivado por um parser de referências, o mesmo que depois interpreta citações escritas pelo modelo ("art. 75, § 2º, III") e as converte em ids para validar.</p>
+  <p>Ao lado do id, os <strong>metadados</strong> que a consulta filtra e o analista vê: <code>norma</code>, <code>artigo</code>, <code>hierarquia</code> (caput / parágrafo / inciso / alínea), <code>tema</code> (opcional, atribuído na curadoria), <code>vigencia_inicio</code> e <code>vigencia_fim</code> (capítulo 6), <code>hash_texto</code> (para saber se mudou), <code>fonte</code> e <code>versao_carga</code>. Nada disso vai para o embedding; vai para colunas, onde o SQL filtra de graça.</p>
+
+  <div class="lab">
+    <header><h4>Experimento · Gerador e verificador de identificadores</h4><span class="badge toy">roda no navegador</span></header>
+    <div class="body">
+      <p>Escreva uma referência como ela aparece num texto ou numa citação do modelo e veja o id natural, as partes reconhecidas e se ele existe no corpus do guia; o hash do texto aparece abaixo.</p>
+      <div class="chips" id="id-presets" style="margin-bottom:10px"><button class="chip" type="button" data-q="Art. 75, inciso I">Art. 75, inciso I</button><button class="chip" type="button" data-q="art. 75, § 3º">art. 75, § 3º</button><button class="chip" type="button" data-q="Lei 14.133, art. 6º, XXV">Lei 14.133, art. 6º, XXV</button><button class="chip" type="button" data-q="art. 92, caput">art. 92, caput</button><button class="chip" type="button" data-q="Art. 75, § 2º, inc. III, alínea b">Art. 75, § 2º, inc. III, alínea b</button><button class="chip" type="button" data-q="artigo 74">artigo 74</button></div>
+      <div class="row"><div><label class="f" for="id-in">Referência</label><input type="text" id="id-in" value="Art. 75, inciso I"></div></div>
+      <div id="id-out"></div>
+      <p class="mini" id="id-hash"></p>
+      <p class="mini" id="id-uniq"></p>
+    </div>
+  </div>
+
+  <div class="doit"><span class="ic">faça agora</span><p>Digite "art 75 I" (sem pontuação) e "Art. 75, inc. I": o parser precisa produzir o mesmo id. Digite "artigo 74": sem subdivisão, o id recebe "caput". Agora imagine o modelo citando "art. 75, inciso 1" (algarismo em vez de romano): o que o seu parser faz? Anote como regra do Ex. 6.</p></div>
+
+  <div class="faq">
+    <h3>Perguntas que aparecem aqui</h3>
+    <details><summary>E se dois dispositivos tiverem o mesmo id (uma lei alterada que renumera)?</summary><p>O id natural identifica o <em>dispositivo</em>, não a redação: o art. 75, I, continua sendo art. 75, I, mesmo com o valor atualizado. Quem distingue redações é a vigência (capítulo 6): duas linhas com o mesmo id lógico e vigências diferentes, e a chave primária vira (id, vigencia_inicio). Renumeração de verdade (um artigo vira outro) é raríssima e se trata como dispositivo novo com nota de equivalência.</p><p class="why">Id = dispositivo; vigência = redação; juntos, a chave.</p></details>
+    <details><summary>Por que não usar o hash do texto como id?</summary><p>Porque o hash muda quando o texto muda (é para isso que ele existe) e ninguém lê um hash. Hash é para detectar mudança e evitar reembutir; id é para citar e resolver. Duas funções, duas colunas.</p><p class="why">Hash detecta mudança; id nomeia.</p></details>
+    <details><summary>Os metadados deveriam entrar no texto embutido?</summary><p>O que ajuda o vetor a entender o trecho, sim: o cabeçalho do dispositivo ("Art. 75, I") e o caput como prefixo. O que serve para filtrar (vigência, norma, tema), não: vai para colunas. Embutir "vigente desde 2021" no texto não faz o vetor filtrar por data; só adiciona ruído.</p><p class="why">No texto o que dá sentido; na coluna o que filtra.</p></details>
+  </div>
+
+  <div class="notes"><label for="n-p5-c5">Caderno</label><p class="hint">Escreva a convenção de id do projeto com três exemplos, e diga o que quebra se o id for gerado em vez de natural.</p><textarea class="prose" id="n-p5-c5" data-note="p5-c5"></textarea><div class="saved"></div></div>
+</section>
+
+<!-- ============================================================ 6 -->
+<section class="chapter" id="c6" data-ch="p5-c6">
+  <div class="ch-head"><span class="n">Capítulo 6</span><h2>Vigência: a norma certa para a data do documento</h2><label class="donebox"><input type="checkbox" data-done> Capítulo concluído</label></div>
+
+  <p>Uma auditoria de conformidade pergunta "este edital, publicado nesta data, cumpre a norma que valia <em>nesta data</em>?". A Lei 14.133 mudou desde 2021 (dispositivos alterados, valores do art. 75 atualizados anualmente por decreto, prazos de transição), e uma base que só guarda a redação atual responde errado sobre qualquer documento antigo, com toda a confiança. A solução é tratar a redação como <strong>versão com vigência</strong>: cada trecho tem <code>vigencia_inicio</code> e <code>vigencia_fim</code> (nula se ainda vigente), o mesmo id lógico pode ter várias linhas, e a consulta filtra pela data do documento analisado.</p>
+  <p>Na prática, três regras. A busca <strong>sempre</strong> recebe uma data (a do documento; hoje, para perguntas livres) e aplica o filtro nas duas CTEs da híbrida (página 4). A ingestão de uma alteração <strong>fecha</strong> a vigência da linha antiga e <strong>abre</strong> uma nova, nunca sobrescreve. E a resposta ao analista mostra a vigência do trecho citado ("art. 75, I, redação vigente de 1/1/2024 a 31/12/2024"), porque um auditor vai perguntar. O filtro de vigência é também o caso de uso principal da varredura iterativa da página 3: para documentos antigos, ele fica seletivo.</p>
+
+  <div class="lab">
+    <header><h4>Experimento · Linha do tempo do art. 75, I</h4><span class="badge toy">valores ilustrativos</span></header>
+    <div class="body">
+      <p>O limite de dispensa para obras nasceu em R$ 100.000,00 na lei e é atualizado todo ano por decreto (art. 182). Arraste a data do documento e veja qual versão do dispositivo o filtro devolve e o SQL correspondente. Os valores atualizados aqui são aproximados, para ilustrar o mecanismo; confira o decreto vigente antes de usar.</p>
+      <div class="row"><div><label class="f" for="vg-date">Data do documento analisado: <span id="vg-datev"></span></label><input type="range" id="vg-date" min="0" max="1000" step="1" value="520"></div></div>
+      <figure class="diagram" style="margin:0"><svg id="vg-svg" viewBox="0 0 760 125" role="img" aria-label="Linha do tempo das versões do dispositivo"></svg></figure>
+      <div id="vg-out"></div>
+    </div>
+  </div>
+
+  <div class="doit"><span class="ic">faça agora</span><p>Coloque a data em março de 2021: nenhuma versão vigente (a lei ainda não existia). Em junho de 2021: a redação original. Em 2024: a versão daquele ano. Agora pense num edital de outubro de 2023 sendo auditado hoje: qual valor o sistema deve comparar? Escreva a regra numa frase.</p></div>
+
+  <div class="faq">
+    <h3>Perguntas que aparecem aqui</h3>
+    <details><summary>De onde vêm as datas de vigência?</summary><p>Da própria norma alteradora ("esta lei entra em vigor em…", "produz efeitos a partir de…") e dos decretos de atualização de valores. A curadoria registra a data ao ingerir a alteração; é trabalho humano assistido, e é a parte da ingestão que mais exige revisão, porque um erro de data é um erro de auditoria.</p><p class="why">Vigência é dado curado, não extraído automaticamente.</p></details>
+    <details><summary>E a redação "dada por" outra lei: como o trecho mostra isso?</summary><p>Com uma coluna <code>alterado_por</code> (id da norma alteradora) e o texto da redação nova como uma linha nova. O trecho antigo continua na base, com vigência fechada, e continua sendo encontrado para documentos do período dele. Nada é apagado; tudo é datado.</p><p class="why">Apagar destrói a auditoria de documentos antigos.</p></details>
+    <details><summary>O embedding muda entre versões do mesmo dispositivo?</summary><p>Se o texto mudou, sim (hash diferente, reembute). Se só a vigência mudou (o texto é o mesmo e a data de fim foi preenchida), não: o hash é igual e o vetor é reaproveitado. É a idempotência do capítulo 3 funcionando.</p><p class="why">Reembute o texto que mudou; a vigência é só coluna.</p></details>
+  </div>
+
+  <div class="notes"><label for="n-p5-c6">Caderno</label><p class="hint">Escreva as três regras de vigência do projeto e o que acontece com uma auditoria de documento antigo se a base só tiver a redação atual.</p><textarea class="prose" id="n-p5-c6" data-note="p5-c6"></textarea><div class="saved"></div></div>
+</section>
+<!-- ============================================================ 7 -->
+<section class="chapter" id="c7" data-ch="p5-c7">
+  <div class="ch-head"><span class="n">Capítulo 7</span><h2>Montar o prompt: orçamento, ordem e delimitação</h2><label class="donebox"><input type="checkbox" data-done> Capítulo concluído</label></div>
+
+  <p>Entre a busca e o modelo há uma etapa que parece trivial e decide muito: transformar 12 trechos e uma pergunta em um prompt. Três decisões. <strong>Orçamento</strong>: quantos tokens o contexto pode ter, dado o modelo, o custo e o tamanho da resposta. Com trechos de dispositivo (100 a 300 tokens cada), 12 trechos são 2 a 4 mil tokens: barato, e longe do ponto em que o modelo começa a perder o meio. <strong>Ordem</strong>: a página 1 mostrou que o começo e o fim do contexto são mais bem usados; com 12 trechos o efeito é pequeno, e o projeto mantém a ordem da fusão (mais relevante primeiro); com 30 ou mais, vale colocar os melhores nas pontas. <strong>Delimitação</strong>: cada trecho vai entre tags com o id e o dispositivo, o bloco todo entre <code>&lt;contexto&gt;</code>, e a instrução de sistema diz que aquilo é <em>dado</em>, não instrução. É o que permite citar por id e é a primeira defesa contra um documento que tente dar ordens ao modelo (página 7).</p>
+  <p>A pergunta vai no <strong>fim</strong>, depois do contexto: é o que o modelo precisa "ter em mente" ao gerar. A instrução de sistema é fixa e curta, e diz quatro coisas: use só o contexto; cite ids; se não houver evidência, diga; formato de saída. Tudo o que varia (trechos, pergunta, critério) fica no prompt de usuário. Essa separação é o que faz o cache de prefixo funcionar e o que a página 6 chama de "versionar o prompt".</p>
+
+  <div class="lab">
+    <header><h4>Experimento · Inspetor de prompt</h4><span class="badge toy">estimativa</span><span class="badge live">contagem real com chave</span></header>
+    <div class="body">
+      <p>O prompt exato que o capítulo 1 enviou (ou um exemplo, se ainda não rodou), com o orçamento por parte. Mude o k, a ordem dos trechos e a posição da pergunta e veja o prompt se reorganizar; a contagem real de tokens custa uma chamada.</p>
+      <div class="row">
+        <div><label class="f" for="pr-k">Trechos (k)</label><select id="pr-k"><option value="3">3</option><option value="6">6</option><option value="12" selected>12</option></select></div>
+        <div><label class="f" for="pr-order">Ordem</label><select id="pr-order"><option value="rank" selected>relevância (1º primeiro)</option><option value="ends">melhores nas pontas</option><option value="reverse">relevância invertida (1º por último)</option></select></div>
+        <div><label class="f" for="pr-qpos">Pergunta</label><select id="pr-qpos"><option value="end" selected>no fim (depois do contexto)</option><option value="start">no começo</option></select></div>
+        <div class="fixed"><button class="btn ghost" id="pr-count">Contar tokens de verdade</button></div>
+      </div>
+      <div class="bars" id="pr-parts" aria-live="polite"></div>
+      <p class="mini" id="pr-order-note"></p>
+      <pre><code id="pr-view" class="language-text"></code></pre>
+      <div class="status" id="pr-status"></div>
+    </div>
+  </div>
+
+  <div class="doit"><span class="ic">faça agora</span><p>Com k = 12, veja a proporção: o contexto é 80 a 90% do prompt e a instrução de sistema, fixa, é o resto. Conte de verdade e compare com a estimativa (caracteres ÷ 3,6). Depois k = 3: o prompt cai para um terço. Para a auditoria, com 40 critérios por documento, a diferença entre k = 12 e k = 6 é o custo de milhares de tokens por documento; anote a conta.</p></div>
+
+  <div class="faq">
+    <h3>Perguntas que aparecem aqui</h3>
+    <details><summary>Por que tags XML e não JSON ou markdown para os trechos?</summary><p>Porque tags com atributos (<code>&lt;trecho id="…" dispositivo="…"&gt;</code>) são legíveis pelo modelo, difíceis de confundir com o conteúdo, e permitem colocar o id onde o modelo o vê ao ler o texto. JSON obriga a escapar aspas e quebras; markdown não tem delimitador forte. Os modelos do Google e da Anthropic foram treinados com muito texto assim delimitado.</p><p class="why">Delimitador visível, com metadado, sem escape.</p></details>
+    <details><summary>Devo incluir o score da busca no contexto?</summary><p>Não. O modelo não sabe usar "cosseno 0,71" e pode tratar o número como parte do conteúdo. A ordem já carrega a informação de relevância. O score fica no log.</p><p class="why">Ordem sim, número não.</p></details>
+    <details><summary>Instrução de sistema longa ou curta?</summary><p>Curta e precisa. Cada regra a mais é uma que o modelo pode ignorar ou aplicar demais. Quatro ou cinco frases cobrem "só o contexto, cite, recuse, formato". Regras específicas de uma tarefa (o critério de auditoria) vão no prompt de usuário, junto com o que elas se aplicam.</p><p class="why">Sistema: regras gerais; usuário: a tarefa concreta.</p></details>
+  </div>
+
+  <div class="notes"><label for="n-p5-c7">Caderno</label><p class="hint">Escreva as três decisões de montagem do prompt com a escolha do projeto em cada uma, e as quatro frases da instrução de sistema com as suas palavras.</p><textarea class="prose" id="n-p5-c7" data-note="p5-c7"></textarea><div class="saved"></div></div>
+</section>
+
+<!-- ============================================================ 8 -->
+<section class="chapter" id="c8" data-ch="p5-c8">
+  <div class="ch-head"><span class="n">Capítulo 8</span><h2>Onde as falhas nascem e o que registrar</h2><label class="donebox"><input type="checkbox" data-done> Capítulo concluído</label></div>
+
+  <p>Uma resposta errada em um RAG pode ter nascido em qualquer uma das doze etapas dos dois ciclos, e o pior de tudo é que o sintoma é sempre o mesmo: "a resposta veio errada". Sem instrumentação por etapa, o diagnóstico vira adivinhação. A tabela mapeia sintoma para etapa e para a medida que o pega; o rastro da última execução, logo abaixo, mostra o que cada etapa deveria registrar.</p>
+
+  <div class="tbl-wrap"><table>
+    <thead><tr><th>Sintoma</th><th>Etapa provável</th><th>Como confirmar</th></tr></thead>
+    <tbody>
+      <tr><td>O trecho certo não está entre os 12</td><td>busca (ou segmentação, ou ingestão)</td><td>recall@12 no conjunto de avaliação; olhar as duas listas; conferir se o trecho existe e está limpo</td></tr>
+      <tr><td>O trecho certo está entre os 12 e o modelo não o usou</td><td>prompt (ordem, k) ou modelo</td><td>fidelidade; testar k menor e o trecho nas pontas; reranker</td></tr>
+      <tr><td>Resposta cita um id que não existe</td><td>modelo</td><td>descartes por fonte_inexistente na validação; esquema de saída; temperatura 0</td></tr>
+      <tr><td>Resposta certa para a redação errada (valor antigo)</td><td>vigência</td><td>a data do documento entrou na consulta? a versão tem vigência correta?</td></tr>
+      <tr><td>Menos de 12 linhas no contexto</td><td>filtro sobre o índice</td><td>rows &lt; LIMIT no EXPLAIN; iterative_scan ligado?</td></tr>
+      <tr><td>Respostas boas ontem, ruins hoje, sem deploy</td><td>modelo ou base</td><td>versão do modelo na resposta; versão da base; conjunto de avaliação em rotina</td></tr>
+      <tr><td>"Sem evidência" para pergunta que a base responde</td><td>busca ou prompt</td><td>o esperado estava no contexto? a instrução está recusando demais?</td></tr>
+      <tr><td>Trecho com cabeçalho de página no meio</td><td>ingestão (normalização)</td><td>abrir o trecho pelo id; reprocessar com a regra corrigida (idempotente)</td></tr>
+    </tbody>
+  </table></div>
+
+  <div class="lab">
+    <header><h4>Experimento · O rastro da última execução</h4><span class="badge toy">do capítulo 1</span></header>
+    <div class="body">
+      <p>O que o capítulo 1 registrou ao rodar, etapa a etapa, e o que cada etapa deveria gravar em produção para que a tabela acima seja consultável.</p>
+      <div id="tr-out"></div>
+    </div>
+  </div>
+
+  <div class="doit"><span class="ic">faça agora</span><p>Sem olhar a tabela, escreva o que você olharia primeiro para cada um destes três sintomas: (a) o valor citado é o de 2021 para um edital de 2024; (b) o modelo cita "art. 75, inciso 1"; (c) a mesma pergunta acerta de manhã e erra à tarde. Depois compare com a tabela.</p></div>
+
+  <div class="faq">
+    <h3>Perguntas que aparecem aqui</h3>
+    <details><summary>O que é o id de correlação?</summary><p>Um identificador único por execução (por pergunta, ou por critério de auditoria), gravado em toda linha de log das etapas daquela execução. Com ele, um sintoma vira uma busca: "me dê tudo o que aconteceu na execução X", da busca à validação. Sem ele, os logs das etapas são quatro arquivos que não se conversam.</p><p class="why">Um id, quatro etapas, uma história.</p></details>
+    <details><summary>Registrar o prompt inteiro em log não é caro?</summary><p>Registre a versão do prompt e os ids dos trechos, não o texto: com isso o prompt é reconstruível. O texto da resposta, sim, registre (é pequeno e é o que o analista vê). Para investigação profunda, uma amostra das execuções com o prompt completo basta.</p><p class="why">Reconstruível vale mais que armazenado.</p></details>
+    <details><summary>Como pegar a degradação silenciosa do modelo?</summary><p>Rodando o conjunto de avaliação em rotina (diária ou a cada deploy) e comparando com o número anterior. Provedores atualizam modelos com o mesmo nome; a única defesa é medir sempre. A página 8 monta a rotina.</p><p class="why">O que não se mede em rotina degrada em silêncio.</p></details>
+  </div>
+
+  <div class="notes"><label for="n-p5-c8">Caderno</label><p class="hint">Para cada etapa do ciclo de consulta, escreva o que você registraria em log e a medida que denunciaria uma falha nela.</p><textarea class="prose" id="n-p5-c8" data-note="p5-c8"></textarea><div class="saved"></div></div>
+</section>
+
+<!-- ============================================================ 9 -->
+<section class="chapter" id="c9" data-ch="p5-c9">
+  <div class="ch-head"><span class="n">Capítulo 9</span><h2>Cache, idempotência e a conta do volume</h2><label class="donebox"><input type="checkbox" data-done> Capítulo concluído</label></div>
+
+  <p>O RAG tem três lugares onde o mesmo trabalho se repete, e cada um tem um cache com uma chave própria. <strong>Embedding por hash do texto</strong>: o mesmo trecho (mesmo hash, mesmo modelo) nunca é embutido duas vezes; na reingestão, só o que mudou custa. <strong>Resposta por (hash da pergunta normalizada, versão da base, versão do prompt)</strong>: a mesma pergunta sobre a mesma base tem a mesma resposta, e para os critérios de auditoria, que se repetem em todo documento, isso é frequente. <strong>Prefixo do prompt no provedor</strong>: a instrução de sistema, e o contexto quando repete, podem ser cobrados mais barato pelo cache implícito do Gemini (página 1); a separação fixo/variável do capítulo 7 é o que torna isso possível.</p>
+  <p><strong>Idempotência</strong> é o cache visto da ingestão: rodar de novo produz o mesmo estado, sem duplicar e sem reembutir o que não mudou. A chave é o id natural; o detector de mudança é o hash. Junte a isso a fila com retentativa (uma mensagem processada duas vezes não pode criar dois trechos) e a ingestão fica segura para falhar no meio e recomeçar.</p>
+  <p>A <strong>conta do volume</strong> é o que dimensiona cota e custo. Ingestão: documentos por dia × trechos por documento × tokens por trecho, em lotes de 16. Consulta: perguntas por dia × (instrução + k trechos + pergunta) tokens de entrada e algumas centenas de saída, uma chamada de geração e uma de embedding por pergunta. Para a auditoria, "pergunta" é critério: 40 critérios por documento são 40 gerações. A calculadora faz a conta e mostra quanto o cache de resposta economiza.</p>
+
+  <div class="lab">
+    <header><h4>Experimento · Calculadora de volume, cota e cache</h4><span class="badge toy">estimativa</span></header>
+    <div class="body">
+      <div id="cc-form" class="row">
+        <div><label class="f" for="cc-docs">Documentos ingeridos por dia</label><select id="cc-docs"><option value="1">1</option><option value="10" selected>10</option><option value="100">100</option></select></div>
+        <div><label class="f" for="cc-chunks">Trechos por documento</label><select id="cc-chunks"><option value="50">50</option><option value="200" selected>200 (edital médio)</option><option value="1000">1.000 (lei inteira)</option></select></div>
+        <div><label class="f" for="cc-tch">Tokens por trecho</label><select id="cc-tch"><option value="120">120</option><option value="200" selected>200</option><option value="400">400</option></select></div>
+        <div><label class="f" for="cc-qs">Perguntas (ou critérios) por dia</label><select id="cc-qs"><option value="50">50</option><option value="400" selected>400 (10 documentos × 40 critérios)</option><option value="4000">4.000</option></select></div>
+        <div><label class="f" for="cc-k">k</label><select id="cc-k"><option value="6">6</option><option value="12" selected>12</option></select></div>
+        <div><label class="f" for="cc-hit">Acerto do cache de resposta = <span id="cc-hitv">20</span>%</label><input type="range" id="cc-hit" min="0" max="90" step="5" value="20"></div>
+      </div>
+      <div class="bars" id="cc-out" aria-live="polite"></div>
+      <p class="mini" id="cc-note"></p>
+    </div>
+  </div>
+
+  <div class="doit"><span class="ic">faça agora</span><p>Com os padrões, anote as chamadas de geração por dia e compare com a cota gratuita do Flash-Lite (algumas centenas): o projeto em produção precisa de conta paga, e a conta que decide é esta. Suba o cache para 60%: quanto sobra? Troque k para 6: quanto cai a entrada? Essas duas alavancas custam zero em qualidade se a avaliação disser que sim.</p></div>
+
+  <div class="faq">
+    <h3>Perguntas que aparecem aqui</h3>
+    <details><summary>Cache de resposta não corre o risco de responder com base desatualizada?</summary><p>Não se a versão da base fizer parte da chave: quando a base muda, a chave muda e o cache não acerta. É por isso que versão de base e versão de prompt entram na chave, e é o motivo de nunca "atualizar no lugar" a base.</p><p class="why">Versão na chave: cache que nunca mente.</p></details>
+    <details><summary>Como normalizar a pergunta para o hash do cache?</summary><p>Minúsculas, espaços colapsados, acentos removidos, pontuação final removida. Não mais que isso: "prazo de pagamento" e "prazo para pagar" são perguntas diferentes para o cache (e o embedding as aproxima na busca, não no cache). Para os critérios de auditoria, o texto é fixo e o hash é estável por construção.</p><p class="why">Normalize a superfície; não tente normalizar o sentido.</p></details>
+    <details><summary>A fila pode entregar a mesma mensagem duas vezes?</summary><p>Pode (SQS padrão garante "pelo menos uma vez"). Idempotência no consumidor é obrigatória: inserir por id com <code>ON CONFLICT DO UPDATE</code> condicionado ao hash, e registrar a mensagem processada. É o que torna a retentativa segura.</p><p class="why">Entrega duplicada é normal; efeito duplicado é bug.</p></details>
+  </div>
+
+  <div class="notes"><label for="n-p5-c9">Caderno</label><p class="hint">Escreva as três chaves de cache do sistema e por que a versão da base entra em uma delas; depois, a conta de chamadas por documento auditado.</p><textarea class="prose" id="n-p5-c9" data-note="p5-c9"></textarea><div class="saved"></div></div>
+</section>
+<!-- ============================================================ 10 -->
+<section class="chapter" id="c10" data-ch="p5-c10">
+  <div class="ch-head"><span class="n">Capítulo 10</span><h2>No projeto, checklist e autoavaliação</h2><label class="donebox"><input type="checkbox" data-done> Capítulo concluído</label></div>
+
+  <h3>No projeto</h3>
+  <p>O ia-worker (FastAPI) tem os dois ciclos como dois módulos. <strong>Ingestão</strong>: consome a fila SQS; para cada mensagem (documento ou norma), baixa o arquivo do S3, extrai, normaliza, segmenta por dispositivo, enriquece (id natural, hierarquia, vigência, hash), embute em lotes de 16 com <code>RETRIEVAL_DOCUMENT</code> e grava em <code>rag.trecho_normativo</code> com <code>ON CONFLICT (id, vigencia_inicio) DO UPDATE</code> condicionado ao hash; registra a versão da carga; em falha, a mensagem volta para a fila e, após as retentativas, para a DLQ. <strong>Consulta</strong>: recebe pergunta ou critério mais a data do documento; embute a consulta com <code>RETRIEVAL_QUERY</code>; roda a híbrida com filtro de vigência; monta o prompt (sistema fixo versionado + contexto delimitado + pergunta); chama o Gemini com esquema; valida em código; grava o rastro com id de correlação; devolve resposta, citações válidas e a versão de tudo. Cache de resposta por (hash da pergunta, versão da base, versão do prompt); cache de embedding por hash do texto. A base normativa é curada: fontes selecionadas, ingeridas por lote, versionadas.</p>
+  <p>O Ex. 2 (VIN-6) é a metade da ingestão que dá para fazer sem banco: PDF da Lei 14.133 → texto limpo → trechos por dispositivo em JSONL, com id natural, hierarquia e hash. O Ex. 3 os coloca no pgvector; o Ex. 5 monta o prompt; o Ex. 6 valida.</p>
+
+  <h3>Código de referência</h3>
+<pre><code class="language-python"># ingestao/segmentar.py — texto limpo → trechos por dispositivo (Ex. 2)
+import re, json, hashlib
+from dataclasses import dataclass, asdict
+
+RE_ART = re.compile(r"^Art\.\s*(\d+)[º°]?\.?\s*(.*)$")
+RE_PAR = re.compile(r"^§\s*(\d+)[º°]?\s*(.*)$|^Parágrafo único\.?\s*(.*)$")
+RE_INC = re.compile(r"^([IVXL]+)\s*[-–]\s*(.*)$")
+RE_ALI = re.compile(r"^([a-z])\)\s*(.*)$")
+
+@dataclass
+class Trecho:
+    id: str; norma: str; artigo: int; hierarquia: str; dispositivo: str; conteudo: str; hash_texto: str
+    vigencia_inicio: str = "2021-04-01"; vigencia_fim: str | None = None
+
+def h(t: str) -> str: return hashlib.sha256(t.strip().encode()).hexdigest()[:16]
+
+def segmentar(texto: str, norma: str = "L14133") -> list[Trecho]:
+    out, art, caput, par, inc = [], None, "", None, None
+    for linha in texto.splitlines():
+        l = linha.strip()
+        if not l: continue
+        if m := RE_ART.match(l):
+            art, caput, par, inc = int(m[1]), m[2], None, None
+            out.append(Trecho(f"{norma}-art{art}-caput", norma, art, "caput", f"Art. {art}, caput", caput, h(caput)))
+        elif art and (m := RE_PAR.match(l)):
+            par, inc = (m[1] or "unico"), None; txt = m[2] or m[3]
+            pid = "pu" if par == "unico" else f"p{par}"
+            out.append(Trecho(f"{norma}-art{art}-{pid}", norma, art, "paragrafo", f"Art. {art}, § {par}", f"{caput[:80]}… {txt}", h(txt)))
+        elif art and (m := RE_INC.match(l)):
+            inc = m[1]; base = f"-p{par}" if par and par != "unico" else ("-pu" if par else "")
+            out.append(Trecho(f"{norma}-art{art}{base}-inc{inc}", norma, art, "inciso", f"Art. {art}, {inc}", f"{caput[:80]}… {inc} – {m[2]}", h(m[2])))
+        elif art and inc and (m := RE_ALI.match(l)):
+            out.append(Trecho(f"{norma}-art{art}-inc{inc}-{m[1]}", norma, art, "alinea", f"Art. {art}, {inc}, {m[1]}", f"{caput[:80]}… {inc}, {m[1]}) {m[2]}", h(m[2])))
+        elif out:
+            out[-1].conteudo += " " + l; out[-1].hash_texto = h(out[-1].conteudo)   # continuação de linha
+    return out
+
+def salvar_jsonl(trechos: list[Trecho], caminho: str) -> None:
+    with open(caminho, "w", encoding="utf-8") as f:
+        for t in trechos: f.write(json.dumps(asdict(t), ensure_ascii=False) + "\n")</code></pre>
+
+<pre><code class="language-python"># ingestao/indexar.py — JSONL → pgvector, idempotente por (id, vigencia_inicio) e hash (Ex. 3)
+import json, psycopg
+from embutir import embutir, MODELO, DIMS
+
+UPSERT = """
+INSERT INTO rag.trecho_normativo (id, norma, artigo, hierarquia, dispositivo, conteudo, hash_texto,
+        vigencia_inicio, vigencia_fim, embedding, modelo_embedding, dimensoes, versao_carga)
+VALUES (%(id)s, %(norma)s, %(artigo)s, %(hierarquia)s, %(dispositivo)s, %(conteudo)s, %(hash_texto)s,
+        %(vigencia_inicio)s, %(vigencia_fim)s, %(embedding)s::vector, %(modelo)s, %(dims)s, %(versao)s)
+ON CONFLICT (id, vigencia_inicio) DO UPDATE SET
+  conteudo = EXCLUDED.conteudo, hash_texto = EXCLUDED.hash_texto, embedding = EXCLUDED.embedding,
+  modelo_embedding = EXCLUDED.modelo_embedding, versao_carga = EXCLUDED.versao_carga
+WHERE rag.trecho_normativo.hash_texto IS DISTINCT FROM EXCLUDED.hash_texto      -- só reescreve o que mudou
+   OR rag.trecho_normativo.modelo_embedding IS DISTINCT FROM EXCLUDED.modelo_embedding
+"""
+
+def indexar(caminho_jsonl: str, versao: str) -> None:
+    trechos = [json.loads(l) for l in open(caminho_jsonl, encoding="utf-8")]
+    with psycopg.connect() as conn:
+        # quais precisam de embedding novo? (hash ou modelo diferentes do que está no banco)
+        atuais = dict(conn.execute("SELECT id || '|' || vigencia_inicio, hash_texto FROM rag.trecho_normativo WHERE modelo_embedding = %s", (MODELO,)).fetchall())
+        novos = [t for t in trechos if atuais.get(f"{t['id']}|{t['vigencia_inicio']}") != t["hash_texto"]]
+        vetores = embutir([f"{t['dispositivo']}. {t['conteudo']}" for t in novos], "RETRIEVAL_DOCUMENT")   # lotes de 16
+        for t, v in zip(novos, vetores):
+            conn.execute(UPSERT, {**t, "embedding": str(v), "modelo": MODELO, "dims": DIMS, "versao": versao})
+        conn.commit()
+    print(f"{len(novos)} de {len(trechos)} trechos (re)embutidos; versão {versao}")</code></pre>
+
+<pre><code class="language-python"># consulta/rag.py — o ciclo de consulta do ia-worker, resumido (Ex. 5 e 6 detalham prompt e validação)
+import uuid, time, json
+from busca import hibrida            # página 4: 50 + 50 candidatos, RRF K = 60, filtro de vigência
+from prompt import montar, SISTEMA_V3   # página 6: sistema fixo versionado + contexto delimitado + pergunta
+from validar import validar         # página 7: citações existem? estão no contexto? esquema ok?
+
+def responder(pergunta: str, data_documento: str, k: int = 12) -> dict:
+    cid, t0 = str(uuid.uuid4()), time.perf_counter(); rastro = {"cid": cid}
+    trechos = hibrida(pergunta, data_documento, k=k); rastro["busca_ms"] = (time.perf_counter() - t0) * 1000
+    rastro["ids"] = [t["id"] for t in trechos]
+    prompt = montar(SISTEMA_V3, trechos, pergunta)
+    t1 = time.perf_counter(); bruto = gerar(prompt); rastro["geracao_ms"] = (time.perf_counter() - t1) * 1000
+    resultado = validar(json.loads(bruto), contexto_ids=rastro["ids"])
+    rastro.update(resultado["motivos"], ok=resultado["ok"], versao_prompt="v3", versao_base=versao_base_atual())
+    registrar(rastro)                # uma linha por execução, com o id de correlação
+    return {"cid": cid, **resultado, "trechos": trechos}</code></pre>
+
+  <h3>Checklist de domínio</h3>
+  <p>Marque só o que você faria sem consultar a página.</p>
+  <ul class="checklist">
+    <li><input type="checkbox" id="ck5-1"><label for="ck5-1">Desenho os dois ciclos com as etapas, o que cada uma devolve e a medida de cada uma.</label></li>
+    <li><input type="checkbox" id="ck5-2"><label for="ck5-2">Explico reescrita, multi-consulta, HyDE, decomposição, reranker e juiz, com custo e ganho, e por que o projeto começa sem eles.</label></li>
+    <li><input type="checkbox" id="ck5-3"><label for="ck5-3">Limpo o texto de um PDF oficial com regras explícitas e guardo o bruto.</label></li>
+    <li><input type="checkbox" id="ck5-4"><label for="ck5-4">Segmento por dispositivo com o caput como prefixo e sei o que fazer quando estoura o limite.</label></li>
+    <li><input type="checkbox" id="ck5-5"><label for="ck5-5">Gero ids naturais pela convenção e sei separar id, hash e metadados.</label></li>
+    <li><input type="checkbox" id="ck5-6"><label for="ck5-6">Modelo vigência como versões e filtro pela data do documento nas duas buscas.</label></li>
+    <li><input type="checkbox" id="ck5-7"><label for="ck5-7">Monto o prompt com orçamento, ordem e delimitação, sistema fixo e usuário variável.</label></li>
+    <li><input type="checkbox" id="ck5-8"><label for="ck5-8">Instrumento por etapa com id de correlação e sei as três chaves de cache.</label></li>
+  </ul>
+
+  <h3>Autoavaliação</h3>
+  <div class="quiz" id="quiz-p5">
+    <fieldset><legend>1. Quantas chamadas de rede tem o ciclo de consulta mínimo do projeto?</legend>
+      <label class="opt"><input type="radio" name="q1" data-correct="1"> Duas: uma de embedding da pergunta e uma de geração.</label><div class="why">Correto. A lexical, a fusão, a montagem e a validação são código.</div>
+      <label class="opt"><input type="radio" name="q1"> Uma: o modelo faz a busca.</label><div class="why">O modelo não busca; a busca é do banco.</div>
+      <label class="opt"><input type="radio" name="q1"> Quatro: busca, reranker, geração e juiz.</label><div class="why">Reranker e juiz são opcionais, atrás de flags.</div>
+    </fieldset>
+    <fieldset><legend>2. A busca trouxe 12 trechos para uma pergunta que a base não responde. Isso é um erro da busca?</legend>
+      <label class="opt"><input type="radio" name="q2"> Sim: ela deveria devolver vazio.</label><div class="why">Busca é ranking; sempre há um mais próximo.</div>
+      <label class="opt"><input type="radio" name="q2" data-correct="1"> Não: ranking sempre devolve algo; quem decide "sem evidência" é o modelo lendo, e a validação confere.</label><div class="why">Correto. Um limiar ou a nota do reranker podem antecipar, mas a decisão é de leitura.</div>
+      <label class="opt"><input type="radio" name="q2"> Sim: k deveria ser menor.</label><div class="why">k não resolve; um k menor ainda traz algo.</div>
+    </fieldset>
+    <fieldset><legend>3. Por que o projeto escolheu "um critério por chamada" em vez de decomposição pelo modelo?</legend>
+      <label class="opt"><input type="radio" name="q3" data-correct="1"> Porque a decomposição já está na lista de critérios, feita por quem sabe, e o ciclo fica determinístico e auditável.</label><div class="why">Correto. Previsibilidade vale mais que autonomia em auditoria.</div>
+      <label class="opt"><input type="radio" name="q3"> Porque o modelo não consegue decompor perguntas.</label><div class="why">Consegue; o problema é custo e imprevisibilidade.</div>
+      <label class="opt"><input type="radio" name="q3"> Porque decomposição não funciona com pgvector.</label><div class="why">Não tem relação com o banco.</div>
+    </fieldset>
+    <fieldset><legend>4. O que torna a ingestão idempotente?</legend>
+      <label class="opt"><input type="radio" name="q4"> Rodar uma vez só.</label><div class="why">Idempotência é justamente poder rodar de novo com segurança.</div>
+      <label class="opt"><input type="radio" name="q4" data-correct="1"> Id natural como chave e hash do texto para decidir o que mudou; inserir com ON CONFLICT.</label><div class="why">Correto. Rodar de novo não duplica nem reembute o que não mudou.</div>
+      <label class="opt"><input type="radio" name="q4"> Usar UUID para cada trecho.</label><div class="why">UUID novo a cada carga é o oposto de idempotente.</div>
+    </fieldset>
+    <fieldset><legend>5. Um trecho de 400 caracteres cortado no meio de uma frase é sintoma de qual estratégia?</legend>
+      <label class="opt"><input type="radio" name="q5" data-correct="1"> Tamanho fixo (corte cego); a sobreposição só repete o corte.</label><div class="why">Correto. Estrutural e por frase não cortam no meio.</div>
+      <label class="opt"><input type="radio" name="q5"> Estrutural.</label><div class="why">A estrutural corta em fronteiras de dispositivo.</div>
+      <label class="opt"><input type="radio" name="q5"> Semântica.</label><div class="why">A semântica corta entre frases, onde o sentido muda.</div>
+    </fieldset>
+    <fieldset><legend>6. O inciso "I – para obras e serviços de engenharia" entra na base:</legend>
+      <label class="opt"><input type="radio" name="q6"> Sozinho, para não duplicar texto.</label><div class="why">Sozinho ele não diz que é sobre dispensa; o vetor fica sem assunto.</div>
+      <label class="opt"><input type="radio" name="q6" data-correct="1"> Com o caput do art. 75 como prefixo, e id L14133-art75-incI.</label><div class="why">Correto. Legível isolado, para o vetor e para o modelo.</div>
+      <label class="opt"><input type="radio" name="q6"> Junto com todos os outros incisos do artigo num trecho só.</label><div class="why">Diluição: um trecho, vários assuntos.</div>
+    </fieldset>
+    <fieldset><legend>7. Um edital de 2023 é auditado em 2026. Que redação do art. 75, I, o sistema deve usar?</legend>
+      <label class="opt"><input type="radio" name="q7"> A atual, que é a mais correta.</label><div class="why">A atual não valia em 2023; a auditoria compararia com a regra errada.</div>
+      <label class="opt"><input type="radio" name="q7" data-correct="1"> A vigente na data do edital, via filtro de vigência com a data do documento.</label><div class="why">Correto. Versões com vigência, consulta com data.</div>
+      <label class="opt"><input type="radio" name="q7"> As duas, para o modelo escolher.</label><div class="why">Transfere ao modelo uma decisão que é do dado.</div>
+    </fieldset>
+    <fieldset><legend>8. Por que a instrução de sistema é fixa e curta, e o resto vai no prompt de usuário?</legend>
+      <label class="opt"><input type="radio" name="q8" data-correct="1"> Para versionar o prompt, aproveitar cache de prefixo e manter regras gerais separadas da tarefa.</label><div class="why">Correto. Fixo versionado; variável por chamada.</div>
+      <label class="opt"><input type="radio" name="q8"> Porque a API limita o tamanho do sistema.</label><div class="why">Não há limite prático; a razão é de organização e cache.</div>
+      <label class="opt"><input type="radio" name="q8"> Porque o modelo ignora o sistema.</label><div class="why">Ao contrário: dá mais peso a ele.</div>
+    </fieldset>
+    <fieldset><legend>9. Qual chave torna o cache de resposta seguro contra base desatualizada?</legend>
+      <label class="opt"><input type="radio" name="q9"> Só o hash da pergunta.</label><div class="why">A base pode mudar e a chave continuaria acertando.</div>
+      <label class="opt"><input type="radio" name="q9" data-correct="1"> Hash da pergunta + versão da base + versão do prompt.</label><div class="why">Correto. Mudou a base ou o prompt, mudou a chave.</div>
+      <label class="opt"><input type="radio" name="q9"> O id de correlação.</label><div class="why">Ele é único por execução; nunca acertaria o cache.</div>
+    </fieldset>
+    <fieldset><legend>10. A mesma pergunta acerta de manhã e erra à tarde, sem deploy. Primeira suspeita:</legend>
+      <label class="opt"><input type="radio" name="q10"> A segmentação.</label><div class="why">Segmentação não muda sozinha durante o dia.</div>
+      <label class="opt"><input type="radio" name="q10" data-correct="1"> Versão do modelo ou da base mudou; conferir as versões no rastro e rodar o conjunto de avaliação.</label><div class="why">Correto. Provedores atualizam modelos; a defesa é medir em rotina.</div>
+      <label class="opt"><input type="radio" name="q10"> O RRF.</label><div class="why">Determinístico; não muda sozinho.</div>
+    </fieldset>
+    <button class="btn grade">Corrigir</button>
+    <div class="score"></div>
+  </div>
+
+  <div class="callout"><span class="t">Próxima página</span><p>A página 6, Prompt engineering, entra no que vai dentro da chamada: anatomia do prompt, delimitação como dado, esquema de saída, decomposição em critérios, versionamento e a biblioteca de prompts do projeto, com um playground que compara versões lado a lado.</p></div>
+</section>
+
+    <div class="pager"><a class="prev" href="04-busca-lexical-hibrida.html"><small>anterior</small>Busca lexical e híbrida</a><a class="next disabled" href="#"><small>próxima</small>em construção</a></div>
+    <p class="foot">Guia de estudo pessoal. Corpus com redação adaptada da Lei 14.133/2021 para fins didáticos; confira o texto oficial antes de qualquer uso real. A chave da API fica apenas neste navegador; experimentos ao vivo chamam a API do Google diretamente e consomem a sua cota.</p>
+  </div></main>
+  <aside class="toc" aria-label="Nesta página" ><div class="t">Nesta página</div><ol id="toc-list"></ol></aside>
+</div>
+<script>window.GUIA_MANIFEST = {pages: [{"id": "p0", "file": "index.html", "num": "0", "title": "Início", "chapters": [], "issue": null}, {"id": "p1", "file": "01-modelos.html", "num": "1", "title": "Como um modelo de linguagem funciona", "chapters": ["p1-c1", "p1-c2", "p1-c3", "p1-c4", "p1-c5", "p1-c6", "p1-c7", "p1-c8", "p1-c9", "p1-c10"], "issue": "VIN-5"}, {"id": "p2", "file": "02-embeddings.html", "num": "2", "title": "Embeddings", "chapters": ["p2-c1", "p2-c2", "p2-c3", "p2-c4", "p2-c5", "p2-c6", "p2-c7", "p2-c8", "p2-c9", "p2-c10"], "issue": "VIN-7"}, {"id": "p3", "file": "03-busca-vetorial.html", "num": "3", "title": "Busca vetorial e índices", "chapters": ["p3-c1", "p3-c2", "p3-c3", "p3-c4", "p3-c5", "p3-c6", "p3-c7", "p3-c8", "p3-c9", "p3-c10"], "issue": "VIN-7"}, {"id": "p4", "file": "04-busca-lexical-hibrida.html", "num": "4", "title": "Busca lexical e híbrida", "chapters": ["p4-c1", "p4-c2", "p4-c3", "p4-c4", "p4-c5", "p4-c6", "p4-c7", "p4-c8", "p4-c9", "p4-c10"], "issue": "VIN-8"}, {"id": "p5", "file": "05-rag.html", "num": "5", "title": "RAG de ponta a ponta e ingestão", "chapters": ["p5-c1", "p5-c2", "p5-c3", "p5-c4", "p5-c5", "p5-c6", "p5-c7", "p5-c8", "p5-c9", "p5-c10"], "issue": "VIN-6"}, {"id": "p6", "file": "06-prompt.html", "num": "6", "title": "Prompt engineering", "chapters": [], "issue": "VIN-9"}, {"id": "p7", "file": "07-validacao.html", "num": "7", "title": "Alucinação, validação e guardrails", "chapters": [], "issue": "VIN-10"}, {"id": "p8", "file": "08-avaliacao.html", "num": "8", "title": "Avaliação", "chapters": [], "issue": "VIN-11"}, {"id": "p9", "file": "09-dados-python.html", "num": "9", "title": "Dados e Python para RAG", "chapters": [], "issue": "VIN-6"}, {"id": "p10", "file": "10-custo-operacao.html", "num": "10", "title": "Custo, modelos e operação", "chapters": [], "issue": "VIN-12"}, {"id": "glossario", "file": "glossario.html", "num": "•", "title": "Glossário", "chapters": [], "issue": null}, {"id": "exercicios", "file": "exercicios.html", "num": "•", "title": "Exercícios", "chapters": [], "issue": null}, {"id": "prompts", "file": "prompts.html", "num": "•", "title": "Biblioteca de prompts", "chapters": [], "issue": null}]};</script>
+<script src="assets/corpus.js"></script>
+<script src="assets/core.js"></script>
+<script src="assets/site.js"></script>
+<script>
+(function () {
+  const needKey = () => { if (!gemini.ready()) throw new Error('Precisa de chave (configure na página inicial).'); };
+  const bar = (label, val, max = 1, cls = '', txt = null) => `<div class="b"><span>${esc(label)}</span><i class="${cls}" style="width:${Math.max(0, Math.min(100, ((val / max) * 100)))}%"></i><span class="v">${txt ?? fmt(val, 3)}</span></div>`;
+  const tokEst = (s) => Math.round(String(s).length / 3.6);
+  const fmtInt = (n) => Math.round(n).toLocaleString('pt-BR');
+  const norm = (s) => String(s).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+  const SYSTEM = `Você responde perguntas sobre licitações e contratos usando SOMENTE os trechos normativos fornecidos entre as tags <trecho>. Regras: (1) cite os ids dos trechos que embasam cada afirmação; (2) se os trechos não contêm a resposta, devolva sem_evidencia = true e explique o que faltou; (3) não use conhecimento externo; (4) responda em português, em até 4 frases.`;
+  async function ensureIndexed(statusEl) { if (corpus.indexed()) return; needKey(); setStatus(statusEl, 'Indexando o corpus (uma vez; 3 lotes)…'); await corpus.index((i, n) => setStatus(statusEl, `Indexando ${i}/${n}…`)); }
+  const expectedFor = (q) => { const e = corpus.avaliacao.find((a) => a.pergunta === q); return e ? e.esperado : []; };
+  let LAST = null;
+
+  /* ============ c1 · RAG completo, etapa por etapa ============ */
+  (function () {
+    const btn = $('#rag-run'); if (!btn) return;
+    const sel = $('#rag-eval'); corpus.avaliacao.forEach((a) => sel.add(new Option(a.pergunta.slice(0, 70) + (a.pergunta.length > 70 ? '…' : ''), a.pergunta)));
+    sel.add(new Option('(sem resposta na base) Qual é a alíquota do ISS sobre serviços de engenharia?', 'Qual é a alíquota do ISS sobre serviços de engenharia?'));
+    sel.addEventListener('change', () => { if (sel.value) $('#rag-q').value = sel.value; });
+    const stage = (n, on) => { const el = $(`#rag-s${n}`); el.classList.toggle('on', on); };
+    btn.addEventListener('click', () => guard($('#rag-status'), async () => {
+      await ensureIndexed($('#rag-status')); const q = $('#rag-q').value.trim(); if (!q) throw new Error('Escreva a pergunta.'); const k = +$('#rag-k').value; const hits = expectedFor(q);
+      for (let i = 1; i <= 5; i++) stage(i, false); const trace = [];
+      // 1 busca híbrida
+      let t0 = performance.now(); setStatus($('#rag-status'), 'Etapa 1/5 · busca híbrida (1 lote de embedding)…');
+      const r = await hybridSearch(q, { K: 60, cand: 50, k }); trace.push(['busca híbrida (embedding + BM25 + RRF)', performance.now() - t0]);
+      $('#rag-s1 .res').innerHTML = `<div class="cmp"><div class="col"><h5>vetorial</h5>${rankHTML(r.vetorial.slice(0, 5), hits)}</div><div class="col"><h5>lexical</h5>${rankHTML(r.lexical.slice(0, 5), hits)}</div><div class="col"><h5>híbrida (top-${k})</h5>${rankHTML(r.hibrida, hits)}</div></div>`; stage(1, true);
+      // 2 contexto
+      t0 = performance.now(); const ids = r.hibrida.map((x) => x.id); const ctx = buildContext(ids); trace.push(['montar contexto', performance.now() - t0]);
+      $('#rag-s2 .res').innerHTML = `<p class="mini">${ids.length} trechos · ${ctx.length} caracteres · ≈ ${tokEst(ctx)} tokens. Cada trecho vai delimitado com o seu id, para o modelo citar.</p><pre><code>${esc(ctx.slice(0, 1200))}${ctx.length > 1200 ? '\n…' : ''}</code></pre>`; stage(2, true);
+      // 3 prompt
+      const user = `<contexto>\n${ctx}\n</contexto>\n\nPergunta: ${q}`;
+      $('#rag-s3 .res').innerHTML = `<div class="grid2"><div><h5 class="mini">instrução de sistema (fixa · ≈ ${tokEst(SYSTEM)} tokens)</h5><pre><code>${esc(SYSTEM)}</code></pre></div><div><h5 class="mini">prompt de usuário (variável · ≈ ${tokEst(user)} tokens)</h5><pre><code>&lt;contexto&gt;…${ids.length} trechos…&lt;/contexto&gt;\n\nPergunta: ${esc(q)}</code></pre><p class="mini">Esquema de saída: resposta, citacoes[{id, dispositivo}], sem_evidencia.</p></div></div>`; stage(3, true);
+      // 4 geração
+      t0 = performance.now(); setStatus($('#rag-status'), `Etapa 4/5 · gerando com ${gemini.model}…`);
+      const g = await gemini.generate({ system: SYSTEM, user, json: true, schema: RESP_SCHEMA, maxTokens: 2048 }); trace.push([`geração (${gemini.model})`, g.ms]);
+      $('#rag-s4 .res').innerHTML = `<pre><code>${esc(g.text.trim())}</code></pre><p class="mini">${g.ms} ms · entrada ${g.usage.promptTokenCount ?? '?'} tokens · saída ${g.usage.candidatesTokenCount ?? '?'}${g.usage.thoughtsTokenCount ? ` · pensamento ${g.usage.thoughtsTokenCount}` : ''}.</p>`; stage(4, true);
+      // 5 validação
+      t0 = performance.now(); const obj = parseJSON(g.text); const v = validateAnswer(obj, ids); trace.push(['validação em código', performance.now() - t0]);
+      const motivos = Object.entries(v.motivos).filter(([, n]) => n).map(([m, n]) => `${m}: ${n}`).join(' · ');
+      $('#rag-s5 .res').innerHTML = `<div class="callout ${v.ok ? '' : 'warn'}"><span class="t">${v.ok ? (v.sem_evidencia ? 'Recusa correta: sem_evidencia = true' : 'Aceita: citações válidas e dentro do contexto') : 'Rejeitada pela validação'}</span><p>${esc(v.resposta || '(sem resposta)')}</p><p class="mini">citações válidas: ${v.citacoesOk.map((c) => c.id).join(', ') || 'nenhuma'}${motivos ? ' · descartes: ' + motivos : ''}${hits.length ? ` · esperado: ${hits.join(', ')} ${hits.some((h) => v.citacoesOk.some((c) => c.id === h)) ? '(citado ✓)' : '(não citado)'}` : ''}</p></div>`; stage(5, true);
+      LAST = { q, k, ids, ctx, user, system: SYSTEM, raw: g.text, obj, v, trace, usage: g.usage, hits, hibrida: r.hibrida };
+      $('#rag-trace').innerHTML = trace.map(([n, ms]) => bar(n, ms, Math.max(...trace.map((x) => x[1])), n.startsWith('geração') ? 'f' : '', `${Math.round(ms)} ms`)).join('');
+      setStatus($('#rag-status'), `Pronto: ${Math.round(trace.reduce((a, x) => a + x[1], 0))} ms de ponta a ponta, 1 lote de embedding + 1 geração. O rastro está no capítulo 8.`, 'ok');
+      const tr = $('#tr-out'); if (tr) renderTrace();
+    }));
+  })();
+
+  /* ============ c2 · montador de pipeline: custo por pergunta ============ */
+  (function () {
+    const f = $('#pb-form'); if (!f) return;
+    const STAGES = { rewrite: { gen: 1, emb: 0, ms: 600, t: 300, label: 'reescrita da consulta' }, multi: { gen: 1, emb: 3, ms: 900, t: 400, label: 'multi-consulta (3 variações)' }, hyde: { gen: 1, emb: 1, ms: 900, t: 500, label: 'HyDE (resposta hipotética embutida)' }, rerank: { gen: 1, emb: 0, ms: 800, t: 2500, label: 'reranker pelo modelo' }, judge: { gen: 1, emb: 0, ms: 900, t: 2500, label: 'juiz de aderência' }, decomp: { gen: 3, emb: 2, ms: 2400, t: 3000, label: 'decomposição em subperguntas' } };
+    function render() {
+      let gen = 1, emb = 1, ms = 350 + 900, tok = 3200; const on = [];
+      Object.keys(STAGES).forEach((k) => { const el = $('#pb-' + k); if (el && el.checked) { const s = STAGES[k]; gen += s.gen; emb += s.emb; ms += s.ms; tok += s.t; on.push(s.label); } });
+      const rpd = +$('#pb-rpd').value; const perDay = Math.floor(rpd / gen);
+      $('#pb-out').innerHTML = bar('chamadas de geração por pergunta', gen, 8, 'f', String(gen)) + bar('lotes de embedding por pergunta', emb, 8, '', String(emb)) + bar('latência estimada', ms, 8000, '', `≈ ${(ms / 1000).toFixed(1)} s`) + bar('tokens por pergunta (aprox.)', tok, 15000, '', `≈ ${fmtInt(tok)}`) + bar(`perguntas por dia na cota gratuita (${rpd} gerações/dia)`, perDay, rpd, '', fmtInt(perDay));
+      $('#pb-note').textContent = on.length ? `Etapas extras: ${on.join(', ')}. Cada uma precisa provar, no conjunto de avaliação, que sobe o recall ou a fidelidade mais do que custa.` : 'Pipeline mínimo do projeto: busca híbrida (1 lote) + geração (1 chamada) + validação em código (0 chamadas).';
+    }
+    $$('#pb-form input, #pb-form select').forEach((e) => e.addEventListener('input', render)); render();
+  })();
+
+  /* ============ c3 · linha de limpeza ============ */
+  (function () {
+    const ta = $('#ing-raw'); if (!ta) return;
+    const RAW = `LEI Nº 14.133, DE 1º DE ABRIL DE 2021                                   Página 12 de 98
+Art. 75. É dispensável a licitação:
+I - para contratação que envolva valores inferiores a R$ 100.000,00 (cem mil re-
+ais), no caso de obras e serviços de engenharia ou de serviços de manutenção de veí-
+culos automotores;
+II - para contratação que envolva valores inferiores a R$ 50.000,00 (cinquenta mil reais), no caso de outros serviços e compras;
+Este texto não substitui o publicado no DOU de 1.4.2021
+LEI Nº 14.133, DE 1º DE ABRIL DE 2021                                   Página 13 de 98
+§ 3º As contratações de pequeno valor serão preferencialmente precedidas de divulga-
+ção de aviso em sítio eletrônico oficial, pelo prazo mínimo de 3 (três) dias úteis.
+Art. 76. A alienação de bens da Administração Pública, subordinada à existência de interesse público devidamente justificado, será precedida de avaliação e obedecerá às seguintes normas:`;
+    ta.value = RAW;
+    const STEPS = [
+      { id: 'hdr', label: 'remover cabeçalhos e rodapés de página', fn: (s) => s.replace(/^LEI Nº 14\.133.*Página \d+ de \d+\s*$/gm, '').replace(/^Este texto não substitui.*$/gm, '') },
+      { id: 'hyph', label: 'juntar palavras hifenizadas na quebra de linha', fn: (s) => s.replace(/(\p{L})-\n(\p{Ll})/gu, '$1$2') },
+      { id: 'lines', label: 'juntar linhas do mesmo parágrafo', fn: (s) => s.replace(/([^\n;:.])\n(?!(Art\.|§|[IVXL]+ -|[a-z]\)))/g, '$1 ') },
+      { id: 'ws', label: 'normalizar espaços e linhas vazias', fn: (s) => s.replace(/[ \t]+/g, ' ').replace(/\n{2,}/g, '\n').trim() },
+      { id: 'num', label: 'padronizar números por extenso entre parênteses', fn: (s) => s.replace(/(\d+) \((\w+)\)/g, '$1') },
+    ];
+    function render() {
+      let s = ta.value; const rows = [];
+      for (const st of STEPS) { const on = $('#ing-' + st.id).checked; if (!on) { rows.push({ st, before: s, after: s, on }); continue; } const after = st.fn(s); rows.push({ st, before: s, after, on }); s = after; }
+      $('#ing-steps').innerHTML = rows.map((r) => `<div class="step ${r.on ? 'on' : ''}"><b>${esc(r.st.label)}</b> <span class="mini">${r.on ? `${r.before.length} → ${r.after.length} caracteres` : 'desligada'}</span></div>`).join('');
+      $('#ing-out').textContent = s;
+      const arts = (s.match(/^Art\. \d+/gm) || []).length, incs = (s.match(/^[IVXL]+ -/gm) || []).length, pars = (s.match(/^§/gm) || []).length;
+      $('#ing-stats').textContent = `Estrutura detectável no texto limpo: ${arts} artigo(s), ${incs} inciso(s), ${pars} parágrafo(s). ${/\p{L}-[\n ]\p{Ll}/u.test(s) ? 'Ainda há hifenização de quebra de linha ("re- ais").' : ''}${/Página \d+/.test(s) ? ' Ainda há cabeçalho de página.' : ''}`;
+    }
+    STEPS.forEach((st) => $('#ing-' + st.id).addEventListener('change', render)); ta.addEventListener('input', render); $('#ing-reset').addEventListener('click', () => { ta.value = RAW; render(); }); render();
+  })();
+
+  /* ============ c4 · segmentador ============ */
+  (function () {
+    const ta = $('#ch-text'); if (!ta) return;
+    // texto de amostra: artigos do corpus reconstruídos em forma de lei
+    const byArt = {}; corpus.trechos.forEach((t) => { const m = t.id.match(/art(\d+)/); const a = m ? +m[1] : 0; (byArt[a] = byArt[a] || []).push(t); });
+    const sample = Object.keys(byArt).map(Number).sort((a, b) => a - b).filter((a) => byArt[a].length >= 2).slice(0, 5).map((a) => byArt[a].map((t) => `${t.dispositivo}. ${t.conteudo}`).join('\n')).join('\n\n');
+    ta.value = sample;
+    const sentences = (s) => s.split(/(?<=[.;:])\s+(?=[A-ZÀ-Ú§])/).map((x) => x.trim()).filter(Boolean);
+    function chunk(text, strat, size, overlap) {
+      if (strat === 'fixed') { const out = []; for (let i = 0; i < text.length; i += Math.max(1, size - overlap)) { out.push(text.slice(i, i + size)); if (i + size >= text.length) break; } return out; }
+      if (strat === 'sentence') { const out = []; let cur = ''; for (const s of sentences(text)) { if ((cur + ' ' + s).length > size && cur) { out.push(cur.trim()); cur = overlap ? cur.slice(-overlap) + ' ' + s : s; } else cur += ' ' + s; } if (cur.trim()) out.push(cur.trim()); return out; }
+      if (strat === 'recursive') { const rec = (t, seps) => { if (t.length <= size || !seps.length) return t.length <= size ? [t] : chunk(t, 'fixed', size, overlap); const parts = t.split(seps[0]).map((x) => x.trim()).filter(Boolean); const out = []; let cur = ''; for (const p of parts) { if ((cur + ' ' + p).length > size && cur) { out.push(...(cur.length > size ? rec(cur, seps.slice(1)) : [cur])); cur = p; } else cur = cur ? cur + ' ' + p : p; } if (cur) out.push(...(cur.length > size ? rec(cur, seps.slice(1)) : [cur])); return out; }; return rec(text, ['\n\n', '\n', /(?<=[.;])\s+/]); }
+      if (strat === 'struct') { // por dispositivo: cada linha "Art. X, …" é um trecho; o caput vira prefixo dos incisos/parágrafos
+        const out = []; let caput = ''; for (const line of text.split('\n')) { const l = line.trim(); if (!l) continue; const m = l.match(/^(Art\. \d+º?)(, caput)?\.?\s*(.*)$/); if (m && (m[2] || !/^(Art\. \d+º?), /.test(l))) { caput = m[3].slice(0, 80); out.push(l); } else if (/^Art\. \d+º?, /.test(l)) { out.push(caput ? `${l} [caput: ${caput}…]` : l); } else out.push(l); } return out; }
+      return [text];
+    }
+    function render() {
+      const strat = $('#ch-strat').value, size = +$('#ch-size').value, overlap = +$('#ch-overlap').value; $('#ch-sizev').textContent = size; $('#ch-overlapv').textContent = overlap;
+      const isStruct = strat === 'struct'; $('#ch-size').disabled = isStruct; $('#ch-overlap').disabled = isStruct;
+      const chunks = chunk(ta.value, strat, size, overlap);
+      const toks = chunks.map(tokEst); const multi = chunks.filter((c) => (c.match(/Art\. \d+º?, [IVXL§]/g) || []).length > 1 || (c.match(/Art\. \d+º?[.,]/g) || []).length > 1).length;
+      const cut = chunks.filter((c) => !/[.;:]\s*$/.test(c.trim()) && !isStruct).length;
+      $('#ch-out').innerHTML = bar('trechos', chunks.length, 60, 'f', String(chunks.length)) + bar('tokens por trecho (média)', toks.reduce((a, b) => a + b, 0) / (toks.length || 1), 600, '', fmtInt(toks.reduce((a, b) => a + b, 0) / (toks.length || 1))) + bar('maior trecho (tokens)', Math.max(...toks), 2048, '', fmtInt(Math.max(...toks))) + bar('trechos com mais de um dispositivo (diluição)', multi, chunks.length || 1, '', String(multi)) + bar('trechos cortados no meio de uma frase', cut, chunks.length || 1, '', String(cut));
+      $('#ch-list').innerHTML = chunks.slice(0, 40).map((c, i) => `<div class="chunk"><span class="n">${i + 1}</span><span class="mini">≈ ${tokEst(c)} tokens</span><div>${esc(c.slice(0, 260))}${c.length > 260 ? '…' : ''}</div></div>`).join('') + (chunks.length > 40 ? `<p class="mini">… e mais ${chunks.length - 40}.</p>` : '');
+    }
+    ['#ch-strat'].forEach((s) => $(s).addEventListener('change', render)); ['#ch-size', '#ch-overlap'].forEach((s) => $(s).addEventListener('input', render)); ta.addEventListener('input', render); render();
+  })();
+
+  /* ============ c5 · identificador natural ============ */
+  (function () {
+    const inp = $('#id-in'); if (!inp) return;
+    const ROMAN = (s) => s.toUpperCase();
+    function parse(txt) {
+      const t = norm(txt).replace(/º|°/g, '');
+      const norma = (t.match(/lei\s*n?\s*(\d{1,2}\.?\d{3})/) || [])[1]; const art = (t.match(/art(?:igo)?\.?\s*(\d+)/) || [])[1]; const par = (t.match(/§\s*(\d+)|par[aá]grafo\s*(\d+|unico)/) || []);
+      let inc = (t.match(/inc(?:iso)?\.?\s*([ivxl]+)\b/) || [])[1]; if (!inc) { const after = t.replace(/lei\s*n?\s*\d{1,2}\.?\d{3}/, '').replace(/art(?:igo)?\.?\s*\d+/, ''); inc = (after.match(/(?:^|[\s,;])([ivxl]+)(?=$|[\s,;.)])/) || [])[1]; }
+      const ali = (t.match(/al[ií]nea\s*([a-z])\b/) || [])[1];
+      const parts = []; const warn = [];
+      const normaId = norma ? 'L' + norma.replace('.', '') : 'L14133'; if (!norma) warn.push('norma não informada: assumindo Lei 14.133');
+      if (!art) return { id: null, warn: ['não achei "art. N"'] };
+      parts.push(`art${art}`); const p = par[1] || par[2]; if (p) parts.push(p === 'unico' ? 'pu' : `p${p}`); if (inc) parts.push(`inc${ROMAN(inc)}`); if (ali) parts.push(ali);
+      if (!p && !inc && !ali) parts.push('caput');
+      return { id: `${normaId}-${parts.join('-')}`, warn, parsed: { norma: normaId, art, par: p, inc: inc && ROMAN(inc), ali } };
+    }
+    async function sha(s) { const b = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(s)); return Array.from(new Uint8Array(b)).slice(0, 8).map((x) => x.toString(16).padStart(2, '0')).join(''); }
+    async function render() {
+      const r = parse(inp.value); const exists = r.id && (corpus.byId[r.id] || corpus.byId[r.id.replace('-caput', '')]);
+      $('#id-out').innerHTML = r.id ? `<p><code style="font-size:1.05rem">${esc(r.id)}</code>${exists ? ' <span class="badge live">existe no corpus</span>' : ' <span class="badge">não está no corpus do guia</span>'}</p><p class="mini">partes: ${Object.entries(r.parsed).filter(([, v]) => v).map(([k, v]) => `${k}=${v}`).join(' · ')}${r.warn.length ? ' · avisos: ' + r.warn.join('; ') : ''}</p>` : `<p class="mini">${r.warn.join('; ')}</p>`;
+      const txt = exists ? exists.conteudo : inp.value; $('#id-hash').textContent = `hash_texto = ${await sha(txt.trim())} (SHA-256 truncado do texto normalizado${exists ? ' do trecho' : ' digitado'})`;
+    }
+    inp.addEventListener('input', render); $$('#id-presets .chip').forEach((c) => c.addEventListener('click', () => { inp.value = c.dataset.q; render(); })); render();
+    // unicidade no corpus
+    const ids = corpus.trechos.map((t) => t.id); const dup = ids.filter((x, i) => ids.indexOf(x) !== i);
+    $('#id-uniq').textContent = `Corpus do guia: ${ids.length} ids, ${dup.length ? dup.length + ' duplicado(s): ' + dup.join(', ') : 'nenhum duplicado'}; todos seguem o padrão norma-artigo-subdivisão.`;
+  })();
+
+  /* ============ c6 · linha do tempo de vigência ============ */
+  (function () {
+    const sl = $('#vg-date'); if (!sl) return;
+    // versões ilustrativas do art. 75, I (limite para obras): a lei fixa o valor e decretos o atualizam anualmente
+    const V = [
+      { ini: '2021-04-01', fim: '2022-01-01', texto: 'valores inferiores a R$ 100.000,00', fonte: 'redação original da Lei 14.133/2021' },
+      { ini: '2022-01-01', fim: '2023-01-01', texto: 'valor atualizado (≈ R$ 108 mil)', fonte: 'atualização anual por decreto (art. 182)' },
+      { ini: '2023-01-01', fim: '2024-01-01', texto: 'valor atualizado (≈ R$ 114 mil)', fonte: 'atualização anual por decreto' },
+      { ini: '2024-01-01', fim: '2025-01-01', texto: 'valor atualizado (≈ R$ 120 mil)', fonte: 'atualização anual por decreto' },
+      { ini: '2025-01-01', fim: null, texto: 'valor atualizado (≈ R$ 125 mil)', fonte: 'atualização anual por decreto' },
+    ];
+    const t0 = new Date('2021-01-01').getTime(), t1 = new Date('2026-12-31').getTime();
+    function render() {
+      const d = new Date(t0 + (+sl.value / 1000) * (t1 - t0)); const iso = d.toISOString().slice(0, 10); $('#vg-datev').textContent = d.toLocaleDateString('pt-BR');
+      const cur = V.find((v) => v.ini <= iso && (!v.fim || v.fim > iso));
+      let s = ''; const W = 760; const x = (t) => 20 + ((new Date(t).getTime() - t0) / (t1 - t0)) * (W - 40);
+      V.forEach((v, i) => { const a = x(v.ini), b = x(v.fim || '2026-12-31'); s += `<rect x="${a}" y="40" width="${b - a}" height="34" rx="6" fill="${v === cur ? 'var(--teal)' : 'var(--surface-2)'}" stroke="var(--line)"/><text x="${a + 6}" y="62" font-size="11" fill="${v === cur ? '#fff' : 'var(--ink)'}">v${i + 1} · ${v.ini.slice(0, 4)}</text>`; });
+      s += `<line x1="${x(iso)}" y1="20" x2="${x(iso)}" y2="100" stroke="var(--red)" stroke-width="2"/><text x="${x(iso) + 4}" y="16" font-size="11" fill="var(--red)">data do documento</text>`;
+      for (let y = 2021; y <= 2026; y++) s += `<text x="${x(`${y}-01-01`)}" y="118" font-size="10" fill="var(--muted)">${y}</text>`;
+      $('#vg-svg').innerHTML = s;
+      $('#vg-out').innerHTML = cur ? `<p><b>Versão vigente em ${d.toLocaleDateString('pt-BR')}:</b> "É dispensável a licitação para contratação que envolva ${esc(cur.texto)}…" <span class="mini">(${esc(cur.fonte)}; vigência ${cur.ini} → ${cur.fim || 'aberta'})</span></p><pre><code>WHERE vigencia_inicio <= '${iso}'::date AND (vigencia_fim IS NULL OR vigencia_fim > '${iso}'::date)</code></pre>` : `<p>Antes da Lei 14.133 (publicada em 1/4/2021): nenhuma versão vigente; a norma aplicável seria a Lei 8.666/1993.</p>`;
+    }
+    sl.addEventListener('input', render); render();
+  })();
+
+  /* ============ c7 · inspetor de prompt ============ */
+  (function () {
+    const el = $('#pr-parts'); if (!el) return;
+    function build() {
+      const k = +$('#pr-k').value, order = $('#pr-order').value, qpos = $('#pr-qpos').value;
+      const src = LAST ? LAST.hibrida : corpus.trechos.slice(0, 12).map((t) => ({ id: t.id, score: 0 })); const q = LAST ? LAST.q : corpus.avaliacao[0].pergunta;
+      let ids = src.slice(0, k).map((x) => x.id);
+      if (order === 'ends') { const a = []; ids.forEach((id, i) => (i % 2 === 0 ? a.unshift(id) : a.push(id))); ids = a; } else if (order === 'reverse') ids = ids.slice().reverse();
+      const ctx = buildContext(ids); const qline = `Pergunta: ${q}`;
+      const user = qpos === 'end' ? `<contexto>\n${ctx}\n</contexto>\n\n${qline}` : `${qline}\n\n<contexto>\n${ctx}\n</contexto>`;
+      return { user, parts: [['instrução de sistema', SYSTEM], ['trechos (contexto)', ctx], ['pergunta', qline]], ids };
+    }
+    function render() {
+      const b = build(); const total = b.parts.reduce((a, [, t]) => a + tokEst(t), 0);
+      el.innerHTML = b.parts.map(([n, t]) => bar(n, tokEst(t), total, n.startsWith('trechos') ? 'f' : '', `≈ ${tokEst(t)} tokens`)).join('') + bar('total de entrada (estimado)', total, total, '', `≈ ${total}`);
+      $('#pr-order-note').textContent = `Ordem dos trechos: ${b.ids.map((id, i) => `${i + 1}. ${corpus.byId[id].dispositivo}`).join(' · ')}`;
+      $('#pr-view').textContent = b.user.length > 1600 ? b.user.slice(0, 1600) + '\n…' : b.user;
+      return b;
+    }
+    ['#pr-k', '#pr-order', '#pr-qpos'].forEach((s) => $(s).addEventListener('change', render));
+    $('#pr-count').addEventListener('click', () => guard($('#pr-status'), async () => { needKey(); const b = render(); setStatus($('#pr-status'), 'Contando com a API…'); const n = await gemini.countTokens(SYSTEM + '\n' + b.user); const est = b.parts.reduce((a, [, t]) => a + tokEst(t), 0); setStatus($('#pr-status'), `Contagem real: ${n} tokens (estimativa: ${est}; erro de ${(((est - n) / n) * 100).toFixed(0)}%).`, 'ok'); }));
+    render();
+  })();
+
+  /* ============ c8 · rastro da última execução ============ */
+  function renderTrace() {
+    const el = $('#tr-out'); if (!el) return;
+    if (!LAST) { el.innerHTML = '<p class="mini">Rode o RAG completo no capítulo 1 para ver o rastro aqui.</p>'; return; }
+    const total = LAST.trace.reduce((a, x) => a + x[1], 0);
+    el.innerHTML = `<div class="tbl-wrap"><table><thead><tr><th>etapa</th><th>tempo</th><th>o que registrar em produção</th></tr></thead><tbody>
+      <tr><td>busca híbrida</td><td>${Math.round(LAST.trace[0][1])} ms</td><td>ids e posições nas duas listas; K; candidatos; modelo de embedding; versão da base</td></tr>
+      <tr><td>contexto</td><td>${Math.round(LAST.trace[1][1])} ms</td><td>${LAST.ids.length} trechos, ≈ ${tokEst(LAST.ctx)} tokens; ordem</td></tr>
+      <tr><td>geração</td><td>${Math.round(LAST.trace[2][1])} ms</td><td>modelo ${esc(gemini.model)}, versão do prompt, tokens de entrada ${LAST.usage.promptTokenCount ?? '?'} e saída ${LAST.usage.candidatesTokenCount ?? '?'}, finishReason</td></tr>
+      <tr><td>validação</td><td>${Math.round(LAST.trace[3][1])} ms</td><td>resultado (${LAST.v.ok ? 'aceita' : 'rejeitada'}), descartes por motivo, citações válidas</td></tr>
+      <tr><td><b>total</b></td><td><b>${Math.round(total)} ms</b></td><td>id de correlação ligando as quatro linhas; pergunta com hash; resposta</td></tr>
+    </tbody></table></div>`;
+  }
+  renderTrace();
+
+  /* ============ c9 · calculadora de custo e cache ============ */
+  (function () {
+    const f = $('#cc-form'); if (!f) return;
+    function render() {
+      const docs = +$('#cc-docs').value, chunks = +$('#cc-chunks').value, tch = +$('#cc-tch').value, qs = +$('#cc-qs').value, k = +$('#cc-k').value, tans = 300, hit = +$('#cc-hit').value / 100, sys = 250;
+      $('#cc-hitv').textContent = Math.round(hit * 100);
+      const embTok = docs * chunks * tch; const embCalls = Math.ceil((docs * chunks) / 16) + qs;
+      const genIn = qs * (sys + k * tch + 60), genOut = qs * tans; const genCalls = qs;
+      const cached = genIn * hit; // cache implícito do prefixo (sistema + contexto repetido) só quando a mesma pergunta repete; aqui, taxa de acerto de cache de resposta
+      $('#cc-out').innerHTML = bar('tokens embutidos por dia (ingestão)', embTok, Math.max(embTok, genIn, 1), '', fmtInt(embTok)) + bar('lotes/chamadas de embedding por dia', embCalls, Math.max(embCalls, genCalls, 1), '', fmtInt(embCalls)) + bar('tokens de entrada da geração por dia', genIn, Math.max(embTok, genIn, 1), 'f', fmtInt(genIn)) + bar('tokens de saída por dia', genOut, Math.max(embTok, genIn, 1), '', fmtInt(genOut)) + bar(`chamadas de geração por dia (cache de resposta em ${Math.round(hit * 100)}%)`, genCalls * (1 - hit), Math.max(genCalls, 1), 'f', fmtInt(genCalls * (1 - hit))) + bar('tokens de entrada evitados pelo cache', cached, Math.max(genIn, 1), '', fmtInt(cached));
+      $('#cc-note').textContent = `Por pergunta: ${sys + k * tch + 60} tokens de entrada (${sys} de sistema + ${k} × ${tch} de trechos + pergunta) e ≈ ${tans} de saída. A instrução de sistema repetida em toda chamada é candidata ao cache de prefixo do provedor; o cache de resposta por (hash da pergunta, versão da base) evita a chamada inteira.`;
+    }
+    $$('#cc-form input, #cc-form select').forEach((e) => e.addEventListener('input', render)); render();
+  })();
+})();
+
+</script>
+</body>
+</html>

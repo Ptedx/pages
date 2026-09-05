@@ -229,6 +229,20 @@ mark{background:var(--amber-soft);color:inherit;padding:0 2px;border-radius:3px}
 table td.ok{color:var(--green);font-weight:600}
 table td.bad{color:var(--red)}
 .evtbl td:not(:first-child){font-family:var(--mono);white-space:nowrap}
+.stages{display:grid;gap:10px}
+.stage{border:1px solid var(--line);border-left:4px solid var(--line);border-radius:8px;padding:10px 14px;background:var(--surface);opacity:.55;transition:opacity .25s,border-color .25s}
+.stage.on{opacity:1;border-left-color:var(--teal)}
+.stage h5{margin:0 0 6px;font-size:.9rem;color:var(--navy)}
+.stages>*{min-width:0}
+.stage .res{min-width:0}
+.stage pre{margin:6px 0;max-height:260px;overflow:auto}
+.stage .cmp{max-height:380px;overflow:auto;padding-right:4px}
+.stage pre code{white-space:pre-wrap;word-break:break-word}
+.step{padding:5px 0;border-bottom:1px dashed var(--line);font-size:.88rem;opacity:.55}
+.step.on{opacity:1}
+.chunk{display:grid;grid-template-columns:28px 1fr;gap:2px 10px;padding:8px 0;border-bottom:1px dashed var(--line);font-size:.88rem}
+.chunk .n{font-family:var(--mono);color:var(--teal);grid-row:span 2}
+label.chip{display:inline-flex;align-items:center;gap:6px}
 .tokens{line-height:2;font-size:1rem}
 .tokens span{display:inline-block;border-radius:4px;padding:0 3px;margin:0 1px}
 .map{width:100%;border-collapse:collapse;font-size:.88rem}
