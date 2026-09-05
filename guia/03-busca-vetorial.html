@@ -1,0 +1,912 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Busca vetorial e índices · Guia RAG aplicado</title>
+<meta name="description" content="Exato versus aproximado, HNSW por dentro, pgvector.">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/guia.css">
+</head>
+<body data-page="p3">
+<a class="skip" href="#main">Pular para o conteúdo</a>
+<header class="topbar">
+  <button class="iconbtn" id="menu" aria-expanded="false" aria-controls="sidenav" aria-label="Abrir navegação">☰ Páginas</button>
+  <a class="brand" href="index.html">Guia de estudo · RAG aplicado<small>Plataforma de Conformidade e Risco · trilha dos exercícios VIN-5 a VIN-12</small></a>
+  <button class="iconbtn" id="theme" aria-pressed="false">Tema escuro</button>
+</header>
+<div class="scrim"></div>
+<div class="shell">
+  <nav class="side" id="sidenav" aria-label="Páginas do guia">
+    <div class="progress"><span id="prog-text">0 capítulos concluídos</span><div class="bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" aria-label="Progresso do estudo"><i id="prog-bar"></i></div></div>
+    <div class="group">Trilha</div><ol><li><a href="index.html" data-page="p0"><span class="num">0</span><span>Início</span><span class="done-mark" aria-hidden="true"></span></a></li><li><a href="01-modelos.html" data-page="p1"><span class="num">1</span><span>Modelos de linguagem</span><span class="done-mark" aria-hidden="true"></span></a></li><li><a href="02-embeddings.html" data-page="p2"><span class="num">2</span><span>Embeddings</span><span class="done-mark" aria-hidden="true"></span></a></li><li><a href="03-busca-vetorial.html" data-page="p3" aria-current="page"><span class="num">3</span><span>Busca vetorial e índices</span><span class="done-mark" aria-hidden="true"></span></a></li><li><span class="soon" title="tsvector, BM25, RRF e rerankers."><span class="num">4</span><span>Busca lexical e híbrida</span><span class="tag">em breve</span></span></li><li><span class="soon" title="Padrões de arquitetura, segmentação, identificadores, vigência."><span class="num">5</span><span>RAG e ingestão</span><span class="tag">em breve</span></span></li><li><span class="soon" title="Anatomia, delimitação, esquema, decomposição, versionamento e a biblioteca do projeto."><span class="num">6</span><span>Prompt engineering</span><span class="tag">em breve</span></span></li><li><span class="soon" title="Taxonomia das falhas, camadas de mitigação, juiz de aderência."><span class="num">7</span><span>Validação e guardrails</span><span class="tag">em breve</span></span></li><li><span class="soon" title="Conjuntos de avaliação, métricas de busca e de resposta, protocolo."><span class="num">8</span><span>Avaliação</span><span class="tag">em breve</span></span></li><li><span class="soon" title="PDF, limpeza, regex, JSONL, pandas, Pydantic, psycopg."><span class="num">9</span><span>Dados e Python</span><span class="tag">em breve</span></span></li><li><span class="soon" title="Tokens, cache, limites de taxa, retentativa, observabilidade, escolha de modelo."><span class="num">10</span><span>Custo e operação</span><span class="tag">em breve</span></span></li></ol><div class="group">Referência rápida</div><ol><li><a href="glossario.html" data-page="glossario"><span class="num">•</span><span>Glossário</span><span class="done-mark" aria-hidden="true"></span></a></li><li><span class="soon" title="Os oito exercícios com roteiro completo."><span class="num">•</span><span>Exercícios</span><span class="tag">em breve</span></span></li><li><span class="soon" title="Os prompts do projeto, versionados, para copiar."><span class="num">•</span><span>Biblioteca de prompts</span><span class="tag">em breve</span></span></li></ol>
+  </nav>
+  <main id="main" tabindex="-1"><div class="page-in">
+    <div class="toc-inline" ><label for="toc-select">Nesta página</label><select id="toc-select"><option value="">ir para o capítulo…</option></select></div>
+    <div id="keybanner" hidden><div class="callout warn"><span class="t">Sem chave do Gemini configurada</span><p>Os experimentos ao vivo desta página ficam desativados. Configure a chave na <a href="index.html#chave">página inicial</a>; os experimentos de brinquedo funcionam sem ela.</p></div></div>
+    <div class="page-head">
+  <div class="kicker">Página 3 · Recuperação</div>
+  <h1>Busca vetorial e índices</h1>
+  <p class="lead">Na página 2 a busca era comparar a consulta com todos os 48 vetores. Isso funciona até dezenas de milhares de linhas e depois deixa de funcionar. Esta página mostra o que acontece na escala real, como um índice aproximado encontra vizinhos sem olhar para tudo, o que se perde ao fazer isso, e como configurar, medir e operar o pgvector para que a perda seja pequena e conhecida. As simulações rodam aqui, no navegador, com um HNSW de verdade escrito em JavaScript.</p>
+  <div class="meta"><a class="exlink" href="https://linear.app/vinicius-costa/issue/VIN-7" target="_blank" rel="noopener">VIN-7 · Ex. 3</a><span>·</span><span>10 capítulos · leitura ativa de 60 a 80 minutos · 9 experimentos, 8 sem chave</span></div>
+</div>
+
+<div class="goals">
+  <h3>Ao terminar esta página você consegue</h3>
+  <ul>
+    <li>Estimar o custo da busca exata para um tamanho de base e dizer a partir de onde um índice passa a ser necessário.</li>
+    <li>Explicar o HNSW de cabeça: camadas, ligações, ponto de entrada, descida gulosa, e o que <code>m</code>, <code>ef_construction</code> e <code>ef_search</code> controlam.</li>
+    <li>Ler "recall@k = 0,96" como uma medida do índice (não do modelo) e saber como medi-la contra a busca exata.</li>
+    <li>Escrever o <code>CREATE INDEX</code> e a consulta certos no pgvector, e reconhecer as quatro formas de a consulta ignorar o índice.</li>
+    <li>Prever o problema do filtro (vigência, norma) sobre um índice aproximado e escolher a solução.</li>
+    <li>Dimensionar memória e tempo de construção, e decidir entre sem índice, HNSW e IVFFlat para um caso concreto.</li>
+  </ul>
+</div>
+
+<!-- ============================================================ 1 -->
+<section class="chapter" id="c1" data-ch="p3-c1">
+  <div class="ch-head"><span class="n">Capítulo 1</span><h2>O custo de olhar para tudo</h2><label class="donebox"><input type="checkbox" data-done> Capítulo concluído</label></div>
+
+  <p>A busca exata de vizinhos mais próximos, a que você usou na página 2, tem um custo fácil de calcular: para cada linha da base, um produto escalar de <em>d</em> multiplicações, mais uma ordenação. Com <em>N</em> linhas e <em>d</em> dimensões, são <em>N × d</em> multiplicações por consulta. Para 48 trechos de 768 dimensões, isso é trivial; para a Lei 14.133 inteira mais os decretos e acórdãos (dezenas de milhares de dispositivos), ainda é rápido; para uma base de milhões de trechos, cada consulta custa bilhões de operações e, mais importante, precisa ler <em>todos</em> os vetores da memória ou do disco. O custo é <strong>linear</strong> no tamanho da base: dobrou a base, dobrou o tempo, sem exceção.</p>
+  <p>O que o PostgreSQL faz sem índice é exatamente isso: um <code>Seq Scan</code> que lê a tabela inteira, calcula a distância para cada linha e ordena. Ele é <strong>exato</strong> (recall 100%, por definição) e <strong>simples</strong> (nada a configurar, nada a manter). Por esses dois motivos, a resposta certa para "preciso de índice?" começa com "quantas linhas?", e para bases pequenas a resposta é não. O experimento mede o custo neste navegador e extrapola.</p>
+  <p>A intuição para o resto da página: o índice existe para <strong>não olhar para tudo</strong>. Qualquer estrutura que consiga responder "quem está perto daqui?" olhando para uma fração da base troca uma coisa por outra: deixa de garantir que achou os vizinhos exatos. Por isso índices vetoriais são <strong>aproximados</strong>, e a medida da aproximação (recall) é a métrica central desta página.</p>
+
+  <div class="lab">
+    <header><h4>Experimento · Cronômetro da varredura completa</h4><span class="badge toy">roda no navegador</span></header>
+    <div class="body">
+      <p>O navegador gera vetores aleatórios normalizados, faz a busca exata (produto escalar com todos + top-10) e mede. Depois extrapola linearmente para 100 mil e 1 milhão de linhas. Os números absolutos dependem da sua máquina; a forma da curva não.</p>
+      <div class="row">
+        <div><label class="f" for="bf-n">Linhas</label><select id="bf-n"><option value="1000">1.000</option><option value="5000">5.000</option><option value="10000" selected>10.000</option><option value="20000">20.000</option><option value="50000">50.000</option></select></div>
+        <div><label class="f" for="bf-d">Dimensões</label><select id="bf-d"><option value="64">64</option><option value="256">256</option><option value="768" selected>768</option><option value="1536">1536</option></select></div>
+        <div class="fixed"><button class="btn" id="bf-run">Medir</button></div>
+      </div>
+      <p class="mini" id="bf-calc"></p>
+      <div class="bars" id="bf-out" aria-live="polite"></div>
+      <div class="status" id="bf-status"></div>
+    </div>
+  </div>
+
+  <div class="doit"><span class="ic">faça agora</span><p>Meça 10 mil linhas com 768 dimensões e anote. Meça 20 mil: o tempo deve dobrar. Meça 10 mil com 256 dimensões: deve cair para um terço. Isso é "linear em N e em d". Agora olhe a extrapolação para 1 milhão e imagine 20 analistas consultando ao mesmo tempo.</p></div>
+
+  <div class="faq">
+    <h3>Perguntas que aparecem aqui</h3>
+    <details><summary>A partir de quantas linhas a busca exata deixa de servir?</summary><p>Não há um número universal, mas há uma regra prática: com vetores de 768 dimensões e o índice cabendo em memória, a varredura exata responde em poucos milissegundos até uns 10 a 20 mil linhas, em dezenas de milissegundos até uns 100 mil, e em centenas de milissegundos ou mais acima disso. Se a base do projeto tiver 30 mil dispositivos e 20 consultas por segundo, a exata ainda fecha; com 500 mil, não. Meça no seu hardware: o <code>EXPLAIN ANALYZE</code> do capítulo 6 diz o número.</p><p class="why">Linear é previsível: meça uma vez, extrapole com segurança.</p></details>
+    <details><summary>Não dá para paralelizar a varredura e resolver?</summary><p>Dá, e o PostgreSQL faz (workers paralelos em <code>Seq Scan</code>), e uma GPU faz ainda mais. Mas paralelizar divide o tempo por um fator fixo; a base cresce sem limite. Índices mudam a <em>forma</em> do custo, de linear para aproximadamente logarítmico, e é isso que escala.</p><p class="why">Paralelismo divide por uma constante; índice muda a curva.</p></details>
+    <details><summary>O produto escalar é a única conta? E a ordenação?</summary><p>A ordenação dos N scores custa N·log N com um sort completo, ou só N mantendo os k melhores enquanto percorre (é o que o experimento faz). Na prática o custo dominante é ler N vetores da memória: 1 milhão de vetores de 768 dimensões em float32 são 3 GB percorridos por consulta.</p><p class="why">O gargalo real é memória percorrida, não aritmética.</p></details>
+  </div>
+
+  <div class="notes"><label for="n-p3-c1">Caderno · com as suas palavras</label><p class="hint">Explique por que a busca exata é "linear" e por que isso é ao mesmo tempo a sua maior qualidade (para bases pequenas) e o seu maior defeito (para bases grandes).</p><textarea class="prose" id="n-p3-c1" data-note="p3-c1"></textarea><div class="saved"></div></div>
+</section>
+
+<!-- ============================================================ 2 -->
+<section class="chapter" id="c2" data-ch="p3-c2">
+  <div class="ch-head"><span class="n">Capítulo 2</span><h2>Aproximar: a troca entre recall e custo</h2><label class="donebox"><input type="checkbox" data-done> Capítulo concluído</label></div>
+
+  <p>Um índice de vizinhos aproximados (ANN, <em>approximate nearest neighbors</em>) responde à mesma pergunta da busca exata, "quais são os k vetores mais próximos?", olhando para uma fração pequena da base e devolvendo uma lista que <em>quase sempre</em> coincide com a exata. A medida dessa coincidência é o <strong>recall@k do índice</strong>: dos k vizinhos verdadeiros (os que a busca exata devolve), quantos o índice devolveu. Recall 0,95 em k = 10 significa que, em média, 9,5 dos 10 vizinhos exatos estão na resposta do índice.</p>
+  <p>Repare que este recall é uma propriedade <strong>do índice</strong>, não do modelo de embedding. A página 8 mede outro recall, "o trecho certo está entre os k?", que depende do modelo e da segmentação. Os dois se compõem: se o modelo coloca o trecho certo entre os 12 primeiros em 90% das perguntas e o índice devolve 95% dos vizinhos exatos, o sistema acerta menos que 90%. Por isso o índice se mede separado, contra a busca exata, com as mesmas consultas.</p>
+  <p>A troca é sempre a mesma: <strong>mais custo por consulta (examinar mais candidatos) compra mais recall</strong>, com retorno decrescente. Todo índice tem um botão que controla isso na hora da consulta (no HNSW, <code>ef_search</code>; no IVFFlat, <code>probes</code>) e botões que controlam a qualidade da estrutura na hora da construção (<code>m</code> e <code>ef_construction</code>; <code>lists</code>). A arte é escolher o ponto da curva onde o recall já estabilizou e o custo ainda é baixo. Você vai desenhar essa curva com dados no capítulo 4.</p>
+
+  <figure class="diagram" data-caps='["A consulta chega. A busca exata compararia com todos os N vetores.","O índice escolhe um ponto de partida e caminha pela estrutura, sempre na direção da consulta.","Ele examina só os vetores que a estrutura conecta ao caminho: uma fração de N.","Devolve os k melhores que encontrou. Alguns vizinhos exatos podem ter ficado fora do caminho.","O recall compara a lista devolvida com a lista exata: é a taxa de acerto do índice.","Aumentar o esforço (ef_search, probes) alarga o caminho e recupera os que faltaram, por mais custo."]' aria-label="Fluxo da busca aproximada e da medição do recall">
+    <div class="dtools"><button class="btn small" data-stepper="an">Passo a passo</button><button class="btn small ghost" data-stepper-reset="an">Reiniciar</button><span class="mini" id="an-cap"></span></div>
+    <svg viewBox="0 0 760 230" role="img" aria-labelledby="ant"><title id="ant">Busca aproximada e recall</title>
+      <defs><marker id="ar3" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="var(--muted)"/></marker></defs>
+      <g class="node stage" data-stage="an-0"><rect x="10" y="30" width="120" height="56" rx="8"/><text x="70" y="53" text-anchor="middle" class="t">Consulta</text><text x="70" y="71" text-anchor="middle">vetor q</text></g>
+      <g class="node ia stage" data-stage="an-1"><rect x="160" y="30" width="140" height="56" rx="8"/><text x="230" y="53" text-anchor="middle" class="t">Ponto de entrada</text><text x="230" y="71" text-anchor="middle">caminhar até q</text></g>
+      <g class="node ia stage" data-stage="an-2"><rect x="330" y="30" width="150" height="56" rx="8"/><text x="405" y="53" text-anchor="middle" class="t">Candidatos</text><text x="405" y="71" text-anchor="middle">só os ligados ao caminho</text></g>
+      <g class="node ok stage" data-stage="an-3"><rect x="510" y="30" width="120" height="56" rx="8"/><text x="570" y="53" text-anchor="middle" class="t">k melhores</text><text x="570" y="71" text-anchor="middle">resposta do índice</text></g>
+      <g class="node stage" data-stage="an-4"><rect x="330" y="150" width="150" height="56" rx="8"/><text x="405" y="173" text-anchor="middle" class="t">Busca exata</text><text x="405" y="191" text-anchor="middle">k verdadeiros (referência)</text></g>
+      <g class="node gate stage" data-stage="an-5"><rect x="510" y="150" width="120" height="56" rx="8"/><text x="570" y="173" text-anchor="middle" class="t">recall@k</text><text x="570" y="191" text-anchor="middle">acertos ÷ k</text></g>
+      <path class="edge" d="M130 58 H156" marker-end="url(#ar3)"/><path class="edge" d="M300 58 H326" marker-end="url(#ar3)"/><path class="edge" d="M480 58 H506" marker-end="url(#ar3)"/>
+      <path class="edge" d="M570 86 V146" marker-end="url(#ar3)"/><path class="edge" d="M480 178 H506" marker-end="url(#ar3)"/><path class="edge" d="M70 86 V178 H326" marker-end="url(#ar3)" stroke-dasharray="4 3"/>
+      <text class="lbl" x="80" y="170">mesma consulta</text><text class="lbl" x="650" y="120">ef_search ↑ → recall ↑, custo ↑</text>
+    </svg>
+    <figcaption>O índice e a busca exata recebem a mesma consulta; a comparação das duas listas é a única forma honesta de saber quanto o índice perde.</figcaption>
+  </figure>
+
+  <div class="doit"><span class="ic">faça agora</span><p>Sem olhar adiante, escreva no caderno abaixo o que você acha que acontece com o recall e com o tempo quando (a) a base dobra de tamanho e (b) o parâmetro de esforço da consulta dobra. Confira as duas previsões no capítulo 4.</p></div>
+
+  <div class="faq">
+    <h3>Perguntas que aparecem aqui</h3>
+    <details><summary>Recall 0,95 é bom ou ruim?</summary><p>Para o projeto, 0,95 em k = 12 é confortável: a busca híbrida (página 4) traz 50 candidatos de cada lado antes de fundir, e o modelo de linguagem lê 12. Um vizinho perdido em 20 raramente é o único trecho relevante. Abaixo de 0,90 começa a valer subir o esforço; acima de 0,98 o custo extra quase nunca compensa. O número certo vem do conjunto de avaliação da página 8.</p><p class="why">Recall do índice se calibra pelo efeito no recall do sistema.</p></details>
+    <details><summary>Por que não usar um índice exato, como uma árvore?</summary><p>Árvores (k-d, ball trees) funcionam bem até umas 20 dimensões. Acima disso, a "maldição da dimensionalidade" faz todas as distâncias ficarem parecidas e as árvores acabam visitando quase tudo. Com 768 dimensões, os únicos índices que escalam são os aproximados: grafos (HNSW), partições (IVF) e quantização.</p><p class="why">Em alta dimensão, exato e rápido não coexistem.</p></details>
+    <details><summary>O recall do índice varia por consulta?</summary><p>Varia. Consultas em regiões densas (muitos trechos parecidos, como os incisos do art. 75) tendem a perder mais vizinhos, porque há muitos candidatos quase empatados. É por isso que a medição usa dezenas de consultas e reporta a média, e por que vale olhar também o pior caso.</p><p class="why">Média esconde; olhe a distribuição quando o número importar.</p></details>
+  </div>
+
+  <div class="notes"><label for="n-p3-c2">Caderno</label><p class="hint">Escreva as suas duas previsões do "faça agora" e a diferença entre o recall do índice (esta página) e o recall@k da página 8.</p><textarea class="prose" id="n-p3-c2" data-note="p3-c2"></textarea><div class="saved"></div></div>
+</section>
+
+<!-- ============================================================ 3 -->
+<section class="chapter" id="c3" data-ch="p3-c3">
+  <div class="ch-head"><span class="n">Capítulo 3</span><h2>HNSW por dentro</h2><label class="donebox"><input type="checkbox" data-done> Capítulo concluído</label></div>
+
+  <p>HNSW significa <em>Hierarchical Navigable Small World</em>: um grafo de "mundo pequeno" navegável, em camadas. A ideia vem de duas observações. Primeira: se cada vetor estiver ligado aos seus vizinhos mais próximos, dá para chegar a qualquer ponto caminhando de vizinho em vizinho, sempre na direção da consulta, e cada passo só examina as poucas ligações do ponto atual. Segunda: se além das ligações curtas houver algumas ligações longas, os primeiros passos cobrem grandes distâncias e o caminho fica curto (é a propriedade de "seis graus de separação" das redes sociais). O HNSW organiza as ligações longas em <strong>camadas</strong>: a camada 0 tem todos os pontos e ligações curtas; a camada 1 tem uma amostra dos pontos (cerca de 1 em cada <em>m</em>) com ligações mais longas; a camada 2, uma amostra da amostra; e assim até uma camada com um ou poucos pontos.</p>
+  <p>A <strong>busca</strong> começa no topo, no ponto de entrada. Em cada camada ela faz o mesmo: olha os vizinhos do ponto atual, pula para o que estiver mais perto da consulta, repete até nenhum vizinho estar mais perto. Aí desce uma camada, começando do ponto onde parou, com ligações mais curtas e mais precisas. Na camada 0, em vez de guardar só o melhor ponto, ela guarda uma lista dos <code>ef_search</code> melhores candidatos e continua expandindo enquanto houver candidato melhor que o pior da lista. Os k primeiros da lista são a resposta. O número de distâncias calculadas cresce com o logaritmo de N, não com N.</p>
+  <p>A <strong>construção</strong> insere um ponto de cada vez. Cada ponto sorteia um nível máximo (com probabilidade que cai exponencialmente, o que produz as amostras de cada camada). O ponto é inserido buscando os seus vizinhos com o mesmo algoritmo (com a lista de tamanho <code>ef_construction</code>), e liga-se aos <em>m</em> melhores em cada camada até o seu nível. Os vizinhos ligam-se de volta, e se algum ultrapassar o máximo de ligações (2·<em>m</em> na camada 0, <em>m</em> nas outras), ele poda as piores. A escolha de quais vizinhos manter usa uma heurística que prefere vizinhos em <em>direções diferentes</em> a vizinhos empilhados no mesmo lugar: é isso que mantém o grafo navegável mesmo em aglomerados.</p>
+
+  <div class="lab">
+    <header><h4>Experimento · A busca no grafo, passo a passo</h4><span class="badge toy">HNSW real em 2D</span></header>
+    <div class="body">
+      <p>Um HNSW de verdade construído sobre 110 pontos em duas dimensões (a mesma implementação que roda os capítulos 4 e 7, só com distância euclidiana para dar para desenhar). Clique no mapa para colocar a consulta e avance passo a passo: cada passo é "estou neste ponto, examino as ligações dele". Repare na descida de camada, nas ligações longas do topo, e conte as distâncias calculadas contra as 110 da força bruta.</p>
+      <div class="row">
+        <div><label class="f" for="hn-m">m (ligações por ponto)</label><select id="hn-m"><option value="2">2</option><option value="3" selected>3</option><option value="5">5</option><option value="8">8</option></select></div>
+        <div><label class="f" for="hn-ef">ef_search</label><select id="hn-ef"><option value="1">1 (guloso puro)</option><option value="3">3</option><option value="6" selected>6</option><option value="12">12</option><option value="24">24</option></select></div>
+        <div><label class="f" for="hn-k">k</label><select id="hn-k"><option value="1">1</option><option value="3" selected>3</option><option value="5">5</option></select></div>
+        <div><label class="f" for="hn-layer">Ver camada</label><select id="hn-layer"><option value="0" selected>0</option><option value="1">1</option><option value="2">2</option><option value="3">3</option></select></div>
+      </div>
+      <div class="row">
+        <div class="fixed"><button class="btn" id="hn-next">Próximo passo</button></div>
+        <div class="fixed"><button class="btn ghost" id="hn-play">Reproduzir</button></div>
+        <div class="fixed"><button class="btn ghost" id="hn-end">Ir ao fim</button></div>
+        <div class="fixed"><button class="btn ghost" id="hn-rebuild">Novos pontos</button></div>
+      </div>
+      <div class="legend"><span><i style="background:var(--amber)"></i>ponto atual / examinado</span><span><i style="background:var(--navy)"></i>já visitado</span><span><i style="background:var(--teal)"></i>na lista de candidatos</span><span><i style="background:var(--green)"></i>vizinho exato não encontrado</span><span><i style="background:var(--red)"></i>consulta</span></div>
+      <figure class="diagram" style="margin:0"><svg id="hn-svg" viewBox="0 0 760 380" role="img" aria-label="Grafo HNSW em duas dimensões com a busca animada" style="cursor:crosshair;touch-action:manipulation"></svg><figcaption id="hn-cap">Clique no mapa para colocar a consulta.</figcaption></figure>
+      <p class="mini" id="hn-info"></p>
+      <p id="hn-res" style="font-weight:600"></p>
+    </div>
+  </div>
+
+  <div class="doit"><span class="ic">faça agora</span><p>Com ef_search = 1 (guloso puro) e k = 3, coloque a consulta entre dois aglomerados e vá ao fim: é comum perder um vizinho exato. Suba ef_search para 6 e refaça no mesmo lugar. Depois mude m para 2 e para 8 e observe o número de ligações por ponto e o número de distâncias calculadas. Anote: com que combinação o recall ficou 100% com menos distâncias?</p></div>
+
+  <div class="faq">
+    <h3>Perguntas que aparecem aqui</h3>
+    <details><summary>Por que o guloso puro (ef = 1) erra?</summary><p>Porque ele só avança se um vizinho estiver <em>estritamente</em> mais perto, e para num "mínimo local": um ponto cujos vizinhos estão todos um pouco mais longe da consulta, embora exista um ponto melhor duas ligações adiante. A lista de candidatos (ef &gt; 1) permite explorar alguns caminhos alternativos antes de desistir; quanto maior, menos mínimos locais enganam a busca.</p><p class="why">ef é a tolerância a mínimos locais; 1 não tolera nenhum.</p></details>
+    <details><summary>Quantas camadas um índice real tem?</summary><p>Com m = 16, cada ponto tem cerca de 1/16 de chance de subir a cada camada, então 1 milhão de pontos gera 5 ou 6 camadas, e o topo tem um punhado de pontos. A descida pelas camadas superiores custa pouco (poucas distâncias por camada); o custo está na camada 0, controlado por ef_search.</p><p class="why">Camadas ∝ log N; o trabalho fica na base.</p></details>
+    <details><summary>O HNSW é determinístico?</summary><p>A busca, sim, dado um grafo. A construção sorteia o nível de cada ponto, então dois índices construídos sobre os mesmos dados podem ter grafos diferentes e recalls ligeiramente diferentes. É mais um motivo para medir o recall do índice construído, não confiar em um número de referência.</p><p class="why">Mesmos dados, grafos diferentes: meça o seu.</p></details>
+    <details><summary>Deletar um ponto do HNSW é fácil?</summary><p>Não. Remover um ponto pode quebrar caminhos. O pgvector marca a linha como morta e o <code>VACUUM</code> limpa depois, e com muitas remoções o grafo degrada e vale um <code>REINDEX</code>. No projeto, a base normativa muda por versão (reindexação completa quando o modelo muda, inserções quando entra norma nova), então remoções são raras.</p><p class="why">Grafo é ótimo para inserir e buscar; remoção é manutenção.</p></details>
+  </div>
+
+  <div class="notes"><label for="n-p3-c3">Caderno</label><p class="hint">Descreva a busca no HNSW como se estivesse explicando para alguém que só conhece o "seis graus de separação": camadas, ponto de entrada, descida, lista de candidatos.</p><textarea class="prose" id="n-p3-c3" data-note="p3-c3"></textarea><div class="saved"></div></div>
+</section>
+<!-- ============================================================ 4 -->
+<section class="chapter" id="c4" data-ch="p3-c4">
+  <div class="ch-head"><span class="n">Capítulo 4</span><h2>Os três parâmetros: m, ef_construction, ef_search</h2><label class="donebox"><input type="checkbox" data-done> Capítulo concluído</label></div>
+
+  <p>Todo o comportamento do HNSW no pgvector se resume a três números. Dois são fixados na criação do índice e mudar exige reconstruir; um é ajustado por sessão, na hora da consulta.</p>
+  <p><strong><code>m</code></strong> (padrão 16) é o número de ligações que cada ponto recebe por camada (a camada 0 permite até 2·m). Mais ligações: grafo mais denso, mais caminhos, recall maior e mais estável, índice maior (cada ligação ocupa espaço) e construção mais lenta. Valores usuais: 12 a 32; 16 é um bom padrão para embeddings de texto; 32 ou 48 para bases muito grandes ou dados difíceis. Abaixo de 8 o grafo começa a ficar mal conectado, e você vai ver isso no experimento.</p>
+  <p><strong><code>ef_construction</code></strong> (padrão 64) é o tamanho da lista de candidatos usada <em>na inserção</em>: quantos vizinhos o algoritmo examina antes de escolher os m melhores. Mais: cada ponto encontra vizinhos melhores, o grafo fica mais preciso e o recall sobe; a construção fica proporcionalmente mais lenta. Não afeta o tamanho do índice nem a velocidade da consulta. Valores usuais: 64 a 200; vale subir quando a construção roda uma vez e a base fica meses.</p>
+  <p><strong><code>hnsw.ef_search</code></strong> (padrão 40) é o tamanho da lista de candidatos <em>na busca</em>. É o botão de ajuste fino em produção: sobe o recall e a latência ao mesmo tempo, sem tocar no índice. Duas regras práticas: precisa ser maior ou igual ao <code>LIMIT</code> (o índice não devolve mais linhas do que ef_search), e a busca híbrida do projeto pede 50 candidatos, então o mínimo útil é 50; 100 é um valor confortável para começar.</p>
+
+  <div class="lab">
+    <header><h4>Experimento · Recall × custo nos seus parâmetros</h4><span class="badge toy">HNSW real · milhares de vetores</span><span class="badge live">opcional: vetores reais</span></header>
+    <div class="body">
+      <p>O navegador constrói um HNSW sobre milhares de vetores sintéticos (aglomerados, para parecer texto) e mede 60 consultas contra a busca exata: recall@10, distâncias calculadas por consulta, tempo. Cada rodada entra na tabela para você comparar. Com o corpus indexado na página 2, o botão "vetores reais" gera os pontos a partir dos 768 dimensões do <code>gemini-embedding-001</code>.</p>
+      <div class="row">
+        <div><label class="f" for="pr-n">Vetores</label><select id="pr-n"><option value="1000">1.000</option><option value="2000">2.000</option><option value="3000" selected>3.000</option><option value="6000">6.000 (construção mais lenta)</option></select></div>
+        <div><label class="f" for="pr-m">m = <span id="pr-mv">16</span></label><input type="range" id="pr-m" min="2" max="48" step="1" value="16"></div>
+        <div><label class="f" for="pr-efc">ef_construction = <span id="pr-efcv">64</span></label><input type="range" id="pr-efc" min="8" max="256" step="8" value="64"></div>
+        <div><label class="f" for="pr-efs">ef_search = <span id="pr-efsv">40</span></label><input type="range" id="pr-efs" min="10" max="400" step="10" value="40"></div>
+      </div>
+      <div class="row"><div class="fixed"><button class="btn" id="pr-run">Construir e medir</button></div><div class="fixed"><button class="btn ghost" id="pr-real">Usar vetores reais (768 dims)</button></div></div>
+      <div class="bars" id="pr-out" aria-live="polite"></div>
+      <div class="status" id="pr-status"></div>
+      <div class="tbl-wrap" style="margin-top:12px"><table id="pr-tbl"><thead><tr><th>m</th><th>ef_c</th><th>ef_s</th><th>recall@10</th><th>distâncias</th><th>ms/consulta</th><th>construção</th><th>ligações/ponto</th><th>dados</th></tr></thead><tbody></tbody></table></div>
+    </div>
+  </div>
+
+  <div class="doit"><span class="ic">faça agora</span><p>Rode com os padrões (16 / 64 / 40) e anote o recall. Agora só ef_search: 10, 20, 100, 200. Desenhe mentalmente a curva recall × distâncias: onde ela achata? Depois volte a ef_search = 40 e baixe m para 4: o recall despenca e nenhum ef_search salva por completo. Por fim, m = 16 com ef_construction = 8: veja que o índice "nasce ruim". Estes três movimentos são o capítulo inteiro em dados.</p></div>
+
+  <div class="faq">
+    <h3>Perguntas que aparecem aqui</h3>
+    <details><summary>Se ef_search resolve, por que me importar com m e ef_construction?</summary><p>Porque ef_search só explora o grafo que existe. Com m pequeno ou ef_construction baixo, o grafo tem regiões mal ligadas que nenhum ef alcança sem virar varredura completa. Construa bem uma vez; ajuste ef_search sempre.</p><p class="why">Construção define o teto; ef_search escolhe o ponto abaixo dele.</p></details>
+    <details><summary>Os defaults do pgvector (16 / 64 / 40) servem para o projeto?</summary><p>Servem para começar. O ajuste que quase sempre vale é ef_search = 100 na sessão (ou no <code>ALTER DATABASE … SET</code>), porque a busca híbrida pede 50 candidatos e 40 é menos que isso. m e ef_construction só mudam se o recall medido ficar abaixo do alvo com ef_search alto.</p><p class="why">Defaults bons; ef_search precisa acompanhar o LIMIT.</p></details>
+    <details><summary>O recall medido aqui vale para o pgvector?</summary><p>A implementação é o mesmo algoritmo, então a forma da curva e as relações entre parâmetros valem. Os números exatos dependem dos seus vetores reais (mais difíceis que os sintéticos) e da implementação em C do pgvector. Repita a medição no banco, no Ex. 3, com o protocolo do capítulo 8.</p><p class="why">Simulação ensina a forma; o banco dá o número.</p></details>
+  </div>
+
+  <div class="notes"><label for="n-p3-c4">Caderno</label><p class="hint">Para cada parâmetro (m, ef_construction, ef_search): o que sobe, o que desce, quando mudar. Três linhas.</p><textarea class="prose" id="n-p3-c4" data-note="p3-c4"></textarea><div class="saved"></div></div>
+</section>
+
+<!-- ============================================================ 5 -->
+<section class="chapter" id="c5" data-ch="p3-c5">
+  <div class="ch-head"><span class="n">Capítulo 5</span><h2>A alternativa: IVFFlat</h2><label class="donebox"><input type="checkbox" data-done> Capítulo concluído</label></div>
+
+  <p>O pgvector oferece um segundo índice, mais antigo e mais simples: <strong>IVFFlat</strong> (<em>inverted file, flat</em>). A ideia é particionar: rode um k-means sobre os vetores e divida a base em <code>lists</code> grupos, cada um com um centróide. Na consulta, compare a consulta com os centróides (poucos), escolha os <code>probes</code> grupos mais próximos e faça a busca exata só dentro deles. Se a consulta cair perto da fronteira entre dois grupos e você sondar só um, perde os vizinhos que ficaram do outro lado: é a fonte de erro do IVFFlat, e é visível no experimento.</p>
+  <p>As diferenças práticas em relação ao HNSW: o IVFFlat é <strong>menor</strong> (não guarda ligações, só a atribuição a um grupo) e <strong>mais rápido de construir</strong>; em troca tem <strong>recall menor</strong> para o mesmo custo de consulta e uma restrição operacional: precisa ser criado <em>depois</em> que os dados estão na tabela, porque os centróides são calculados a partir deles, e vai perdendo qualidade à medida que dados novos chegam e a distribuição muda. Para uma base que cresce e muda, é um índice que pede reconstrução periódica.</p>
+  <p>Regras de bolso do próprio pgvector: <code>lists</code> ≈ linhas ÷ 1000 até 1 milhão de linhas, √linhas acima disso; <code>probes</code> ≈ √lists. Com probes = lists a busca vira exata (e lenta). Para o projeto, o HNSW é a escolha padrão; o IVFFlat entra na conversa quando a memória do índice é o gargalo e a base é estável, e vale conhecer para não ser surpreendido por ele em outro sistema.</p>
+
+  <div class="lab">
+    <header><h4>Experimento · Partições e sondagens</h4><span class="badge toy">k-means real em 2D</span></header>
+    <div class="body">
+      <p>700 pontos em 2D particionados por k-means. Escolha o número de listas e quantas sondar; clique para colocar uma consulta. Os pontos com contorno vermelho são vizinhos exatos que ficaram em listas não sondadas: o erro de fronteira. A média de recall usa 80 consultas aleatórias.</p>
+      <div class="row">
+        <div><label class="f" for="iv-lists">lists = <span id="iv-listsv">12</span></label><input type="range" id="iv-lists" min="2" max="32" step="1" value="12"></div>
+        <div><label class="f" for="iv-probes">probes = <span id="iv-probesv">1</span></label><input type="range" id="iv-probes" min="1" max="12" step="1" value="1"></div>
+      </div>
+      <figure class="diagram" style="margin:0"><svg id="iv-svg" viewBox="0 0 760 360" role="img" aria-label="Pontos particionados em listas, com a consulta e as listas sondadas" style="cursor:crosshair"></svg><figcaption id="iv-cap">Clique no mapa para colocar uma consulta.</figcaption></figure>
+      <div class="bars" id="iv-out" aria-live="polite" style="margin-top:10px"></div>
+    </div>
+  </div>
+
+  <div class="doit"><span class="ic">faça agora</span><p>Com lists = 12 e probes = 1, coloque a consulta bem na fronteira entre duas cores e veja os contornos vermelhos. Suba probes para 2, depois 3: a partir de √12 ≈ 3 o recall médio estabiliza. Agora lists = 32 com probes = 1: mais listas, cada uma menor, mais fronteiras: o recall cai. É a razão de a regra de bolso amarrar probes a √lists.</p></div>
+
+  <div class="faq">
+    <h3>Perguntas que aparecem aqui</h3>
+    <details><summary>Quando o IVFFlat é a escolha certa?</summary><p>Base grande e estável (reconstruída em janelas planejadas), memória limitada, e tolerância a recall um pouco menor ou disposição para probes altos. Também é razoável como primeiro índice em um protótipo quando a construção do HNSW demora demais na máquina disponível. Fora disso, HNSW.</p><p class="why">Memória e estabilidade a favor; recall e manutenção contra.</p></details>
+    <details><summary>Existe algo além de HNSW e IVFFlat?</summary><p>Fora do pgvector, sim: quantização de produto (PQ), que comprime os vetores e permite bases enormes em memória, e combinações como IVF-PQ e DiskANN (grafo em disco). O pgvector oferece quantização parcial via <code>halfvec</code> (metade dos bytes) e <code>bit</code> (binária, com reordenação). Para a escala do projeto, HNSW sobre <code>vector(768)</code> resolve; conhecer os outros é para quando a base tiver dezenas de milhões de trechos.</p><p class="why">A escala decide; abaixo de milhões, HNSW puro.</p></details>
+    <details><summary>Por que "flat" no nome?</summary><p>Porque dentro de cada lista os vetores ficam inteiros ("flat"), sem compressão, e a busca dentro da lista é exata. Variantes com compressão (IVF-PQ) não existem no pgvector.</p><p class="why">Flat = vetor inteiro, busca exata dentro da partição.</p></details>
+  </div>
+
+  <div class="notes"><label for="n-p3-c5">Caderno</label><p class="hint">Explique o erro de fronteira do IVFFlat e por que ele é estrutural (não some com ef_search, porque não existe ef_search). Diga em que situação você o escolheria.</p><textarea class="prose" id="n-p3-c5" data-note="p3-c5"></textarea><div class="saved"></div></div>
+</section>
+
+<!-- ============================================================ 6 -->
+<section class="chapter" id="c6" data-ch="p3-c6">
+  <div class="ch-head"><span class="n">Capítulo 6</span><h2>pgvector na prática: DDL, consulta e EXPLAIN</h2><label class="donebox"><input type="checkbox" data-done> Capítulo concluído</label></div>
+
+  <p>Tudo o que a página disse até aqui vira quatro linhas de SQL. O <strong>tipo</strong> da coluna (<code>vector(768)</code>; <code>halfvec</code> para economizar metade da memória ou para passar de 2000 dimensões, com uma perda de precisão que raramente importa). O <strong>índice</strong>, com a classe de operador que combina com a métrica (<code>vector_cosine_ops</code> para <code>&lt;=&gt;</code>, <code>vector_ip_ops</code> para <code>&lt;#&gt;</code>, <code>vector_l2_ops</code> para <code>&lt;-&gt;</code>) e os parâmetros do capítulo 4. O <strong>parâmetro de sessão</strong> (<code>SET hnsw.ef_search</code>). E a <strong>consulta</strong>, que precisa ter uma forma exata para o planejador usar o índice.</p>
+  <p>Essa forma é a fonte de metade dos problemas em produção. O planejador do PostgreSQL só usa um índice HNSW ou IVFFlat quando a consulta tem <code>ORDER BY</code> pelo <em>operador de distância puro</em>, em ordem <em>crescente</em>, com o <em>mesmo operador</em> da classe do índice, e um <code>LIMIT</code>. Qualquer desvio (ordenar por <code>1 - (embedding &lt;=&gt; q)</code> em vez de pelo operador, usar <code>DESC</code>, esquecer o <code>LIMIT</code>, indexar em cosseno e consultar com <code>&lt;-&gt;</code>) faz o índice ser ignorado em silêncio: a consulta funciona, devolve o resultado exato, e é cem vezes mais lenta. A única forma de saber é o <code>EXPLAIN</code>: você quer ver <code>Index Scan using … on trecho_normativo</code>; se aparecer <code>Seq Scan</code> com <code>Sort</code>, o índice não entrou.</p>
+
+  <div class="lab">
+    <header><h4>Experimento · Montador de índice e consulta</h4><span class="badge toy">gera SQL</span></header>
+    <div class="body">
+      <p>Escolha as opções e o SQL se escreve. As advertências aparecem quando uma combinação é inválida ou contraproducente.</p>
+      <div id="sq-form">
+        <div class="row">
+          <div><label class="f" for="sq-metric">Métrica</label><select id="sq-metric"><option value="cosine" selected>cosseno (&lt;=&gt;)</option><option value="ip">produto interno (&lt;#&gt;)</option><option value="l2">euclidiana (&lt;-&gt;)</option></select></div>
+          <div><label class="f" for="sq-idx">Índice</label><select id="sq-idx"><option value="hnsw" selected>HNSW</option><option value="ivfflat">IVFFlat</option><option value="none">nenhum (exata)</option></select></div>
+          <div><label class="f" for="sq-type">Tipo</label><select id="sq-type"><option value="vector" selected>vector</option><option value="halfvec">halfvec</option></select></div>
+          <div><label class="f" for="sq-dims">Dimensões</label><select id="sq-dims"><option value="768" selected>768</option><option value="1024">1024</option><option value="1536">1536</option><option value="3072">3072</option></select></div>
+          <div><label class="f" for="sq-k">LIMIT (k)</label><select id="sq-k"><option value="12" selected>12</option><option value="50">50</option><option value="100">100</option></select></div>
+        </div>
+        <div class="row" id="sq-hnsw">
+          <div><label class="f" for="sq-m">m</label><input type="number" id="sq-m" value="16" min="2" max="100"></div>
+          <div><label class="f" for="sq-efc">ef_construction</label><input type="number" id="sq-efc" value="64" min="4" max="1000"></div>
+          <div><label class="f" for="sq-efs">hnsw.ef_search</label><input type="number" id="sq-efs" value="100" min="1" max="1000"></div>
+        </div>
+        <div class="row" id="sq-ivf" hidden>
+          <div><label class="f" for="sq-lists">lists</label><input type="number" id="sq-lists" value="100" min="1"></div>
+          <div><label class="f" for="sq-probes">ivfflat.probes</label><input type="number" id="sq-probes" value="10" min="1"></div>
+        </div>
+      </div>
+      <div id="sq-warn"></div>
+      <pre id="sq-ddl"><code class="language-sql"></code></pre>
+      <pre id="sq-qry"><code class="language-sql"></code></pre>
+    </div>
+  </div>
+
+  <div class="lab">
+    <header><h4>Experimento · O índice vai ser usado?</h4><span class="badge toy">verificador</span></header>
+    <div class="body">
+      <p>Descreva a consulta e o verificador diz se o planejador vai usar o índice, com o motivo. São as regras que o <code>EXPLAIN</code> confirmaria.</p>
+      <div id="ck-form" class="row">
+        <div><label class="f" for="ck-idxop">Índice criado com</label><select id="ck-idxop"><option value="cosseno" selected>vector_cosine_ops</option><option value="produto interno">vector_ip_ops</option><option value="euclidiana">vector_l2_ops</option></select></div>
+        <div><label class="f" for="ck-qop">ORDER BY usa</label><select id="ck-qop"><option value="cosseno" selected>&lt;=&gt; (cosseno)</option><option value="produto interno">&lt;#&gt; (produto interno)</option><option value="euclidiana">&lt;-&gt; (euclidiana)</option></select></div>
+        <div><label class="f" for="ck-order">Forma do ORDER BY</label><select id="ck-order"><option value="op" selected>operador puro, ASC</option><option value="expr">expressão (1 − (a &lt;=&gt; b))</option><option value="desc">operador, DESC</option></select></div>
+        <div class="fixed"><label class="f" style="display:flex;gap:8px;align-items:center;margin-top:22px"><input type="checkbox" id="ck-limit" checked> tem LIMIT</label></div>
+        <div><label class="f" for="ck-filter">WHERE</label><select id="ck-filter"><option value="none" selected>sem filtro (ou pouco seletivo)</option><option value="sel">filtro seletivo (ex.: vigência)</option></select></div>
+      </div>
+      <div class="status" id="ck-status"></div>
+    </div>
+  </div>
+
+  <p>Leitura do <code>EXPLAIN (ANALYZE, BUFFERS)</code>, que é o que você vai rodar no Ex. 3. O que procurar: a linha <code>Index Scan using trecho_emb_hnsw</code> (índice usado), o <code>actual time</code> da última linha (latência real), <code>Buffers: shared hit</code> versus <code>read</code> (quanto veio da memória e quanto do disco: se <code>read</code> for grande em toda consulta, o índice não cabe no cache), e <code>rows</code> igual ao <code>LIMIT</code> (se vier menor, o capítulo 7 explica).</p>
+<pre><code class="language-text">Limit  (cost=… rows=12) (actual time=1.84..2.31 rows=12 loops=1)
+  ->  Index Scan using trecho_emb_hnsw on trecho_normativo  (actual time=1.83..2.29 rows=12 loops=1)
+        Order By: (embedding <=> '[0.021,-0.113,…]'::vector)
+        Filter: (modelo_embedding = 'gemini-embedding-001')
+        Buffers: shared hit=143
+Planning Time: 0.21 ms
+Execution Time: 2.40 ms</code></pre>
+
+  <div class="doit"><span class="ic">faça agora</span><p>No montador, escolha vector com 3072 dimensões e HNSW: leia a advertência. Troque para halfvec. No verificador, marque "expressão" no ORDER BY e leia o veredito: é o erro mais comum de quem calcula "similaridade = 1 − distância" dentro do ORDER BY. A forma certa é ordenar pelo operador e calcular a similaridade no SELECT.</p></div>
+
+  <div class="faq">
+    <h3>Perguntas que aparecem aqui</h3>
+    <details><summary>Posso ter dois índices na mesma coluna, um por métrica?</summary><p>Pode, e cada consulta usa o que combina com o operador dela. Mas cada índice custa memória e tempo de construção. Com vetores normalizados, uma métrica basta (página 2, capítulo 4): escolha cosseno e crie um índice.</p><p class="why">Um índice por métrica realmente usada; normalmente, um.</p></details>
+    <details><summary>O SET hnsw.ef_search vale para todas as conexões?</summary><p><code>SET</code> vale para a sessão; <code>SET LOCAL</code>, para a transação; <code>ALTER DATABASE … SET hnsw.ef_search = 100</code> ou <code>ALTER ROLE</code> tornam o valor padrão para novas conexões. No ia-worker, defina por transação junto com a consulta, para que o valor esteja no código e no controle de versão.</p><p class="why">Configuração de busca é código: versione junto.</p></details>
+    <details><summary>E se eu quiser a similaridade no resultado?</summary><p>Calcule no <code>SELECT</code> (<code>1 - (embedding &lt;=&gt; %s::vector) AS similaridade</code>) e ordene pelo operador no <code>ORDER BY</code>. O planejador usa o índice para ordenar e a expressão só é avaliada nas k linhas devolvidas.</p><p class="why">Expressão no SELECT é grátis; no ORDER BY, derruba o índice.</p></details>
+  </div>
+
+  <div class="notes"><label for="n-p3-c6">Caderno</label><p class="hint">Escreva de memória as quatro condições para o planejador usar o índice e o que você olha no EXPLAIN para confirmar.</p><textarea class="prose" id="n-p3-c6" data-note="p3-c6"></textarea><div class="saved"></div></div>
+</section>
+<!-- ============================================================ 7 -->
+<section class="chapter" id="c7" data-ch="p3-c7">
+  <div class="ch-head"><span class="n">Capítulo 7</span><h2>Filtros sobre um índice aproximado</h2><label class="donebox"><input type="checkbox" data-done> Capítulo concluído</label></div>
+
+  <p>O projeto nunca busca "os 12 trechos mais próximos"; busca "os 12 mais próximos <em>que estavam vigentes na data do documento</em>, <em>desta norma</em>, <em>deste modelo de embedding</em>". Um <code>WHERE</code> ao lado do <code>ORDER BY</code> vetorial parece inocente e é a segunda maior fonte de surpresas em produção, porque o índice não sabe filtrar.</p>
+  <p>O que o pgvector faz por padrão é <strong>pós-filtragem</strong>: o índice devolve os <code>ef_search</code> melhores candidatos por distância e só então o filtro é aplicado. Se o filtro é pouco seletivo (90% das linhas passam), sobra o suficiente. Se é seletivo (5% passam, como "vigente em 2021" numa base de várias versões), dos 40 candidatos sobram 2, e a consulta devolve 2 linhas em vez de 12: <strong>sem erro, sem aviso</strong>. O sintoma é <code>rows</code> menor que o <code>LIMIT</code> no <code>EXPLAIN</code>, ou um contexto de prompt misteriosamente curto.</p>
+  <p>Há quatro soluções, e a escolha depende da seletividade. <strong>Subir ef_search</strong>: funciona para filtros moderados; para os seletivos, ef precisaria ser enorme. <strong>Varredura iterativa</strong> (<code>hnsw.iterative_scan = relaxed_order</code> ou <code>strict_order</code>, a partir do pgvector 0.8): o índice continua expandindo até juntar k linhas que passem no filtro ou bater o teto de <code>hnsw.max_scan_tuples</code> (20 mil por padrão). É a solução geral e a que o projeto usa. <strong>Índice parcial</strong> (<code>CREATE INDEX … WHERE vigente</code>): quando o filtro é quase sempre o mesmo, um índice só com as linhas que passam elimina o problema. <strong>Pré-filtragem exata</strong>: quando o filtro deixa poucas centenas de linhas, uma busca exata sobre elas (forçando o planejador ou usando uma CTE materializada) é mais rápida e tem recall 100%.</p>
+
+  <div class="lab">
+    <header><h4>Experimento · O filtro que rouba resultados</h4><span class="badge toy">HNSW real · simulação</span></header>
+    <div class="body">
+      <p>O HNSW do capítulo 4 (m = 16, ef_construction = 64) sobre o conjunto sintético; cada vetor tem um "ano de vigência" sorteado. A consulta pede k = 12 com um filtro de vigência de seletividade ajustável. Compare os três modos: pós-filtragem simples, varredura iterativa e exata pré-filtrada.</p>
+      <div class="row">
+        <div><label class="f" for="ft-sel">Linhas que passam no filtro = <span id="ft-selv">10</span>%</label><input type="range" id="ft-sel" min="2" max="100" step="1" value="10"></div>
+        <div><label class="f" for="ft-efs">ef_search = <span id="ft-efsv">40</span></label><input type="range" id="ft-efs" min="12" max="400" step="4" value="40"></div>
+        <div><label class="f" for="ft-mode">Modo</label><select id="ft-mode"><option value="post" selected>índice + filtro depois (padrão)</option><option value="iter">varredura iterativa (iterative_scan)</option><option value="exact">exata sobre as linhas filtradas</option></select></div>
+        <div class="fixed"><button class="btn" id="ft-run">Rodar 60 consultas</button></div>
+      </div>
+      <div class="bars" id="ft-out" aria-live="polite"></div>
+      <div class="status" id="ft-status"></div>
+    </div>
+  </div>
+
+  <div class="doit"><span class="ic">faça agora</span><p>Modo padrão, filtro em 10%, ef_search 40: veja quantas linhas voltam em média (pedido: 12). Suba ef_search até voltar 12: quanto custou em distâncias? Troque para varredura iterativa com ef_search 40: mesmas 12 linhas, custo intermediário. Por fim, filtro em 2% e modo exato: com tão poucas linhas, a exata vence em tudo.</p></div>
+
+  <div class="faq">
+    <h3>Perguntas que aparecem aqui</h3>
+    <details><summary>Como o projeto filtra por vigência?</summary><p>Com colunas <code>vigencia_inicio</code> e <code>vigencia_fim</code> no trecho e um <code>WHERE vigencia_inicio &lt;= data_documento AND (vigencia_fim IS NULL OR vigencia_fim &gt; data_documento)</code>, com <code>hnsw.iterative_scan = relaxed_order</code> na transação. Como a maioria dos dispositivos está vigente, o filtro é pouco seletivo no caso comum, e a varredura iterativa cobre os casos raros (documentos antigos) sem exigir ef_search gigante.</p><p class="why">Iterativa: barata no caso comum, correta no caso raro.</p></details>
+    <details><summary>Qual a diferença entre relaxed_order e strict_order?</summary><p>Na varredura iterativa o índice pode achar, numa rodada posterior, uma linha mais próxima que outra já devolvida. <code>strict_order</code> segura os resultados para garantir a ordem exata por distância (mais lento); <code>relaxed_order</code> devolve na ordem em que encontra, quase sempre certa, e é mais rápido. Como a busca híbrida vai reordenar tudo por RRF (página 4), a ordem exata não importa e <code>relaxed_order</code> é a escolha.</p><p class="why">Se algo vai reordenar depois, relaxe a ordem agora.</p></details>
+    <details><summary>O filtro por modelo_embedding também rouba resultados?</summary><p>Não, porque na prática todas as linhas passam (a coluna existe como trava, e um índice só tem um modelo). Se você mantiver dois modelos na mesma tabela durante uma migração, aí sim: crie um índice parcial por modelo (<code>WHERE modelo_embedding = '…'</code>) ou tabelas separadas.</p><p class="why">Filtro que todo mundo passa custa nada; filtro que divide a tabela pede índice parcial.</p></details>
+  </div>
+
+  <div class="notes"><label for="n-p3-c7">Caderno</label><p class="hint">Descreva o sintoma do filtro seletivo (o que você vê) e as quatro soluções com o critério para escolher cada uma.</p><textarea class="prose" id="n-p3-c7" data-note="p3-c7"></textarea><div class="saved"></div></div>
+</section>
+
+<!-- ============================================================ 8 -->
+<section class="chapter" id="c8" data-ch="p3-c8">
+  <div class="ch-head"><span class="n">Capítulo 8</span><h2>Medir: recall do índice, latência e memória</h2><label class="donebox"><input type="checkbox" data-done> Capítulo concluído</label></div>
+
+  <p>Três medidas descrevem um índice em produção, e o Ex. 3 pede as três. <strong>Recall do índice</strong>: para um conjunto de consultas (as perguntas do conjunto de avaliação servem), rode a busca exata (com <code>SET enable_indexscan = off</code> ou <code>LOCAL</code> na transação) e a busca com índice, e compare as listas. <strong>Latência</strong>: não a média, mas o p50 e o p95 do <code>EXPLAIN ANALYZE</code> ou do cliente, com o índice quente (segunda execução em diante). <strong>Memória</strong>: <code>pg_relation_size('trecho_emb_hnsw')</code> depois de construir; se for maior que a memória disponível para cache, cada consulta vai ao disco e a latência sobe uma ordem de grandeza.</p>
+  <p>O protocolo, que vira um script no Ex. 3: carregar os trechos; construir o índice com <code>maintenance_work_mem</code> suficiente (o pgvector avisa quando não é); para cada consulta do conjunto, rodar exata e aproximada e registrar recall@k e tempos; repetir para dois ou três valores de <code>ef_search</code>; escolher o menor ef que atinge o recall alvo. Guarde o resultado com a data e a versão do índice: quando a base crescer ou o modelo mudar, é o número de referência.</p>
+
+<pre><code class="language-python"># medir_indice.py — recall do índice e latência, contra a busca exata (Ex. 3)
+import time, statistics, psycopg
+
+SQL = """SELECT id FROM rag.trecho_normativo
+         WHERE modelo_embedding = %s
+         ORDER BY embedding <=> %s::vector LIMIT %s"""
+
+def top_ids(cur, qv, k, modelo, exact):
+    cur.execute(f"SET LOCAL enable_indexscan = {'off' if exact else 'on'}")   # SET não aceita parâmetros
+    t0 = time.perf_counter()
+    cur.execute(SQL, (modelo, str(qv), k))
+    ids = [r[0] for r in cur.fetchall()]
+    return ids, (time.perf_counter() - t0) * 1000
+
+def medir(consultas, k=12, ef=100, modelo="gemini-embedding-001"):
+    rec, lat_idx, lat_ex = [], [], []
+    with psycopg.connect() as conn:
+        for qv in consultas:                                   # vetores já embutidos com RETRIEVAL_QUERY
+            with conn.transaction():
+                conn.execute(f"SET LOCAL hnsw.ef_search = {int(ef)}")
+                cur = conn.cursor()
+                exato, t_ex = top_ids(cur, qv, k, modelo, exact=True)
+                aprox, t_ix = top_ids(cur, qv, k, modelo, exact=False)
+            rec.append(len(set(exato) & set(aprox)) / k)
+            lat_idx.append(t_ix); lat_ex.append(t_ex)
+    p = lambda xs, q: statistics.quantiles(xs, n=100)[q - 1]
+    print(f"ef_search={ef}  recall@{k}={statistics.mean(rec):.3f}  "
+          f"idx p50={p(lat_idx, 50):.1f}ms p95={p(lat_idx, 95):.1f}ms  exata p50={p(lat_ex, 50):.1f}ms")</code></pre>
+
+  <div class="lab">
+    <header><h4>Experimento · Calculadora de tamanho e memória</h4><span class="badge toy">estimativa</span></header>
+    <div class="body">
+      <p>Quanto ocupam a tabela e o índice HNSW, e quanta memória você quer ter para o índice ficar quente. Estimativas de ordem de grandeza; o número real vem de <code>pg_relation_size</code>.</p>
+      <div id="sz-form" class="row">
+        <div><label class="f" for="sz-rows">Linhas</label><select id="sz-rows"><option value="1000">1 mil</option><option value="30000" selected>30 mil (base normativa curada)</option><option value="300000">300 mil</option><option value="3000000">3 milhões</option><option value="30000000">30 milhões</option></select></div>
+        <div><label class="f" for="sz-dims">Dimensões</label><select id="sz-dims"><option value="768" selected>768</option><option value="1024">1024</option><option value="1536">1536</option><option value="3072">3072</option></select></div>
+        <div><label class="f" for="sz-type">Tipo</label><select id="sz-type"><option value="vector" selected>vector (4 bytes/dim)</option><option value="halfvec">halfvec (2 bytes/dim)</option></select></div>
+        <div><label class="f" for="sz-m">m</label><select id="sz-m"><option value="8">8</option><option value="16" selected>16</option><option value="32">32</option><option value="48">48</option></select></div>
+      </div>
+      <div class="bars" id="sz-out" aria-live="polite"></div>
+      <p class="mini" id="sz-note"></p>
+    </div>
+  </div>
+
+  <div class="doit"><span class="ic">faça agora</span><p>Calcule para 30 mil linhas (a base curada do projeto) e para 3 milhões (um cenário de "toda a jurisprudência"). Repare que o primeiro cabe em qualquer instância e o segundo já pede uma decisão de infraestrutura. Troque para halfvec e veja o corte pela metade no vetor, mas não nas ligações.</p></div>
+
+  <div class="faq">
+    <h3>Perguntas que aparecem aqui</h3>
+    <details><summary>Por que medir recall com as perguntas do conjunto de avaliação e não com vetores aleatórios?</summary><p>Porque o recall do índice depende de onde as consultas caem: regiões densas perdem mais. Consultas reais caem onde os usuários perguntam, que é onde importa. Vetores aleatórios medem um índice que ninguém vai usar.</p><p class="why">Meça onde o tráfego está.</p></details>
+    <details><summary>O que é "índice quente"?</summary><p>Índice cujas páginas estão no cache do PostgreSQL (<code>shared_buffers</code>) ou do sistema operacional, e não no disco. A primeira consulta depois de reiniciar o banco é lenta porque traz as páginas; as seguintes são rápidas. Meça latência a partir da segunda execução e garanta memória para o índice inteiro; o <code>Buffers: shared read</code> do EXPLAIN mostra quando ele está frio.</p><p class="why">Latência de produção é a do índice em memória; dimensione para isso.</p></details>
+    <details><summary>Como sei se maintenance_work_mem foi suficiente na construção?</summary><p>O pgvector emite uma notificação ("hnsw graph no longer fits into maintenance_work_mem") quando o grafo não coube, e a construção fica muito mais lenta. Defina <code>SET maintenance_work_mem = '2GB'</code> (ou o que a calculadora indicar) antes do <code>CREATE INDEX</code>, e use <code>max_parallel_maintenance_workers</code> para paralelizar.</p><p class="why">O aviso existe; leia os logs da construção.</p></details>
+  </div>
+
+  <div class="notes"><label for="n-p3-c8">Caderno</label><p class="hint">Escreva o protocolo de medição em cinco passos e os três números que você reporta ao final.</p><textarea class="prose" id="n-p3-c8" data-note="p3-c8"></textarea><div class="saved"></div></div>
+</section>
+
+<!-- ============================================================ 9 -->
+<section class="chapter" id="c9" data-ch="p3-c9">
+  <div class="ch-head"><span class="n">Capítulo 9</span><h2>Operação: construir, manter, decidir</h2><label class="donebox"><input type="checkbox" data-done> Capítulo concluído</label></div>
+
+  <p><strong>Construção.</strong> O HNSW pode ser criado antes ou depois de carregar os dados; é mais rápido depois (carga em massa, depois <code>CREATE INDEX</code> com <code>maintenance_work_mem</code> generoso e workers paralelos). O IVFFlat só depois. Em produção, construa em <code>CREATE INDEX CONCURRENTLY</code> para não travar escritas, ou construa numa tabela nova e troque com <code>ALTER TABLE … RENAME</code>.</p>
+  <p><strong>Inserções e atualizações.</strong> O HNSW aceita inserções incrementais mantendo a qualidade; o IVFFlat aceita, mas as linhas novas caem nos centróides antigos e o recall degrada com o tempo. Atualizações e remoções deixam versões mortas; <code>VACUUM</code> limpa, e com muita rotatividade um <code>REINDEX</code> periódico recupera a qualidade do grafo. Para o projeto, a rotina é: inserções quando entra norma nova, reindexação completa quando muda o modelo de embedding (página 2), nunca "atualizar o vetor de uma linha" (é uma remoção mais uma inserção).</p>
+  <p><strong>Dois modelos convivendo.</strong> Na migração de modelo, a tabela tem vetores de dois modelos por um tempo. Não misture na mesma coluna: ou uma coluna por modelo (com índice parcial ou índice por coluna) ou uma tabela por modelo. O <code>WHERE modelo_embedding = …</code> continua na consulta como trava, mas a separação física é o que evita o índice ver vetores incompatíveis.</p>
+  <p><strong>Quando não indexar.</strong> Se a tabela tem menos de 10 ou 20 mil linhas, a varredura exata é rápida, tem recall 100% e nenhuma manutenção. Criar o índice "porque é o certo" adiciona memória, tempo de construção e um recall menor que 100% sem ganho. A regra: meça a exata; indexe quando a latência exigir.</p>
+
+  <div class="lab">
+    <header><h4>Experimento · Ajudante de decisão</h4><span class="badge toy">regras desta página</span></header>
+    <div class="body">
+      <p>Descreva o caso e leia a recomendação. As regras são as dos capítulos anteriores; use como checklist, não como oráculo.</p>
+      <div id="dc-form" class="row">
+        <div><label class="f" for="dc-rows">Linhas</label><select id="dc-rows"><option value="5000">5 mil</option><option value="30000" selected>30 mil</option><option value="300000">300 mil</option><option value="3000000">3 milhões</option></select></div>
+        <div><label class="f" for="dc-qps">Consultas por segundo</label><select id="dc-qps"><option value="1" selected>1</option><option value="10">10</option><option value="100">100</option></select></div>
+        <div><label class="f" for="dc-upd">Atualizações</label><select id="dc-upd"><option value="rare" selected>raras (por versão da base)</option><option value="freq">frequentes (diárias)</option></select></div>
+        <div><label class="f" for="dc-filt">Filtros seletivos</label><select id="dc-filt"><option value="yes" selected>sim (vigência, norma)</option><option value="no">não</option></select></div>
+        <div><label class="f" for="dc-dims">Dimensões</label><select id="dc-dims"><option value="768" selected>768</option><option value="1536">1536</option><option value="3072">3072</option></select></div>
+      </div>
+      <div class="callout" id="dc-out" style="margin-top:10px"></div>
+    </div>
+  </div>
+
+  <div class="doit"><span class="ic">faça agora</span><p>Descreva o projeto como ele é hoje (30 mil linhas, 1 consulta/s, atualizações raras, filtros de vigência, 768 dims) e leia. Depois descreva o cenário "toda a jurisprudência" (3 milhões, 100/s). Repare no que muda e no que não muda na recomendação.</p></div>
+
+  <div class="faq">
+    <h3>Perguntas que aparecem aqui</h3>
+    <details><summary>Preciso de ANALYZE depois de construir?</summary><p>Sim: <code>ANALYZE rag.trecho_normativo</code> atualiza as estatísticas que o planejador usa para decidir entre o índice e a varredura, e para estimar a seletividade dos filtros. Sem estatísticas atualizadas, o planejador pode escolher errado mesmo com o índice pronto.</p><p class="why">O índice existe; o planejador precisa saber que vale usá-lo.</p></details>
+    <details><summary>CREATE INDEX CONCURRENTLY funciona com HNSW?</summary><p>Funciona, e é mais lento que a construção normal, mas não bloqueia inserções e consultas na tabela. Para a primeira carga (tabela vazia ou fora do ar), use a construção normal; para reconstruir em produção, <code>CONCURRENTLY</code> ou a troca de tabela.</p><p class="why">Concorrente custa tempo; bloquear custa disponibilidade.</p></details>
+    <details><summary>Particionar a tabela ajuda?</summary><p>Ajuda quando as consultas sempre filtram pela chave de partição (por exemplo, uma partição por modelo de embedding ou por órgão): cada partição tem o seu índice menor, e o filtro vira poda de partição em vez de pós-filtragem. Não ajuda para filtros variados como vigência.</p><p class="why">Partição resolve o filtro fixo; iterative_scan resolve o variável.</p></details>
+  </div>
+
+  <div class="notes"><label for="n-p3-c9">Caderno</label><p class="hint">Escreva a rotina de operação do índice do projeto: quando construir, quando inserir, quando reindexar, e como migrar de modelo sem misturar vetores.</p><textarea class="prose" id="n-p3-c9" data-note="p3-c9"></textarea><div class="saved"></div></div>
+</section>
+<!-- ============================================================ 10 -->
+<section class="chapter" id="c10" data-ch="p3-c10">
+  <div class="ch-head"><span class="n">Capítulo 10</span><h2>No projeto, checklist e autoavaliação</h2><label class="donebox"><input type="checkbox" data-done> Capítulo concluído</label></div>
+
+  <h3>No projeto</h3>
+  <p>A tabela <code>rag.trecho_normativo</code> tem um índice HNSW em <code>embedding vector(768)</code> com <code>vector_cosine_ops</code>, <code>m = 16</code> e <code>ef_construction = 64</code>, mais um índice GIN sobre o <code>tsvector</code> do conteúdo (página 4) e índices B-tree em <code>norma</code>, <code>vigencia_inicio</code> e <code>vigencia_fim</code>. Cada busca roda numa transação com <code>SET LOCAL hnsw.ef_search = 100</code> e <code>SET LOCAL hnsw.iterative_scan = relaxed_order</code>, pede 50 candidatos vetoriais e 50 lexicais, filtra por vigência na data do documento e por <code>modelo_embedding</code>, funde por RRF e entrega 12 ao prompt. O recall do índice é medido pelo script do capítulo 8 a cada reindexação, com as perguntas do conjunto de avaliação, e o resultado fica registrado com a versão da base. Com a base curada na casa das dezenas de milhares de dispositivos, o índice inteiro cabe em memória com folga em qualquer instância pequena; a decisão de indexar foi tomada pela previsão de crescimento (acórdãos e enunciados do TCU), não pelo tamanho atual.</p>
+  <p>O Ex. 3 (VIN-7) fecha esta página: subir o PostgreSQL com pgvector via <code>docker compose</code>, criar a tabela com as colunas de versionamento (página 2), carregar os trechos do Ex. 2, construir o índice, e rodar o <code>medir_indice.py</code> com dois ou três valores de <code>ef_search</code>, guardando a tabela de recall e latência no card do Linear.</p>
+
+  <h3>Código de referência</h3>
+<pre><code class="language-yaml"># docker-compose.yml — PostgreSQL 16 com pgvector, para os exercícios
+services:
+  db:
+    image: pgvector/pgvector:pg16
+    environment:
+      POSTGRES_USER: rag
+      POSTGRES_PASSWORD: rag
+      POSTGRES_DB: rag
+    ports: ["5432:5432"]
+    volumes: ["pgdata:/var/lib/postgresql/data"]
+    command: ["postgres", "-c", "shared_buffers=512MB", "-c", "maintenance_work_mem=512MB"]
+volumes:
+  pgdata: {}</code></pre>
+<pre><code class="language-sql">-- índice e configuração de sessão do projeto
+CREATE INDEX trecho_emb_hnsw ON rag.trecho_normativo
+  USING hnsw (embedding vector_cosine_ops) WITH (m = 16, ef_construction = 64);
+CREATE INDEX trecho_vig_idx ON rag.trecho_normativo (vigencia_inicio, vigencia_fim);
+ANALYZE rag.trecho_normativo;
+
+-- na transação de busca (o ia-worker executa antes da consulta)
+BEGIN;
+SET LOCAL hnsw.ef_search = 100;
+SET LOCAL hnsw.iterative_scan = relaxed_order;
+SELECT id, dispositivo, 1 - (embedding <=> %s::vector) AS similaridade
+FROM rag.trecho_normativo
+WHERE modelo_embedding = %s
+  AND vigencia_inicio <= %s::date
+  AND (vigencia_fim IS NULL OR vigencia_fim > %s::date)
+ORDER BY embedding <=> %s::vector
+LIMIT 50;
+COMMIT;
+
+-- conferir: índice usado, linhas = 50, buffers em cache
+EXPLAIN (ANALYZE, BUFFERS) SELECT … ;
+SELECT pg_size_pretty(pg_relation_size('trecho_emb_hnsw'));</code></pre>
+
+  <h3>Checklist de domínio</h3>
+  <p>Marque só o que você faria sem consultar a página.</p>
+  <ul class="checklist">
+    <li><input type="checkbox" id="ck3-1"><label for="ck3-1">Estimo o custo da busca exata para N linhas e d dimensões e sei a partir de onde indexar.</label></li>
+    <li><input type="checkbox" id="ck3-2"><label for="ck3-2">Explico o HNSW (camadas, entrada, descida, lista de candidatos) e o que cada parâmetro faz.</label></li>
+    <li><input type="checkbox" id="ck3-3"><label for="ck3-3">Sei que ef_search precisa ser ≥ LIMIT e por quê.</label></li>
+    <li><input type="checkbox" id="ck3-4"><label for="ck3-4">Explico o erro de fronteira do IVFFlat e quando ele seria a escolha.</label></li>
+    <li><input type="checkbox" id="ck3-5"><label for="ck3-5">Escrevo o CREATE INDEX e a consulta que usa o índice, e reconheço as quatro formas de perdê-lo.</label></li>
+    <li><input type="checkbox" id="ck3-6"><label for="ck3-6">Diagnostico "rows menor que LIMIT" como pós-filtragem e escolho entre ef_search, iterative_scan, índice parcial e exata.</label></li>
+    <li><input type="checkbox" id="ck3-7"><label for="ck3-7">Meço recall do índice, p50/p95 e tamanho, e sei o que é índice quente.</label></li>
+    <li><input type="checkbox" id="ck3-8"><label for="ck3-8">Descrevo a rotina de operação: construir, inserir, reindexar, migrar de modelo.</label></li>
+  </ul>
+
+  <h3>Autoavaliação</h3>
+  <div class="quiz" id="quiz-p3">
+    <fieldset><legend>1. A busca exata em 1 milhão de vetores de 768 dimensões custa, por consulta, aproximadamente:</legend>
+      <label class="opt"><input type="radio" name="q1" data-correct="1"> 768 milhões de multiplicações e a leitura de todos os vetores da memória.</label><div class="why">Correto. N × d, linear em ambos; e o custo real dominante é percorrer os 3 GB de vetores.</div>
+      <label class="opt"><input type="radio" name="q1"> Cerca de 20 comparações, porque os vetores estão ordenados.</label><div class="why">Não existe ordenação útil em 768 dimensões; sem índice, é tudo ou nada.</div>
+      <label class="opt"><input type="radio" name="q1"> Depende só do k pedido.</label><div class="why">k afeta só o tamanho da lista mantida; o custo é dado por N e d.</div>
+    </fieldset>
+    <fieldset><legend>2. Recall@10 = 0,93 de um índice HNSW significa:</legend>
+      <label class="opt"><input type="radio" name="q2"> O modelo de embedding acha o trecho certo em 93% das perguntas.</label><div class="why">Isso é o recall@k da página 8, propriedade do modelo e da segmentação.</div>
+      <label class="opt"><input type="radio" name="q2" data-correct="1"> Em média, 9,3 dos 10 vizinhos que a busca exata devolveria estão na resposta do índice.</label><div class="why">Correto. Recall do índice se mede contra a busca exata, com as mesmas consultas.</div>
+      <label class="opt"><input type="radio" name="q2"> 93% das consultas devolvem 10 linhas.</label><div class="why">Número de linhas devolvidas é outro sintoma (pós-filtragem), não recall.</div>
+    </fieldset>
+    <fieldset><legend>3. Na busca do HNSW, o que a lista de candidatos de tamanho ef_search evita?</legend>
+      <label class="opt"><input type="radio" name="q3"> Que a busca visite a camada 0.</label><div class="why">A camada 0 é sempre visitada; é onde estão todos os pontos.</div>
+      <label class="opt"><input type="radio" name="q3" data-correct="1"> Que a busca pare num mínimo local, onde nenhum vizinho imediato é melhor mas existe um ponto melhor mais adiante.</label><div class="why">Correto. ef = 1 é guloso puro e para no primeiro mínimo local; ef maior explora alternativas.</div>
+      <label class="opt"><input type="radio" name="q3"> Que o índice precise de mais memória.</label><div class="why">ef_search não muda o índice; é um parâmetro da consulta.</div>
+    </fieldset>
+    <fieldset><legend>4. Qual parâmetro você ajusta em produção sem reconstruir o índice?</legend>
+      <label class="opt"><input type="radio" name="q4"> m</label><div class="why">m é fixado na criação; mudar exige reconstruir.</div>
+      <label class="opt"><input type="radio" name="q4"> ef_construction</label><div class="why">Também fixado na criação.</div>
+      <label class="opt"><input type="radio" name="q4" data-correct="1"> hnsw.ef_search</label><div class="why">Correto. É um parâmetro de sessão: sobe recall e latência sem tocar no índice.</div>
+    </fieldset>
+    <fieldset><legend>5. A consulta faz <code>ORDER BY 1 - (embedding &lt;=&gt; q) DESC LIMIT 12</code>. O que acontece?</legend>
+      <label class="opt"><input type="radio" name="q5"> Usa o índice normalmente.</label><div class="why">O planejador só reconhece o operador puro, em ordem crescente.</div>
+      <label class="opt"><input type="radio" name="q5" data-correct="1"> Devolve o resultado certo por varredura completa, sem usar o índice.</label><div class="why">Correto. Expressão e DESC derrubam o índice; a consulta funciona, só é lenta.</div>
+      <label class="opt"><input type="radio" name="q5"> Dá erro de sintaxe.</label><div class="why">É SQL válido; o problema é de desempenho, silencioso.</div>
+    </fieldset>
+    <fieldset><legend>6. Com hnsw.ef_search = 40 e LIMIT 50, sem iterative_scan, quantas linhas o índice devolve no máximo?</legend>
+      <label class="opt"><input type="radio" name="q6" data-correct="1"> 40.</label><div class="why">Correto. O índice não devolve mais que ef_search candidatos; ef_search precisa ser ≥ LIMIT.</div>
+      <label class="opt"><input type="radio" name="q6"> 50.</label><div class="why">Só se ef_search fosse ≥ 50 ou com varredura iterativa.</div>
+      <label class="opt"><input type="radio" name="q6"> 90.</label><div class="why">Os dois números não se somam.</div>
+    </fieldset>
+    <fieldset><legend>7. Um filtro de vigência deixa passar 4% das linhas e a consulta devolve 3 linhas em vez de 12. A solução geral é:</legend>
+      <label class="opt"><input type="radio" name="q7"> Remover o filtro e filtrar na aplicação.</label><div class="why">Filtrar depois na aplicação tem o mesmo problema: os candidatos já vieram sem o filtro.</div>
+      <label class="opt"><input type="radio" name="q7" data-correct="1"> Ligar hnsw.iterative_scan para o índice continuar expandindo até completar k linhas que passem no filtro.</label><div class="why">Correto. Para filtros fixos, índice parcial; para muito seletivos, exata pré-filtrada; iterativa é a solução geral.</div>
+      <label class="opt"><input type="radio" name="q7"> Aumentar m para 64.</label><div class="why">m muda o grafo, não a interação com o filtro.</div>
+    </fieldset>
+    <fieldset><legend>8. O IVFFlat perde vizinhos principalmente quando:</legend>
+      <label class="opt"><input type="radio" name="q8" data-correct="1"> A consulta cai perto da fronteira entre listas e poucas listas são sondadas.</label><div class="why">Correto. O erro de fronteira é estrutural; probes ≈ √lists o atenua.</div>
+      <label class="opt"><input type="radio" name="q8"> Os vetores estão normalizados.</label><div class="why">Normalização não tem relação com o erro do IVFFlat.</div>
+      <label class="opt"><input type="radio" name="q8"> O índice foi criado antes de carregar os dados.</label><div class="why">Isso impede um bom k-means, mas o mecanismo de perda é a fronteira.</div>
+    </fieldset>
+    <fieldset><legend>9. A tabela tem 8 mil dispositivos e a exata responde em 3 ms. O que fazer?</legend>
+      <label class="opt"><input type="radio" name="q9"> Criar o HNSW mesmo assim, para ficar "certo".</label><div class="why">Custa memória, construção e recall menor que 100% sem ganho.</div>
+      <label class="opt"><input type="radio" name="q9" data-correct="1"> Ficar sem índice, medir, e indexar quando a latência exigir.</label><div class="why">Correto. Exata é rápida, exata e sem manutenção nessa escala.</div>
+      <label class="opt"><input type="radio" name="q9"> Criar IVFFlat, que é menor.</label><div class="why">Menor que o HNSW, mas ainda desnecessário.</div>
+    </fieldset>
+    <fieldset><legend>10. Ao migrar de modelo de embedding, o correto é:</legend>
+      <label class="opt"><input type="radio" name="q10"> Atualizar os vetores linha a linha na mesma coluna, mantendo o índice.</label><div class="why">Mistura dois espaços no mesmo índice enquanto a migração roda; rankings sem sentido.</div>
+      <label class="opt"><input type="radio" name="q10" data-correct="1"> Nova coluna ou tabela para o novo modelo, índice próprio, troca quando validado.</label><div class="why">Correto. Separação física e a trava por modelo_embedding na consulta.</div>
+      <label class="opt"><input type="radio" name="q10"> Só mudar o modelo da consulta; o índice antigo continua válido.</label><div class="why">Espaços diferentes; o índice antigo é incompatível com a consulta nova.</div>
+    </fieldset>
+    <button class="btn grade">Corrigir</button>
+    <div class="score"></div>
+  </div>
+
+  <div class="callout"><span class="t">Próxima página</span><p>A página 4, Busca lexical e híbrida, trata do outro lado da recuperação: o que o vetor não vê (números de artigo, siglas, termos exatos), o <code>tsvector</code> e o BM25, e como fundir as duas listas com RRF, tudo com o corpus deste guia rodando no navegador.</p></div>
+</section>
+
+    <div class="pager"><a class="prev" href="02-embeddings.html"><small>anterior</small>Embeddings</a><a class="next disabled" href="#"><small>próxima</small>em construção</a></div>
+    <p class="foot">Guia de estudo pessoal. Corpus com redação adaptada da Lei 14.133/2021 para fins didáticos; confira o texto oficial antes de qualquer uso real. A chave da API fica apenas neste navegador; experimentos ao vivo chamam a API do Google diretamente e consomem a sua cota.</p>
+  </div></main>
+  <aside class="toc" aria-label="Nesta página" ><div class="t">Nesta página</div><ol id="toc-list"></ol></aside>
+</div>
+<script>window.GUIA_MANIFEST = {pages: [{"id": "p0", "file": "index.html", "num": "0", "title": "Início", "chapters": [], "issue": null}, {"id": "p1", "file": "01-modelos.html", "num": "1", "title": "Como um modelo de linguagem funciona", "chapters": ["p1-c1", "p1-c2", "p1-c3", "p1-c4", "p1-c5", "p1-c6", "p1-c7", "p1-c8", "p1-c9", "p1-c10"], "issue": "VIN-5"}, {"id": "p2", "file": "02-embeddings.html", "num": "2", "title": "Embeddings", "chapters": ["p2-c1", "p2-c2", "p2-c3", "p2-c4", "p2-c5", "p2-c6", "p2-c7", "p2-c8", "p2-c9", "p2-c10"], "issue": "VIN-7"}, {"id": "p3", "file": "03-busca-vetorial.html", "num": "3", "title": "Busca vetorial e índices", "chapters": ["p3-c1", "p3-c2", "p3-c3", "p3-c4", "p3-c5", "p3-c6", "p3-c7", "p3-c8", "p3-c9", "p3-c10"], "issue": "VIN-7"}, {"id": "p4", "file": "04-busca-lexical-hibrida.html", "num": "4", "title": "Busca lexical e híbrida", "chapters": [], "issue": "VIN-8"}, {"id": "p5", "file": "05-rag.html", "num": "5", "title": "RAG de ponta a ponta e ingestão", "chapters": [], "issue": "VIN-6"}, {"id": "p6", "file": "06-prompt.html", "num": "6", "title": "Prompt engineering", "chapters": [], "issue": "VIN-9"}, {"id": "p7", "file": "07-validacao.html", "num": "7", "title": "Alucinação, validação e guardrails", "chapters": [], "issue": "VIN-10"}, {"id": "p8", "file": "08-avaliacao.html", "num": "8", "title": "Avaliação", "chapters": [], "issue": "VIN-11"}, {"id": "p9", "file": "09-dados-python.html", "num": "9", "title": "Dados e Python para RAG", "chapters": [], "issue": "VIN-6"}, {"id": "p10", "file": "10-custo-operacao.html", "num": "10", "title": "Custo, modelos e operação", "chapters": [], "issue": "VIN-12"}, {"id": "glossario", "file": "glossario.html", "num": "•", "title": "Glossário", "chapters": [], "issue": null}, {"id": "exercicios", "file": "exercicios.html", "num": "•", "title": "Exercícios", "chapters": [], "issue": null}, {"id": "prompts", "file": "prompts.html", "num": "•", "title": "Biblioteca de prompts", "chapters": [], "issue": null}]};</script>
+<script src="assets/corpus.js"></script>
+<script src="assets/core.js"></script>
+<script src="assets/site.js"></script>
+<script>
+(function () {
+  const reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const needKey = () => { if (!gemini.ready()) throw new Error('Precisa de chave (configure na página inicial).'); };
+  const bar = (label, val, max = 1, cls = '', txt = null) => `<div class="b"><span>${esc(label)}</span><i class="${cls}" style="width:${Math.max(0, Math.min(100, ((val / max) * 100)))}%"></i><span class="v">${txt ?? fmt(val, 3)}</span></div>`;
+  const fmtInt = (n) => Math.round(n).toLocaleString('pt-BR');
+  const fmtMs = (ms) => ms < 1 ? (ms * 1000).toFixed(0) + ' µs' : ms < 1000 ? ms.toFixed(1) + ' ms' : (ms / 1000).toFixed(2) + ' s';
+  const fmtBytes = (b) => b < 1024 ? b.toFixed(0) + ' B' : b < 1048576 ? (b / 1024).toFixed(1) + ' KB' : b < 1073741824 ? (b / 1048576).toFixed(1) + ' MB' : (b / 1073741824).toFixed(2) + ' GB';
+  // gerador pseudoaleatório com semente (resultados repetíveis entre cliques)
+  function rng(seed) { let s = seed >>> 0; return () => { s = (s + 0x6D2B79F5) >>> 0; let t = s; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
+  const gauss = (r) => { let u = 0, v = 0; while (u === 0) u = r(); while (v === 0) v = r(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v); };
+  const normF = (v) => { let n = 0; for (let i = 0; i < v.length; i++) n += v[i] * v[i]; n = Math.sqrt(n) || 1; for (let i = 0; i < v.length; i++) v[i] /= n; return v; };
+  const dotF = (a, b) => { let s = 0; for (let i = 0; i < a.length; i++) s += a[i] * b[i]; return s; };
+  const cosDist = (a, b) => 1 - dotF(a, b);
+
+  /* ============ dataset sintético (aglomerados; opcionalmente derivado dos vetores reais do corpus) ============ */
+  function makeDataset({ n, dims, seed = 7, real = false }) {
+    const r = rng(seed); const vecs = new Array(n); const meta = new Array(n);
+    let centers;
+    if (real && corpus.indexed()) { centers = corpus.trechos.map((t) => Float32Array.from(corpus.emb[t.id])); dims = centers[0].length; }
+    else { const C = Math.max(8, Math.round(Math.sqrt(n))); centers = Array.from({ length: C }, () => normF(Float32Array.from({ length: dims }, () => gauss(r)))); }
+    const spread = real ? 0.6 : 1.4;
+    for (let i = 0; i < n; i++) {
+      const c = i % centers.length; const base = centers[c]; const v = new Float32Array(dims);
+      for (let j = 0; j < dims; j++) v[j] = base[j] + spread * gauss(r) / Math.sqrt(dims);
+      vecs[i] = normF(v); meta[i] = { cluster: c, ano: 2019 + Math.floor(r() * 8), norma: r() < 0.6 ? 'L14133' : r() < 0.5 ? 'DEC' : 'IN' };
+    }
+    return { n, dims, vecs, meta, centers, real: real && corpus.indexed() };
+  }
+  function bruteForce(ds, q, k, filter = null) {
+    const out = [];
+    for (let i = 0; i < ds.n; i++) { if (filter && !filter(i)) continue; out.push([i, cosDist(ds.vecs[i], q)]); }
+    out.sort((a, b) => a[1] - b[1]); return out.slice(0, k);
+  }
+
+  /* ============ HNSW (Malkov & Yashunin) — versão compacta e fiel ao algoritmo ============ */
+  class HNSW {
+    constructor({ M = 16, efConstruction = 64, seed = 1, dv = cosDist } = {}) { this.M = M; this.Mmax0 = 2 * M; this.efC = efConstruction; this.mL = 1 / Math.log(M); this.nodes = []; this.entry = -1; this.top = -1; this.comps = 0; this.r = rng(seed); this.dv = dv; }
+    randLevel() { return Math.floor(-Math.log(this.r() || 1e-9) * this.mL); }
+    d(i, q) { this.comps++; return this.dv(this.nodes[i].vec, q); }
+    // busca em uma camada: devolve até ef vizinhos [id, dist] ordenados
+    searchLayer(q, eps, ef, layer, trace = null) {
+      const visited = new Set(eps.map((e) => e[0]));
+      const cand = eps.slice().sort((a, b) => a[1] - b[1]); const W = eps.slice().sort((a, b) => a[1] - b[1]);
+      while (cand.length) {
+        const c = cand.shift(); const worst = W[W.length - 1][1];
+        if (c[1] > worst && W.length >= ef) break;
+        const links = this.nodes[c[0]].links[layer] || []; const step = trace ? { layer, cur: c[0], checked: [], improved: [] } : null;
+        for (const e of links) {
+          if (visited.has(e)) continue; visited.add(e);
+          const de = this.d(e, q); if (step) step.checked.push(e);
+          if (de < W[W.length - 1][1] || W.length < ef) {
+            insertSorted(cand, [e, de]); insertSorted(W, [e, de]); if (W.length > ef) W.pop(); if (step) step.improved.push(e);
+          }
+        }
+        if (step) { step.W = W.map((x) => x[0]); trace.push(step); }
+      }
+      return W;
+    }
+    insert(vec) {
+      const id = this.nodes.length; const level = this.randLevel(); const node = { vec, level, links: Array.from({ length: level + 1 }, () => []) }; this.nodes.push(node);
+      if (this.entry < 0) { this.entry = id; this.top = level; return id; }
+      let eps = [[this.entry, this.d(this.entry, vec)]];
+      for (let l = this.top; l > level; l--) eps = this.searchLayer(vec, eps, 1, l);
+      for (let l = Math.min(level, this.top); l >= 0; l--) {
+        const W = this.searchLayer(vec, eps, this.efC, l); const Mmax = l === 0 ? this.Mmax0 : this.M;
+        const neigh = this.selectNeighbors(vec, W, this.M);
+        node.links[l] = neigh.map((x) => x[0]);
+        for (const [e] of neigh) { const ln = this.nodes[e].links[l]; ln.push(id); if (ln.length > Mmax) { const pruned = this.selectNeighbors(this.nodes[e].vec, ln.map((x) => [x, this.dv(this.nodes[x].vec, this.nodes[e].vec)]), Mmax); this.nodes[e].links[l] = pruned.map((x) => x[0]); } }
+        eps = W;
+      }
+      if (level > this.top) { this.top = level; this.entry = id; }
+      return id;
+    }
+    // heurística do artigo (algoritmo 4): prefere vizinhos que "abrem" direções diferentes
+    selectNeighbors(q, C, M) {
+      const cand = C.slice().sort((a, b) => a[1] - b[1]); const R = [];
+      for (const c of cand) { if (R.length >= M) break; let ok = true; for (const r of R) { if (this.dv(this.nodes[c[0]].vec, this.nodes[r[0]].vec) < c[1]) { ok = false; break; } } if (ok) R.push(c); }
+      if (R.length < M) for (const c of cand) { if (R.length >= M) break; if (!R.includes(c)) R.push(c); }
+      return R;
+    }
+    search(q, k, ef, trace = null) {
+      this.comps = 0; if (this.entry < 0) return [];
+      let eps = [[this.entry, this.d(this.entry, q)]];
+      if (trace) trace.push({ layer: this.top, cur: this.entry, checked: [], improved: [], W: [this.entry], entry: true });
+      for (let l = this.top; l > 0; l--) eps = this.searchLayer(q, eps, 1, l, trace);
+      const W = this.searchLayer(q, eps, Math.max(ef, k), 0, trace);
+      return W.slice(0, k);
+    }
+  }
+  function insertSorted(arr, item) { let lo = 0, hi = arr.length; while (lo < hi) { const mid = (lo + hi) >> 1; if (arr[mid][1] < item[1]) lo = mid + 1; else hi = mid; } arr.splice(lo, 0, item); }
+  const recall = (approx, exact) => { const e = new Set(exact.map((x) => x[0])); let h = 0; for (const a of approx) if (e.has(a[0])) h++; return exact.length ? h / exact.length : 1; };
+  window.__HNSW = HNSW; // para inspeção no console
+
+  /* ============ c1 · varredura completa (força bruta) cronometrada ============ */
+  (function () {
+    const btn = $('#bf-run'); if (!btn) return;
+    const out = $('#bf-out');
+    function calcOnly() {
+      const N = +$('#bf-n').value, d = +$('#bf-d').value; const flops = N * d;
+      $('#bf-calc').textContent = `${fmtInt(N)} linhas × ${d} dimensões = ${fmtInt(flops)} multiplicações por consulta (mais ${fmtInt(N)} comparações para ordenar).`;
+    }
+    ['#bf-n', '#bf-d'].forEach((s) => $(s).addEventListener('change', calcOnly)); calcOnly();
+    btn.addEventListener('click', () => guard($('#bf-status'), async () => {
+      const N = +$('#bf-n').value, d = +$('#bf-d').value; if (N * d > 16e6) throw new Error('Combinação grande demais para o navegador (limite: 16 milhões de números). Reduza linhas ou dimensões; a extrapolação abaixo cobre o resto.');
+      setStatus($('#bf-status'), 'Gerando os vetores…'); await sleep(20);
+      const r = rng(3); const data = new Float32Array(N * d); for (let i = 0; i < data.length; i++) data[i] = gauss(r);
+      for (let i = 0; i < N; i++) { let n = 0; for (let j = 0; j < d; j++) n += data[i * d + j] ** 2; n = Math.sqrt(n) || 1; for (let j = 0; j < d; j++) data[i * d + j] /= n; }
+      const q = normF(Float32Array.from({ length: d }, () => gauss(r)));
+      setStatus($('#bf-status'), 'Medindo 5 consultas…'); await sleep(20);
+      const times = []; const scores = new Float32Array(N);
+      for (let t = 0; t < 5; t++) { const t0 = performance.now(); for (let i = 0; i < N; i++) { let s = 0; const o = i * d; for (let j = 0; j < d; j++) s += data[o + j] * q[j]; scores[i] = s; } const top = []; for (let i = 0; i < N; i++) { if (top.length < 10 || scores[i] > top[top.length - 1][1]) { let j = top.length; top.push([i, scores[i]]); while (j > 0 && top[j - 1][1] < top[j][1]) { [top[j - 1], top[j]] = [top[j], top[j - 1]]; j--; } if (top.length > 10) top.pop(); } } times.push(performance.now() - t0); }
+      const ms = Math.min(...times); const perRow = ms / N;
+      out.innerHTML = bar(`consulta em ${fmtInt(N)} linhas`, ms, Math.max(ms, 1), 'f', fmtMs(ms)) + bar('extrapolado para 100 mil linhas', perRow * 1e5, Math.max(perRow * 1e6, 1), '', fmtMs(perRow * 1e5)) + bar('extrapolado para 1 milhão de linhas', perRow * 1e6, Math.max(perRow * 1e6, 1), '', fmtMs(perRow * 1e6)) + bar('consultas por segundo (1 núcleo, 1 milhão)', 1000 / (perRow * 1e6), 100, '', (1000 / (perRow * 1e6)).toFixed(1));
+      setStatus($('#bf-status'), `Melhor de 5 execuções, neste navegador, em um núcleo, sem índice. Em PostgreSQL a varredura ainda lê as páginas do disco ou do cache, então é mais lenta que isto; a proporção com o tamanho é a mesma: linear.`, 'ok');
+    }));
+  })();
+
+  /* ============ c3 · HNSW em 2D animado ============ */
+  (function () {
+    const svg = $('#hn-svg'); if (!svg) return;
+    const W = 760, H = 380; let pts = [], H2 = null, trace = [], step = -1, q = null, exact = null, timer = null;
+    const r2 = rng(11);
+    function build() {
+      const M = +$('#hn-m').value; pts = [];
+      // aglomerados em 2D
+      const centers = Array.from({ length: 7 }, () => [60 + r2() * 640, 50 + r2() * 280]);
+      for (let i = 0; i < 110; i++) { const c = centers[i % centers.length]; pts.push([c[0] + gauss(r2) * 55, c[1] + gauss(r2) * 38]); }
+      pts = pts.map(([x, y]) => [Math.max(12, Math.min(W - 12, x)), Math.max(12, Math.min(H - 12, y))]);
+      // em 2D usamos distância euclidiana: o HNSW aceita qualquer métrica
+      H2 = new HNSW({ M, efConstruction: 24, seed: 5, dv: (a, b) => Math.hypot(a[0] - b[0], a[1] - b[1]) });
+      pts.forEach((p) => H2.insert(p));
+      const sel = $('#hn-layer'); sel.innerHTML = ''; for (let l = 0; l <= H2.top; l++) sel.add(new Option(String(l), String(l))); sel.value = '0';
+      q = null; trace = []; step = -1; exact = null; draw();
+      $('#hn-info').textContent = `${pts.length} pontos · M = ${M} · camadas: ${H2.top + 1} (topo com ${H2.nodes.filter((n) => n.level >= H2.top).length} ponto(s), camada 1 com ${H2.nodes.filter((n) => n.level >= 1).length}, camada 0 com todos).`;
+    }
+    function layerOf(i) { return H2.nodes[i].level; }
+    function draw() {
+      const cur = step >= 0 ? trace[step] : null; const layer = cur ? cur.layer : +($('#hn-layer').value || 0);
+      if (cur) $('#hn-layer').value = String(layer);
+      let s = '';
+      // arestas da camada exibida
+      H2.nodes.forEach((n, i) => { if (n.level < layer) return; (n.links[layer] || []).forEach((j) => { if (j > i) s += `<line x1="${pts[i][0]}" y1="${pts[i][1]}" x2="${pts[j][0]}" y2="${pts[j][1]}" stroke="var(--line)" stroke-width="1"/>`; }); });
+      // caminho percorrido até o passo atual
+      const path = []; for (let t = 0; t <= step; t++) path.push(trace[t].cur);
+      for (let t = 1; t < path.length; t++) { const a = pts[path[t - 1]], b = pts[path[t]]; s += `<line x1="${a[0]}" y1="${a[1]}" x2="${b[0]}" y2="${b[1]}" stroke="var(--amber)" stroke-width="2.5" opacity=".9"/>`; }
+      const visited = new Set(); for (let t = 0; t <= step; t++) { visited.add(trace[t].cur); trace[t].checked.forEach((c) => visited.add(c)); }
+      const Wset = new Set(cur ? cur.W : []); const exactSet = new Set(exact ? exact.map((x) => x[0]) : []);
+      H2.nodes.forEach((n, i) => {
+        const on = n.level >= layer; const isCur = cur && cur.cur === i; const chk = cur && cur.checked.includes(i);
+        const fill = isCur ? 'var(--amber)' : Wset.has(i) ? 'var(--teal)' : exactSet.has(i) && step >= trace.length - 1 ? 'var(--green)' : visited.has(i) ? 'var(--navy)' : 'var(--surface-2)';
+        s += `<circle cx="${pts[i][0]}" cy="${pts[i][1]}" r="${isCur ? 8 : on ? 5.5 : 3}" fill="${on ? fill : 'var(--line)'}" stroke="${chk ? 'var(--amber)' : 'var(--navy)'}" stroke-width="${chk ? 2.5 : on ? 1 : 0.5}" opacity="${on ? 1 : 0.35}"><title>ponto ${i} · nível máximo ${n.level} · ${(n.links[layer] || []).length} ligações nesta camada</title></circle>`;
+      });
+      if (q) s += `<g><rect x="${q[0] - 8}" y="${q[1] - 8}" width="16" height="16" fill="var(--red)" stroke="#fff" stroke-width="2" transform="rotate(45 ${q[0]} ${q[1]})"/><text x="${q[0] + 12}" y="${q[1] - 10}" font-size="12" fill="var(--red)" font-weight="600">consulta</text></g>`;
+      s += `<text x="10" y="${H - 8}" font-size="11" fill="var(--muted)">camada ${layer}${layer === 0 ? ' (todos os pontos, até 2M ligações)' : layer === H2.top ? ' (topo: ponto de entrada)' : ''}</text>`;
+      svg.innerHTML = s;
+      const comps = step >= 0 ? trace.slice(0, step + 1).reduce((a, t) => a + t.checked.length + (t.entry ? 1 : 0), 0) : 0;
+      $('#hn-cap').textContent = !q ? 'Clique no mapa para colocar a consulta.' : step < 0 ? 'Consulta colocada. Avance para ver a busca.' : `Passo ${step + 1}/${trace.length} · camada ${cur.layer} · no ponto ${cur.cur}: examinou ${cur.checked.length} vizinho(s)${cur.improved.length ? `, ${cur.improved.length} entraram na lista` : ''} · ${comps} distâncias calculadas até aqui (força bruta: ${pts.length}).`;
+      if (step >= trace.length - 1 && q) { const res = trace[trace.length - 1].W.slice(0, +$('#hn-k').value); const rc = recall(res.map((x) => [x]), exact); $('#hn-res').textContent = `Resultado: recall@${$('#hn-k').value} = ${(rc * 100).toFixed(0)}% com ${comps} distâncias em vez de ${pts.length}. ${rc < 1 ? 'Os pontos verdes são os que a busca exata acharia e o HNSW não achou: aumente ef ou M.' : 'Todos os vizinhos exatos foram encontrados.'}`; } else $('#hn-res').textContent = '';
+    }
+    function setQuery(x, y) { q = [x, y]; trace = []; step = -1; H2.search(q, +$('#hn-k').value, +$('#hn-ef').value, trace); exact = pts.map((p, i) => [i, Math.hypot(p[0] - x, p[1] - y)]).sort((a, b) => a[1] - b[1]).slice(0, +$('#hn-k').value); draw(); }
+    svg.addEventListener('click', (ev) => { const r = svg.getBoundingClientRect(); setQuery(((ev.clientX - r.left) / r.width) * W, ((ev.clientY - r.top) / r.height) * H); });
+    $('#hn-next').addEventListener('click', () => { if (!q) return; if (step < trace.length - 1) step++; draw(); });
+    $('#hn-play').addEventListener('click', () => { if (!q) return; clearInterval(timer); if (step >= trace.length - 1) step = -1; timer = setInterval(() => { if (step < trace.length - 1) { step++; draw(); } else clearInterval(timer); }, reduce ? 60 : 420); });
+    $('#hn-end').addEventListener('click', () => { if (!q) return; clearInterval(timer); step = trace.length - 1; draw(); });
+    $('#hn-rebuild').addEventListener('click', () => { clearInterval(timer); build(); });
+    $('#hn-layer').addEventListener('change', () => { if (step < 0) draw(); });
+    ['#hn-ef', '#hn-k'].forEach((s) => $(s).addEventListener('change', () => { if (q) setQuery(q[0], q[1]); }));
+    $('#hn-m').addEventListener('change', () => { clearInterval(timer); build(); });
+    build();
+  })();
+
+  /* ============ dataset compartilhado para as simulações (c4, c7) ============ */
+  let DS = null, INDEX = null, INDEX_PARAMS = null;
+  async function ensureDS(statusEl, real) {
+    const n = +($('#pr-n') ? $('#pr-n').value : 3000);
+    if (DS && DS.n === n && DS.real === !!real) return DS;
+    setStatus(statusEl, real ? 'Gerando o conjunto a partir dos vetores reais do corpus…' : 'Gerando o conjunto sintético…'); await sleep(20);
+    DS = makeDataset({ n, dims: real ? 768 : 64, real: !!real }); INDEX = null; return DS;
+  }
+  async function ensureIndex(statusEl, M, efC, real) {
+    await ensureDS(statusEl, real);
+    const key = `${DS.n}|${DS.dims}|${M}|${efC}|${DS.real}`; if (INDEX && INDEX_PARAMS === key) return INDEX;
+    setStatus(statusEl, `Construindo o HNSW (M=${M}, ef_construction=${efC}) sobre ${fmtInt(DS.n)} vetores de ${DS.dims} dimensões…`); await sleep(20);
+    const t0 = performance.now(); const h = new HNSW({ M, efConstruction: efC, seed: 9 });
+    for (let i = 0; i < DS.n; i++) { h.insert(DS.vecs[i]); if (i % 500 === 499) { setStatus(statusEl, `Inserindo ${i + 1}/${DS.n}…`); await sleep(0); } }
+    h.buildMs = performance.now() - t0; h.buildComps = h.comps; INDEX = h; INDEX_PARAMS = key; return h;
+  }
+  function queries(ds, count, seed = 21) { const r = rng(seed); const out = []; for (let i = 0; i < count; i++) { const base = ds.vecs[Math.floor(r() * ds.n)]; const v = new Float32Array(ds.dims); for (let j = 0; j < ds.dims; j++) v[j] = base[j] + 0.6 * gauss(r) / Math.sqrt(ds.dims); out.push(normF(v)); } return out; }
+
+  /* ============ c4 · parâmetros: recall × custo ============ */
+  (function () {
+    const btn = $('#pr-run'); if (!btn) return;
+    const hist = []; // linhas da tabela de comparação
+    ['#pr-m', '#pr-efc', '#pr-efs'].forEach((s) => $(s).addEventListener('input', () => ($(s + 'v').textContent = $(s).value)));
+    async function run(real) {
+      const M = +$('#pr-m').value, efC = +$('#pr-efc').value, efS = +$('#pr-efs').value, k = 10;
+      const h = await ensureIndex($('#pr-status'), M, efC, real);
+      setStatus($('#pr-status'), 'Medindo 60 consultas (exata × HNSW)…'); await sleep(10);
+      const qs = queries(DS, 60); let rc = 0, comps = 0, tExact = 0, tIdx = 0;
+      for (const q of qs) {
+        let t0 = performance.now(); const ex = bruteForce(DS, q, k); tExact += performance.now() - t0;
+        t0 = performance.now(); const ap = h.search(q, k, efS); tIdx += performance.now() - t0;
+        rc += recall(ap, ex); comps += h.comps;
+      }
+      const row = { M, efC, efS, recall: rc / qs.length, comps: comps / qs.length, msIdx: tIdx / qs.length, msEx: tExact / qs.length, build: h.buildMs, links: h.nodes.reduce((a, n) => a + n.links.reduce((b, l) => b + l.length, 0), 0), real: DS.real };
+      hist.unshift(row); if (hist.length > 8) hist.pop();
+      $('#pr-out').innerHTML = bar(`recall@${k} (média de ${qs.length} consultas)`, row.recall, 1, 'f', (row.recall * 100).toFixed(1) + '%') + bar('distâncias por consulta (HNSW)', row.comps, DS.n, '', fmtInt(row.comps)) + bar('distâncias por consulta (exata)', DS.n, DS.n, '', fmtInt(DS.n)) + bar('tempo por consulta (HNSW)', row.msIdx, Math.max(row.msEx, 0.01), '', fmtMs(row.msIdx)) + bar('tempo por consulta (exata)', row.msEx, Math.max(row.msEx, 0.01), '', fmtMs(row.msEx));
+      $('#pr-tbl tbody').innerHTML = hist.map((r, i) => `<tr${i === 0 ? ' style="font-weight:600"' : ''}><td>${r.M}</td><td>${r.efC}</td><td>${r.efS}</td><td>${(r.recall * 100).toFixed(1)}%</td><td>${fmtInt(r.comps)}</td><td>${fmtMs(r.msIdx)}</td><td>${fmtMs(r.build)}</td><td>${fmtInt(r.links / DS.n * 10) / 10}</td><td>${r.real ? 'reais' : 'sintéticos'}</td></tr>`).join('');
+      setStatus($('#pr-status'), `Pronto. ${DS.n} vetores de ${DS.dims} dimensões${DS.real ? ' (derivados do índice real do corpus)' : ''}. Mude um parâmetro e rode de novo; a tabela guarda as últimas rodadas.`, 'ok');
+    }
+    btn.addEventListener('click', () => guard($('#pr-status'), () => run(false)));
+    $('#pr-real').addEventListener('click', () => guard($('#pr-status'), async () => { if (!corpus.indexed()) throw new Error('Indexe o corpus na página 2 (capítulo 5) para usar os vetores reais.'); if (+$('#pr-n').value > 2000) { $('#pr-n').value = '2000'; } await run(true); }));
+    $('#pr-n').addEventListener('change', () => { DS = null; INDEX = null; });
+  })();
+
+  /* ============ c5 · IVFFlat em 2D ============ */
+  (function () {
+    const svg = $('#iv-svg'); if (!svg) return;
+    const W = 760, H = 360; const r = rng(17); let pts = [], cents = [], assign = [], q = null;
+    const centersInit = Array.from({ length: 8 }, () => [50 + r() * 660, 40 + r() * 280]);
+    for (let i = 0; i < 700; i++) { const c = centersInit[i % 8]; pts.push([Math.max(8, Math.min(W - 8, c[0] + gauss(r) * 60)), Math.max(8, Math.min(H - 8, c[1] + gauss(r) * 42))]); }
+    const d2 = (a, b) => Math.hypot(a[0] - b[0], a[1] - b[1]);
+    function kmeans(k) {
+      const rr = rng(k * 31); cents = Array.from({ length: k }, () => pts[Math.floor(rr() * pts.length)].slice());
+      for (let it = 0; it < 15; it++) { assign = pts.map((p) => { let b = 0, bd = Infinity; cents.forEach((c, j) => { const d = d2(p, c); if (d < bd) { bd = d; b = j; } }); return b; }); const sum = cents.map(() => [0, 0, 0]); pts.forEach((p, i) => { sum[assign[i]][0] += p[0]; sum[assign[i]][1] += p[1]; sum[assign[i]][2]++; }); cents = cents.map((c, j) => (sum[j][2] ? [sum[j][0] / sum[j][2], sum[j][1] / sum[j][2]] : c)); }
+    }
+    const palette = ['#0E7C7B', '#0B2A4A', '#9A5F0A', '#B3261E', '#2A7A4B', '#6D4C9F', '#C2185B', '#00838F', '#5D4037', '#546E7A', '#7B1FA2', '#EF6C00', '#1565C0', '#2E7D32', '#AD1457', '#4E342E', '#00695C', '#283593', '#F9A825', '#37474F', '#8E24AA', '#039BE5', '#43A047', '#FB8C00', '#D81B60', '#3949AB', '#00ACC1', '#7CB342', '#F4511E', '#6D4C41', '#757575', '#546E7A'];
+    function search(qq, probes, k) {
+      const order = cents.map((c, j) => [j, d2(c, qq)]).sort((a, b) => a[1] - b[1]).slice(0, probes).map((x) => x[0]); const ps = new Set(order);
+      const cand = []; pts.forEach((p, i) => { if (ps.has(assign[i])) cand.push([i, d2(p, qq)]); }); cand.sort((a, b) => a[1] - b[1]);
+      return { lists: order, res: cand.slice(0, k), scanned: cand.length };
+    }
+    function draw() {
+      const lists = +$('#iv-lists').value, probes = Math.min(+$('#iv-probes').value, lists), k = 10;
+      $('#iv-listsv').textContent = lists; $('#iv-probesv').textContent = probes; $('#iv-probes').max = lists;
+      let s = ''; let probed = new Set(), res = null, exact = null, scanned = 0;
+      if (q) { const out = search(q, probes, k); probed = new Set(out.lists); res = out.res; scanned = out.scanned; exact = pts.map((p, i) => [i, d2(p, q)]).sort((a, b) => a[1] - b[1]).slice(0, k); }
+      const resSet = new Set(res ? res.map((x) => x[0]) : []), exSet = new Set(exact ? exact.map((x) => x[0]) : []);
+      pts.forEach((p, i) => { const on = !q || probed.has(assign[i]); s += `<circle cx="${p[0]}" cy="${p[1]}" r="${resSet.has(i) ? 5 : 3}" fill="${palette[assign[i] % palette.length]}" opacity="${on ? 0.9 : 0.18}" stroke="${exSet.has(i) && !resSet.has(i) ? 'var(--red)' : resSet.has(i) ? '#fff' : 'none'}" stroke-width="${exSet.has(i) && !resSet.has(i) ? 2.5 : 1.5}"/>`; });
+      cents.forEach((c, j) => { s += `<g><rect x="${c[0] - 7}" y="${c[1] - 7}" width="14" height="14" fill="${probed.has(j) ? 'var(--amber)' : 'var(--ink)'}" stroke="#fff" stroke-width="2" transform="rotate(45 ${c[0]} ${c[1]})"><title>centróide da lista ${j}</title></rect></g>`; });
+      if (q) s += `<circle cx="${q[0]}" cy="${q[1]}" r="8" fill="var(--red)" stroke="#fff" stroke-width="2"/>`;
+      svg.innerHTML = s;
+      // média de recall em 80 consultas aleatórias
+      const rr = rng(5); let rc = 0, sc = 0; for (let t = 0; t < 80; t++) { const qq = pts[Math.floor(rr() * pts.length)].map((x) => x + gauss(rr) * 20); const out = search(qq, probes, k); const ex = pts.map((p, i) => [i, d2(p, qq)]).sort((a, b) => a[1] - b[1]).slice(0, k); rc += recall(out.res, ex); sc += out.scanned; }
+      $('#iv-out').innerHTML = bar(`recall@10 médio (80 consultas)`, rc / 80, 1, 'f', ((rc / 80) * 100).toFixed(1) + '%') + bar('pontos examinados por consulta (média)', sc / 80, pts.length, '', `${fmtInt(sc / 80)} de ${pts.length}`) + (q ? bar('recall@10 desta consulta', recall(res, exact), 1, 'f', (recall(res, exact) * 100).toFixed(0) + '%') : '');
+      $('#iv-cap').textContent = q ? `Listas sondadas em âmbar; pontos com contorno vermelho são vizinhos exatos que ficaram em listas não sondadas (${scanned} pontos examinados).` : 'Clique no mapa para colocar uma consulta. Losangos são os centróides das listas.';
+    }
+    $('#iv-lists').addEventListener('input', () => { kmeans(+$('#iv-lists').value); draw(); });
+    $('#iv-probes').addEventListener('input', draw);
+    svg.addEventListener('click', (ev) => { const rc = svg.getBoundingClientRect(); q = [((ev.clientX - rc.left) / rc.width) * W, ((ev.clientY - rc.top) / rc.height) * H]; draw(); });
+    kmeans(+$('#iv-lists').value); draw();
+  })();
+
+  /* ============ c6 · montador de SQL e verificador de uso do índice ============ */
+  (function () {
+    const el = $('#sq-ddl'); if (!el) return;
+    const ops = { cosine: ['<=>', 'vector_cosine_ops', 'halfvec_cosine_ops'], ip: ['<#>', 'vector_ip_ops', 'halfvec_ip_ops'], l2: ['<->', 'vector_l2_ops', 'halfvec_l2_ops'] };
+    function render() {
+      const metric = $('#sq-metric').value, idx = $('#sq-idx').value, type = $('#sq-type').value, dims = +$('#sq-dims').value, m = +$('#sq-m').value, efc = +$('#sq-efc').value, lists = +$('#sq-lists').value, efs = +$('#sq-efs').value, probes = +$('#sq-probes').value, k = +$('#sq-k').value;
+      const [op, vops, hops] = ops[metric]; const opclass = type === 'halfvec' ? hops : vops; const cast = type === 'halfvec' ? `::halfvec(${dims})` : '::vector';
+      const warn = []; if (type === 'vector' && dims > 2000 && idx !== 'none') warn.push(`vector(${dims}) não pode ser indexado: o limite é 2000 dimensões. Use halfvec (até 4000) ou reduza a dimensão.`);
+      if (type === 'halfvec' && dims > 4000 && idx !== 'none') warn.push('halfvec indexa até 4000 dimensões.');
+      let ddl = `-- coluna\nALTER TABLE rag.trecho_normativo ADD COLUMN embedding ${type}(${dims});\n\n`;
+      if (idx === 'hnsw') ddl += `-- índice HNSW (pode ser criado antes ou depois dos dados; aceita inserções depois)\nCREATE INDEX trecho_emb_hnsw ON rag.trecho_normativo\n  USING hnsw (embedding ${opclass}) WITH (m = ${m}, ef_construction = ${efc});\n\n-- na sessão de consulta (padrão 40; precisa ser ≥ LIMIT para devolver k linhas)\nSET hnsw.ef_search = ${efs};`;
+      else if (idx === 'ivfflat') ddl += `-- índice IVFFlat (crie DEPOIS de carregar os dados: os centróides vêm deles)\nCREATE INDEX trecho_emb_ivf ON rag.trecho_normativo\n  USING ivfflat (embedding ${opclass}) WITH (lists = ${lists});\n\n-- na sessão de consulta (padrão 1)\nSET ivfflat.probes = ${probes};`;
+      else ddl += `-- sem índice: varredura completa (exata). Adequado até algumas dezenas de milhares de linhas.`;
+      const qry = `SELECT id, dispositivo, embedding ${op} %s${cast} AS distancia\nFROM rag.trecho_normativo\nWHERE modelo_embedding = %s\nORDER BY embedding ${op} %s${cast}\nLIMIT ${k};`;
+      if (idx === 'hnsw' && efs < k) warn.push(`hnsw.ef_search (${efs}) é menor que LIMIT ${k}: o índice devolve no máximo ef_search linhas.`);
+      if (idx === 'ivfflat' && probes > lists) warn.push('probes maior que lists não faz sentido; iguais equivalem à busca exata.');
+      $('#sq-ddl code').textContent = ddl; $('#sq-qry code').textContent = qry;
+      $('#sq-warn').innerHTML = warn.length ? warn.map((w) => `<div class="callout warn" style="margin:8px 0"><p style="margin:0">${esc(w)}</p></div>`).join('') : '';
+      ['#sq-hnsw', '#sq-ivf'].forEach((s, i) => ($(s).hidden = idx !== ['hnsw', 'ivfflat'][i]));
+    }
+    $$('#sq-form select, #sq-form input').forEach((e) => e.addEventListener('input', render)); render();
+    // verificador
+    const chk = () => {
+      const idxOp = $('#ck-idxop').value, qOp = $('#ck-qop').value, order = $('#ck-order').value, limit = $('#ck-limit').checked, filter = $('#ck-filter').value;
+      const problems = [];
+      if (idxOp !== qOp) problems.push(`O índice foi criado para ${idxOp} e a consulta ordena por ${qOp}: classes de operador diferentes, o índice é ignorado.`);
+      if (order === 'expr') problems.push('ORDER BY usa uma expressão em cima do operador (ex.: 1 - (embedding <=> q)). O planejador só reconhece o operador puro, em ordem crescente.');
+      if (order === 'desc') problems.push('ORDER BY … DESC: o índice só serve ordem crescente da distância.');
+      if (!limit) problems.push('Sem LIMIT o planejador não usa o índice de vizinhos (ele precisa saber quantos devolver).');
+      let verdict, kind;
+      if (problems.length) { verdict = 'O índice NÃO será usado: a consulta cai em varredura completa (Seq Scan). ' + problems.join(' '); kind = 'err'; }
+      else if (filter === 'sel') { verdict = 'O índice é usado, mas o filtro é aplicado depois: dos ef_search candidatos, poucos passam e você pode receber menos linhas que o LIMIT. Ligue hnsw.iterative_scan ou aumente ef_search (capítulo 7).'; kind = 'warn'; }
+      else { verdict = 'O índice será usado (Index Scan using … hnsw). Confirme com EXPLAIN (ANALYZE, BUFFERS).'; kind = 'ok'; }
+      setStatus($('#ck-status'), verdict, kind);
+    };
+    $$('#ck-form select, #ck-form input').forEach((e) => e.addEventListener('input', chk)); chk();
+  })();
+
+  /* ============ c7 · filtros: pós-filtragem e varredura iterativa ============ */
+  (function () {
+    const btn = $('#ft-run'); if (!btn) return;
+    ['#ft-efs', '#ft-sel'].forEach((s) => $(s).addEventListener('input', () => ($(s + 'v').textContent = $(s).value)));
+    btn.addEventListener('click', () => guard($('#ft-status'), async () => {
+      const h = await ensureIndex($('#ft-status'), 16, 64, false); const k = 12, efS = +$('#ft-efs').value, selPct = +$('#ft-sel').value, mode = $('#ft-mode').value;
+      // filtro: "vigente no ano X" com seletividade aproximada selPct% — usamos um limiar no atributo ano
+      const years = DS.meta.map((m) => m.ano); const sorted = years.slice().sort(); const cut = sorted[Math.floor(sorted.length * (1 - selPct / 100))];
+      const pass = (i) => DS.meta[i].ano >= cut; const passN = DS.meta.filter((_, i) => pass(i)).length;
+      setStatus($('#ft-status'), 'Rodando 60 consultas…'); await sleep(10);
+      const qs = queries(DS, 60, 33); let got = 0, rc = 0, comps = 0, empty = 0;
+      for (const q of qs) {
+        const ex = bruteForce(DS, q, k, pass); let res = [];
+        if (mode === 'post') { const cand = h.search(q, efS, efS); res = cand.filter((x) => pass(x[0])).slice(0, k); comps += h.comps; }
+        else if (mode === 'iter') { let ef = efS, c = 0, cand = []; while (true) { cand = h.search(q, ef, ef); c += h.comps; res = cand.filter((x) => pass(x[0])).slice(0, k); if (res.length >= k || ef >= Math.min(DS.n, 20000) || cand.length >= DS.n) break; ef = Math.min(ef * 2, DS.n); } comps += c; }
+        else { res = ex; comps += passN; }
+        got += res.length; rc += recall(res, ex); if (res.length < k) empty++;
+      }
+      $('#ft-out').innerHTML = bar(`linhas devolvidas (média; pedido: ${k})`, got / qs.length, k, got / qs.length < k ? '' : 'f', (got / qs.length).toFixed(1)) + bar('consultas com menos de k linhas', empty / qs.length, 1, '', `${empty} de ${qs.length}`) + bar('recall@12 contra a busca exata filtrada', rc / qs.length, 1, 'f', ((rc / qs.length) * 100).toFixed(1) + '%') + bar('distâncias por consulta', comps / qs.length, DS.n, '', fmtInt(comps / qs.length));
+      setStatus($('#ft-status'), `${passN} de ${DS.n} linhas passam no filtro (${((passN / DS.n) * 100).toFixed(0)}%). Modo: ${mode === 'post' ? 'índice + filtro depois (padrão do pgvector sem iterative_scan)' : mode === 'iter' ? 'varredura iterativa (ef dobra até completar k ou bater o teto)' : 'exata com o filtro antes (sem índice)'}.`, 'ok');
+    }));
+  })();
+
+  /* ============ c8 · calculadora de tamanho e memória ============ */
+  (function () {
+    const el = $('#sz-out'); if (!el) return;
+    function render() {
+      const rows = +$('#sz-rows').value, dims = +$('#sz-dims').value, type = $('#sz-type').value, M = +$('#sz-m').value;
+      const bytesVec = dims * (type === 'halfvec' ? 2 : 4) + 8; const tuple = bytesVec + 24 + 350; // cabeçalho + texto médio do dispositivo
+      const table = rows * tuple; const index = rows * (bytesVec + 2 * M * 6 + M * 6 * 0.3 + 40); // vetor + ligações (ItemPointer 6 bytes) em camada 0 e superiores + cabeçalho
+      const ram = index + rows * bytesVec * 0.2; // índice inteiro + parte quente da tabela
+      el.innerHTML = bar('tabela (texto + vetor)', table, Math.max(table, index), '', fmtBytes(table)) + bar(`índice HNSW (M=${M})`, index, Math.max(table, index), 'f', fmtBytes(index)) + bar('memória recomendada para o índice ficar quente', ram, Math.max(table, index), '', fmtBytes(ram)) + bar('maintenance_work_mem para construir sem ir ao disco', index * 1.1, Math.max(table, index), '', fmtBytes(index * 1.1));
+      $('#sz-note').textContent = `Estimativas: vetor de ${dims} × ${type === 'halfvec' ? 2 : 4} bytes = ${fmtBytes(bytesVec - 8)} por linha; ligações do grafo ≈ ${2 * M} × 6 bytes na camada 0. Meça o real com pg_relation_size depois de construir; a ordem de grandeza é o que importa para dimensionar a instância.`;
+    }
+    $$('#sz-form select, #sz-form input').forEach((e) => e.addEventListener('input', render)); render();
+  })();
+
+  /* ============ c9 · ajudante de decisão ============ */
+  (function () {
+    const el = $('#dc-out'); if (!el) return;
+    function render() {
+      const rows = +$('#dc-rows').value, qps = +$('#dc-qps').value, upd = $('#dc-upd').value, filt = $('#dc-filt').value, dims = +$('#dc-dims').value;
+      const lines = [];
+      if (rows <= 20000) lines.push(`Com ${fmtInt(rows)} linhas, a varredura exata responde em poucos milissegundos: comece SEM índice, meça com EXPLAIN ANALYZE e crie o HNSW só se a latência incomodar. Recall 100% de graça.`);
+      else if (rows <= 100000) lines.push(`Com ${fmtInt(rows)} linhas, a varredura exata responde em dezenas de milissegundos com a tabela em cache. A ${qps} consulta(s)/s ${qps >= 10 ? 'isso já consome uma fatia relevante de CPU: indexe' : 'ainda fecha; indexe se a base for crescer ou se a latência p95 importar'}. O HNSW aqui é uma decisão de folga e de crescimento, não de sobrevivência.`);
+      else lines.push(`Com ${fmtInt(rows)} linhas, a varredura exata custa centenas de milissegundos ou mais por consulta; a ${qps} consulta(s)/s isso ${qps * rows / 1e6 > 5 ? 'não fecha' : 'fecha mal'}. HNSW é obrigatório.`);
+      if (rows > 20000) lines.push(upd === 'freq' ? 'Atualizações frequentes: HNSW (aceita inserções sem reconstruir). IVFFlat precisaria de REINDEX periódico porque os centróides envelhecem.' : 'Base estável (reindexada só quando o modelo muda): HNSW continua a escolha padrão; IVFFlat só se a memória do índice for o gargalo e você aceitar recall menor.');
+      if (filt === 'yes') lines.push('Filtros seletivos (vigência, norma): ligue hnsw.iterative_scan = relaxed_order e revise hnsw.max_scan_tuples; se um filtro for quase sempre o mesmo (ex.: só normas vigentes), considere um índice parcial com WHERE.');
+      if (dims > 2000) lines.push(`${dims} dimensões: o tipo vector não indexa acima de 2000. Reduza para 768/1536 (página 2) ou use halfvec.`);
+      lines.push(`Parâmetros de partida para HNSW: m = 16, ef_construction = ${rows > 500000 ? 128 : 64}, hnsw.ef_search = ${Math.max(40, 50)} (≥ 50 candidatos da busca híbrida). Meça recall@k contra a exata no seu conjunto de avaliação e suba ef_search até estabilizar.`);
+      el.innerHTML = lines.map((l) => `<p>${esc(l)}</p>`).join('');
+    }
+    $$('#dc-form select, #dc-form input').forEach((e) => e.addEventListener('input', render)); render();
+  })();
+})();
+
+</script>
+</body>
+</html>
