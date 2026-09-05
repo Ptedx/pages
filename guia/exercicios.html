@@ -4,12 +4,12 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Exercícios · Guia RAG aplicado</title>
-<meta name="description" content="Os oito exercícios com roteiro completo.">
+<meta name="description" content="Plataforma de prática: ~15 exercícios por capítulo, com validação no navegador.">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="assets/guia.css">
 </head>
-<body data-page="exercicios">
+<body data-page="exercicios" class="wide">
 <a class="skip" href="#main">Pular para o conteúdo</a>
 <header class="topbar">
   <button class="iconbtn" id="menu" aria-expanded="false" aria-controls="sidenav" aria-label="Abrir navegação">☰ Páginas</button>
@@ -20,131 +20,310 @@
 <div class="shell">
   <nav class="side" id="sidenav" aria-label="Páginas do guia">
     <div class="progress"><span id="prog-text">0 capítulos concluídos</span><div class="bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" aria-label="Progresso do estudo"><i id="prog-bar"></i></div></div>
-    <div class="group">Trilha</div><ol><li><a href="index.html" data-page="p0"><span class="num">0</span><span>Início</span><span class="done-mark" aria-hidden="true"></span></a></li><li><a href="01-modelos.html" data-page="p1"><span class="num">1</span><span>Modelos de linguagem</span><span class="done-mark" aria-hidden="true"></span></a></li><li><a href="02-embeddings.html" data-page="p2"><span class="num">2</span><span>Embeddings</span><span class="done-mark" aria-hidden="true"></span></a></li><li><a href="03-busca-vetorial.html" data-page="p3"><span class="num">3</span><span>Busca vetorial e índices</span><span class="done-mark" aria-hidden="true"></span></a></li><li><a href="04-busca-lexical-hibrida.html" data-page="p4"><span class="num">4</span><span>Busca lexical e híbrida</span><span class="done-mark" aria-hidden="true"></span></a></li><li><a href="05-rag.html" data-page="p5"><span class="num">5</span><span>RAG e ingestão</span><span class="done-mark" aria-hidden="true"></span></a></li><li><a href="06-prompt.html" data-page="p6"><span class="num">6</span><span>Prompt engineering</span><span class="done-mark" aria-hidden="true"></span></a></li><li><a href="07-validacao.html" data-page="p7"><span class="num">7</span><span>Validação e guardrails</span><span class="done-mark" aria-hidden="true"></span></a></li><li><a href="08-avaliacao.html" data-page="p8"><span class="num">8</span><span>Avaliação</span><span class="done-mark" aria-hidden="true"></span></a></li><li><a href="09-dados-python.html" data-page="p9"><span class="num">9</span><span>Dados e Python</span><span class="done-mark" aria-hidden="true"></span></a></li><li><a href="10-custo-operacao.html" data-page="p10"><span class="num">10</span><span>Custo e operação</span><span class="done-mark" aria-hidden="true"></span></a></li></ol><div class="group">Referência rápida</div><ol><li><a href="glossario.html" data-page="glossario"><span class="num">•</span><span>Glossário</span><span class="done-mark" aria-hidden="true"></span></a></li><li><a href="exercicios.html" data-page="exercicios" aria-current="page"><span class="num">•</span><span>Exercícios</span><span class="done-mark" aria-hidden="true"></span></a></li><li><a href="prompts.html" data-page="prompts"><span class="num">•</span><span>Biblioteca de prompts</span><span class="done-mark" aria-hidden="true"></span></a></li></ol>
+    <div class="group">Trilha</div><ol><li><a href="index.html" data-page="p0"><span class="num">0</span><span>Início</span><span class="done-mark" aria-hidden="true"></span></a></li><li><a href="01-modelos.html" data-page="p1"><span class="num">1</span><span>Modelos de linguagem</span><span class="done-mark" aria-hidden="true"></span></a></li><li><a href="02-embeddings.html" data-page="p2"><span class="num">2</span><span>Embeddings</span><span class="done-mark" aria-hidden="true"></span></a></li><li><a href="03-busca-vetorial.html" data-page="p3"><span class="num">3</span><span>Busca vetorial e índices</span><span class="done-mark" aria-hidden="true"></span></a></li><li><a href="04-busca-lexical-hibrida.html" data-page="p4"><span class="num">4</span><span>Busca lexical e híbrida</span><span class="done-mark" aria-hidden="true"></span></a></li><li><a href="05-rag.html" data-page="p5"><span class="num">5</span><span>RAG e ingestão</span><span class="done-mark" aria-hidden="true"></span></a></li><li><a href="06-prompt.html" data-page="p6"><span class="num">6</span><span>Prompt engineering</span><span class="done-mark" aria-hidden="true"></span></a></li><li><a href="07-validacao.html" data-page="p7"><span class="num">7</span><span>Validação e guardrails</span><span class="done-mark" aria-hidden="true"></span></a></li><li><a href="08-avaliacao.html" data-page="p8"><span class="num">8</span><span>Avaliação</span><span class="done-mark" aria-hidden="true"></span></a></li><li><a href="09-dados-python.html" data-page="p9"><span class="num">9</span><span>Dados e Python</span><span class="done-mark" aria-hidden="true"></span></a></li><li><a href="10-custo-operacao.html" data-page="p10"><span class="num">10</span><span>Custo e operação</span><span class="done-mark" aria-hidden="true"></span></a></li></ol><div class="group">Referência rápida</div><ol><li><a href="glossario.html" data-page="glossario"><span class="num">•</span><span>Glossário</span><span class="done-mark" aria-hidden="true"></span></a></li><li><a href="exercicios.html" data-page="exercicios" aria-current="page"><span class="num">•</span><span>Exercícios</span><span class="done-mark" aria-hidden="true"></span></a></li><li><a href="roteiros.html" data-page="roteiros"><span class="num">•</span><span>Roteiros do Linear</span><span class="done-mark" aria-hidden="true"></span></a></li><li><a href="prompts.html" data-page="prompts"><span class="num">•</span><span>Biblioteca de prompts</span><span class="done-mark" aria-hidden="true"></span></a></li></ol>
   </nav>
   <main id="main" tabindex="-1"><div class="page-in">
     <div class="toc-inline" hidden><label for="toc-select">Nesta página</label><select id="toc-select"><option value="">ir para o capítulo…</option></select></div>
     <div id="keybanner" hidden><div class="callout warn"><span class="t">Sem chave do Gemini configurada</span><p>Os experimentos ao vivo desta página ficam desativados. Configure a chave na <a href="index.html#chave">página inicial</a>; os experimentos de brinquedo funcionam sem ela.</p></div></div>
-    <div class="page-head">
-  <div class="kicker">Referência rápida</div>
-  <h1>Exercícios</h1>
-  <p class="lead">Os oito exercícios do projeto <em>Estudos RAG</em> no Linear, com o roteiro de cada um e o que o guia oferece para cada passo: a página que explica, o experimento que deixa ver, o código de referência que se lê antes de escrever o seu. A ordem é a dos cards; as páginas assumem as anteriores.</p>
+    <div class="ex-app" id="ex-app">
+  <div class="page-head ex-head">
+    <div class="kicker">Plataforma de prática</div>
+    <h1>Exercícios</h1>
+    <p class="lead">Prática massiva, capítulo a capítulo: cerca de 15 exercícios por capítulo de cada página, todos práticos (código, cálculo, dados, SQL, prompt, projeto). Código Python e JavaScript é testado aqui no navegador; cálculos e dados são conferidos na hora; SQL e prompts passam por checagens; exercícios de projeto têm rubrica. Solução e dica ficam ocultas até você pedir, e o pedido fica registrado. O progresso fica neste navegador (exporte de vez em quando).</p>
+  </div>
+
+  <section class="ex-dash" id="ex-dash" aria-label="Painel">
+    <div class="ex-tiles" id="ex-tiles"></div>
+    <div class="ex-pages" id="ex-pages"></div>
+    <div class="ex-filters">
+      <div class="f-row">
+        <div><label class="f" for="fx-page">página</label><select id="fx-page"><option value="">todas</option></select></div>
+        <div><label class="f" for="fx-cap">capítulo</label><select id="fx-cap"><option value="">todos</option></select></div>
+        <div><label class="f" for="fx-tipo">tipo</label><select id="fx-tipo"><option value="">todos</option><option value="python">Python</option><option value="js">JavaScript</option><option value="calculo">cálculo</option><option value="dados">dados</option><option value="sql">SQL</option><option value="prompt">prompt</option><option value="texto">análise escrita</option><option value="projeto">projeto</option></select></div>
+        <div><label class="f" for="fx-nivel">nível</label><select id="fx-nivel"><option value="">todos</option><option value="1">1 · básico</option><option value="2">2 · intermediário</option><option value="3">3 · avançado</option></select></div>
+        <div><label class="f" for="fx-status">status</label><select id="fx-status"><option value="">todos</option><option value="nao">não iniciado</option><option value="tentado">tentado</option><option value="ok">concluído</option><option value="revelado">solução revelada</option><option value="pendente">pendentes (não concluídos)</option></select></div>
+        <div><label class="f" for="fx-busca">busca</label><input type="search" id="fx-busca" placeholder="título, tag, id…"></div>
+        <div><label class="f" for="fx-ordem">ordem</label><select id="fx-ordem"><option value="id">página · capítulo · número</option><option value="nivel">nível</option><option value="tempo">tempo</option><option value="status">status</option></select></div>
+      </div>
+      <div class="f-row acts">
+        <button class="btn" id="fx-sortear" type="button">Sortear um pendente</button>
+        <button class="btn ghost" id="fx-continuar" type="button">Continuar de onde parei</button>
+        <span class="mini" id="fx-count"></span>
+        <span class="grow"></span>
+        <button class="btn ghost small" id="fx-export" type="button">Exportar progresso</button>
+        <label class="btn ghost small" for="fx-import">Importar<input type="file" id="fx-import" accept="application/json" hidden></label>
+        <button class="btn ghost small" id="fx-md" type="button">Copiar resumo em markdown</button>
+      </div>
+    </div>
+    <div class="ex-list" id="ex-list"></div>
+  </section>
+
+  <section class="ex-view" id="ex-view" hidden aria-live="polite"></section>
 </div>
-
-<div class="tbl-wrap"><table>
-  <thead><tr><th>Ex.</th><th>Card</th><th>Entregável</th><th>Páginas</th></tr></thead>
-  <tbody>
-    <tr><td>1</td><td><a href="#ex1">Ambiente e primeira chamada com saída estruturada</a></td><td><code>ex1.py</code>, <code>compose.yaml</code>, <code>.env.example</code>, tabela de quebras de esquema</td><td>1 · 8 (Pydantic, p. 9)</td></tr>
-    <tr><td>2</td><td><a href="#ex2">Dados: de PDF a trechos por dispositivo</a></td><td><code>ex2_segmentar.py</code>, <code>data/trechos.jsonl</code>, inspeção</td><td>5 · 9</td></tr>
-    <tr><td>3</td><td><a href="#ex3">Embeddings e busca vetorial no pgvector</a></td><td><code>ex3_indexar.py</code>, <code>ex3_buscar.py</code>, 5 testes</td><td>2 · 3</td></tr>
-    <tr><td>4</td><td><a href="#ex4">Busca híbrida com fusão RRF em uma consulta SQL</a></td><td>migração <code>tsv</code> + GIN, <code>ex4_comparar.py</code>, tabela 5 × 3</td><td>4</td></tr>
-    <tr><td>5</td><td><a href="#ex5">Prompt engineering: contexto como dado, esquema e versão</a></td><td><code>prompts/responder_v1..v3.md</code>, <code>ex5_responder.py</code>, tabela 8 × 3</td><td>5 · 6</td></tr>
-    <tr><td>6</td><td><a href="#ex6">Validação: conferir cada citação contra a base</a></td><td><code>ex6_validar.py</code>, descartes por motivo × versão</td><td>7</td></tr>
-    <tr><td>7</td><td><a href="#ex7">Conjunto de avaliação: recall@k e fidelidade</a></td><td><code>eval/perguntas.jsonl</code>, <code>ex7_avaliar.py</code>, tabela de experimentos</td><td>8</td></tr>
-    <tr><td>8</td><td><a href="#ex8">Mini auditoria: critérios, classificação e índice determinístico</a></td><td><code>criterios/edital.json</code>, <code>ex8_auditar.py</code>, relatório</td><td>6 · 7 · 10</td></tr>
-  </tbody>
-</table></div>
-
-<h2 id="ex1">Ex. 1 · Ambiente e primeira chamada com saída estruturada <a class="exlink" href="https://linear.app/vinicius-costa/issue/VIN-5" target="_blank" rel="noopener">VIN-5</a></h2>
-<p><b>Objetivo:</b> ter o ambiente de pé e fazer o modelo devolver um JSON que o seu código valida. É o hábito mais importante de todo o pipeline: nunca aceitar texto livre.</p>
-<ol class="steps">
-  <li>Instalar <code>uv</code> e criar o projeto: <code>uv init estudos-rag &amp;&amp; cd estudos-rag</code>.</li>
-  <li>Instalar Ollama e baixar dois modelos: <code>ollama pull bge-m3</code> (embeddings, bom em português) e <code>ollama pull qwen2.5:3b</code> (chat local, para testes sem rede).</li>
-  <li>Criar <code>compose.yaml</code> com <code>pgvector/pgvector:pg16</code>, subir com <code>docker compose up -d</code>, conectar com <code>psql</code> e rodar <code>CREATE EXTENSION vector;</code>.</li>
-  <li>Criar uma chave gratuita no Google AI Studio e guardar em <code>.env</code> (nunca no código).</li>
-  <li>Escrever <code>ex1.py</code>: modelo Pydantic <code>Resposta(tema: str, resumo: str, confianca: float)</code>, prompt curto ao Gemini Flash-Lite pedindo JSON nesse formato, validar com <code>Resposta.model_validate_json(...)</code>.</li>
-  <li>Repetir com o modelo local via Ollama e comparar quantas vezes cada um quebra o esquema em 10 chamadas.</li>
-</ol>
-<p><b>No guia:</b> <a href="01-modelos.html#c6">página 1, capítulo 6</a> (saída estruturada e esquema: por que declarar e por que validar) e o <a href="01-modelos.html#c4">capítulo 4</a> (temperatura 0); <a href="09-dados-python.html#c8">página 9, capítulo 8</a> (Pydantic v2, <code>model_validate_json</code>, como coletar erros sem derrubar o laço); <a href="10-custo-operacao.html#c6">página 10, capítulo 6</a> (modelo local contra API: onde cada um cabe). <b>Ao fechar:</b> pedir esquema no prompt reduz erro; validar no código elimina. Temperatura 0 e esquema declarado são o padrão. O ambiente local é o mesmo da produção (pgvector), não um substituto.</p>
-
-<h2 id="ex2">Ex. 2 · Dados: de PDF a trechos por dispositivo <a class="exlink" href="https://linear.app/vinicius-costa/issue/VIN-6" target="_blank" rel="noopener">VIN-6</a></h2>
-<p><b>Objetivo:</b> transformar a Lei 14.133 em uma lista de trechos, um por artigo/parágrafo/inciso, cada um com identificador natural. É o exercício de manipulação de dados: 80% do trabalho de RAG é isto.</p>
-<ol class="steps">
-  <li>Baixar o PDF da Lei 14.133/2021 (Planalto) e extrair o texto com <code>pymupdf</code>. Salvar o bruto em <code>data/lei14133.txt</code> e olhar: hifenização, cabeçalhos repetidos, numeração quebrada.</li>
-  <li>Escrever a limpeza: cabeçalho e rodapé, linhas quebradas, espaços.</li>
-  <li>Segmentar por dispositivo com regex (<code>Art. 25.</code>, <code>§ 2º</code>, <code>I -</code>, <code>a)</code>); cada trecho com <code>id</code> no formato <code>L14133-art25-p2-incI</code>, <code>dispositivo</code> legível e <code>conteudo</code>.</li>
-  <li>Gravar em <code>data/trechos.jsonl</code> e abrir com pandas: quantos, tamanho médio, os 10 maiores, os 10 menores.</li>
-  <li>Achar os erros de segmentação (vai ter) e corrigir a regex. Iterar até o Art. 75 sair com todos os incisos certos.</li>
-</ol>
-<p><b>No guia:</b> <a href="09-dados-python.html">página 9 inteira</a>: Raio-X do texto bruto (cap. 1), extração e ordem de leitura (cap. 2), bancada de limpeza e inspetor de caracteres (cap. 3), laboratório de regex e galeria de armadilhas (cap. 4), segmentador com três versões e o check do Art. 75 (cap. 5), inspetor de JSONL (cap. 6), painel pandas (cap. 7); código de referência com testes no cap. 10. <a href="05-rag.html#c4">Página 5, capítulos 4 e 5</a> (por que por dispositivo, caput como prefixo, ids). <b>Ao fechar:</b> segmentar por unidade normativa é o que torna a citação verificável; o identificador é chave natural; pandas serve para olhar antes de confiar.</p>
-
-<h2 id="ex3">Ex. 3 · Embeddings e busca vetorial no pgvector <a class="exlink" href="https://linear.app/vinicius-costa/issue/VIN-7" target="_blank" rel="noopener">VIN-7</a></h2>
-<p><b>Objetivo:</b> vetorizar os trechos do Ex. 2, gravar no pgvector e fazer a primeira busca por similaridade.</p>
-<ol class="steps">
-  <li>Criar a tabela <code>rag.chunk (id text primary key, dispositivo text, conteudo text, embedding vector(1024))</code>: bge-m3 gera 1.024 dimensões.</li>
-  <li><code>ex3_indexar.py</code>: para cada trecho do JSONL, chamar o Ollama (<code>/api/embeddings</code>, <code>bge-m3</code>) e inserir. Em lotes, medindo o tempo.</li>
-  <li>Índice HNSW: <code>CREATE INDEX ON rag.chunk USING hnsw (embedding vector_cosine_ops);</code>.</li>
-  <li><code>ex3_buscar.py</code>: pergunta → vetor → <code>ORDER BY embedding &lt;=&gt; $1 LIMIT 5</code> → dispositivo + trecho.</li>
-  <li>Testar com 5 perguntas ("quando a licitação pode ser dispensada?", "prazo de publicação do edital", "o que é ETP?", "qual o limite para dispensa por valor?", "art. 75") e anotar o que veio certo e errado.</li>
-</ol>
-<p><b>No guia:</b> <a href="02-embeddings.html">página 2</a> (o que o vetor captura, cosseno, dimensões, tipos de tarefa, vizinhos mais próximos e a diluição); <a href="03-busca-vetorial.html">página 3</a> (exato contra aproximado, HNSW por dentro com animação, parâmetros, SQL do pgvector e o verificador de uso de índice, tamanho do índice). <b>Ao fechar:</b> embedding representa sentido e cosseno mede proximidade; a busca vetorial acha paráfrase e erra referência exata ("art. 75" tende a falhar); HNSW é o que torna a busca rápida.</p>
-
-<h2 id="ex4">Ex. 4 · Busca híbrida com fusão RRF em uma consulta SQL <a class="exlink" href="https://linear.app/vinicius-costa/issue/VIN-8" target="_blank" rel="noopener">VIN-8</a></h2>
-<p><b>Objetivo:</b> adicionar busca lexical em português e fundir os dois rankings com RRF, tudo em uma única consulta.</p>
-<ol class="steps">
-  <li>Coluna <code>tsv tsvector</code> gerada com <code>to_tsvector('portuguese', conteudo)</code> e índice GIN.</li>
-  <li>Busca lexical isolada com <code>websearch_to_tsquery('portuguese', $1)</code> e <code>ts_rank_cd</code>. Testar "art. 75" e "dispensa de licitação".</li>
-  <li>Consulta híbrida: duas CTEs (vetorial e lexical, 50 candidatos cada, <code>row_number()</code> como posição), <code>FULL OUTER JOIN</code> por id, pontuação <code>1/(60+pos)</code> somada, <code>LIMIT 12</code>.</li>
-  <li><code>ex4_comparar.py</code>: para cada pergunta do Ex. 3, top-5 de vetorial, lexical e híbrida lado a lado.</li>
-  <li>Mexer na constante (60 → 10 → 200) e no número de candidatos e observar.</li>
-</ol>
-<p><b>No guia:</b> <a href="04-busca-lexical-hibrida.html">página 4</a>: analisador que espelha o <code>to_tsvector</code> em português (cap. 2), ts_rank e pesos (cap. 3), BM25 aberto (cap. 4), GIN (cap. 5), construtor de tsquery com frase e prefixo (cap. 6), calculadora de RRF e o duelo das três buscas (cap. 7), reranker (cap. 8), recall das três buscas (cap. 9) e o SQL completo com <code>pt_unaccent</code> e a CTE híbrida (cap. 10). <b>Ao fechar:</b> lexical preserva referência exata, vetorial preserva alcance semântico, a híbrida pega os dois; RRF combina rankings sem pontuações comparáveis; a fusão no banco mantém uma consulta só.</p>
-
-<h2 id="ex5">Ex. 5 · Prompt engineering: contexto como dado, esquema e versão <a class="exlink" href="https://linear.app/vinicius-costa/issue/VIN-9" target="_blank" rel="noopener">VIN-9</a></h2>
-<p><b>Objetivo:</b> montar o prompt que recebe os trechos recuperados e responde com citação, em JSON, e sentir na pele o que muda quando o prompt muda.</p>
-<ol class="steps">
-  <li><code>prompts/responder_v1.md</code> com quatro partes: papel, tarefa, contexto delimitado (<code>&lt;trechos&gt;…&lt;/trechos&gt;</code>, cada um com <code>id</code>) e esquema de saída (<code>resposta</code>, <code>citacoes[]</code> com <code>id</code> e <code>dispositivo</code>, <code>sem_evidencia</code>).</li>
-  <li><code>ex5_responder.py</code>: pergunta → busca híbrida (top-12) → prompt → Flash a temperatura 0 → Pydantic → imprime.</li>
-  <li>8 perguntas, 2 sem resposta na lei ("qual o prazo de garantia de um notebook?"). O modelo inventa ou declara <code>sem_evidencia</code>?</li>
-  <li><code>responder_v2.md</code> mudando só uma coisa (instrução explícita de recusa). Mesmas 8 perguntas. Comparar.</li>
-  <li><code>responder_v3.md</code> com "uma tarefa só" (resumo e citação em duas chamadas). Comparar de novo.</li>
-  <li>Registrar em cada resposta qual versão a gerou.</li>
-</ol>
-<p><b>No guia:</b> <a href="06-prompt.html">página 6</a>: anatomia com partes ligáveis (cap. 1), A/B ao vivo (cap. 2), injeção (cap. 3), esquema e Pydantic (cap. 4), few-shot (cap. 5), decomposição (cap. 6), playground de versões com diff (cap. 7), sensibilidade (cap. 8), linter (cap. 9); <a href="05-rag.html#c7">página 5, capítulo 7</a> (orçamento e ordem do contexto); <a href="prompts.html">biblioteca de prompts</a> (<code>resposta_v3</code>). <b>Ao fechar:</b> o conteúdo recuperado entra como dado delimitado; prompt é código versionado, uma mudança por vez; instrução curta e específica vence a longa e genérica; o modelo fraco expõe o prompt ruim.</p>
-
-<h2 id="ex6">Ex. 6 · Validação: conferir cada citação contra a base <a class="exlink" href="https://linear.app/vinicius-costa/issue/VIN-10" target="_blank" rel="noopener">VIN-10</a></h2>
-<p><b>Objetivo:</b> parar de confiar no modelo. Toda citação que ele devolve é conferida no banco; o que não existe é descartado e contado.</p>
-<ol class="steps">
-  <li><code>ex6_validar.py</code>: para cada <code>citacoes[].id</code>, <code>SELECT 1 FROM rag.chunk WHERE id = $1</code>; inexistente → remover e <code>descartes['fonte_inexistente']++</code>.</li>
-  <li>Resposta sem citação → descartada inteira (<code>descartes['sem_citacao']</code>).</li>
-  <li>Segunda verificação: o <code>dispositivo</code> citado está entre os 12 trechos enviados? Fora disso, <code>descartes['fora_do_contexto']</code>.</li>
-  <li>8 perguntas × 3 prompts do Ex. 5 → contador de descartes por motivo e por versão.</li>
-  <li>Provocar o erro: prompt sem trechos (contador sobe); prompt com ids inventados (o descarte pega).</li>
-</ol>
-<p><b>No guia:</b> <a href="07-validacao.html">página 7</a>: taxonomia das falhas em cartões, anatomia e galeria (cap. 1), camadas (cap. 2), o validador com os sete motivos, o editor de JSON e o contador de descartes (cap. 3), juiz de aderência (cap. 4), recusa (cap. 5), injeção (cap. 6), números sem fonte (cap. 7), guardrails (cap. 8), operar a validação (cap. 9), código de referência (cap. 10). <b>Ao fechar:</b> prompt pede, validação garante, e as camadas são independentes; o contador de descartes é o termômetro do pipeline; nada persiste sem citação existente.</p>
-
-<h2 id="ex7">Ex. 7 · Conjunto de avaliação: recall@k e fidelidade <a class="exlink" href="https://linear.app/vinicius-costa/issue/VIN-11" target="_blank" rel="noopener">VIN-11</a></h2>
-<p><b>Objetivo:</b> medir em vez de achar. Um conjunto fixo de perguntas com resposta esperada e dois números que dizem se uma mudança melhorou ou piorou.</p>
-<ol class="steps">
-  <li><code>eval/perguntas.jsonl</code> com 10 perguntas sobre a Lei 14.133, cada uma com o(s) <code>id</code> esperado(s). À mão, olhando a lei.</li>
-  <li><code>ex7_avaliar.py</code>: <b>recall@k</b> (só a busca híbrida, top-12: algum id esperado entre os 12? acertos ÷ 10) e <b>fidelidade</b> (pipeline inteiro, Ex. 5 + 6: citações validadas incluem um id esperado? acertos ÷ 10).</li>
-  <li>Linha de base: anotar os dois números.</li>
-  <li>Uma mudança por vez: top-k 12 → 5; constante RRF 60 → 20; só vetorial; só lexical; prompt v1 → v3. Tabela.</li>
-  <li>Escolher a melhor combinação e deixá-la como padrão.</li>
-</ol>
-<p><b>No guia:</b> <a href="08-avaliacao.html">página 8</a>: painel-alvo (cap. 1), construtor de casos com detector de vazamento lexical (cap. 2), calculadora de ranking (cap. 3), rotulagem e kappa (cap. 4), protocolo e simulador de sobreajuste (cap. 5), a rodada completa ao vivo com tabela por pergunta (cap. 6), intervalo de Wilson (cap. 7), comparador pareado (cap. 8), índice e concordância (cap. 9), <code>avaliar.py</code> (cap. 10). <b>Ao fechar:</b> recall@k mede a busca isolada e fidelidade mede o conjunto; 10 itens já mudam a forma de trabalhar; melhorar a recuperação rende mais que trocar de modelo.</p>
-
-<h2 id="ex8">Ex. 8 · Mini auditoria: critérios, classificação e índice determinístico <a class="exlink" href="https://linear.app/vinicius-costa/issue/VIN-12" target="_blank" rel="noopener">VIN-12</a></h2>
-<p><b>Objetivo:</b> a Camada 5 em miniatura: um edital de teste, três critérios ancorados na lei, classificação por critério pelo modelo, índice calculado em Python.</p>
-<ol class="steps">
-  <li>Um edital real e pequeno (pregão simples), texto extraído com <code>pymupdf</code>.</li>
-  <li><code>criterios/edital.json</code> com 3 critérios: <code>id</code>, <code>descricao</code>, <code>fonte_id</code> (um id de <code>rag.chunk</code>), <code>peso</code>. Exemplos: critério de julgamento (art. 33), prazo mínimo de publicidade (art. 55), garantia compatível com o art. 96/98.</li>
-  <li>Uma chamada por critério: edital delimitado como dado + trecho da lei do <code>fonte_id</code> + esquema <code>{classificacao, trecho_do_edital, justificativa}</code>.</li>
-  <li>Validar cada resposta (Ex. 6). Índice em Python: CONFORME = 100, ALERTA = 50, NAO_CONFORME = 0, NAO_AVALIAVEL fora; média ponderada. Nunca pedir o número ao modelo.</li>
-  <li>3 execuções a temperatura 0 (iguais?) e 1 a temperatura 1 (variação).</li>
-  <li>Relatório: critério, classificação, trecho do edital, fundamento legal, índice.</li>
-</ol>
-<p><b>No guia:</b> <a href="10-custo-operacao.html#c7">página 10, capítulos 7 e 8</a> (índice determinístico, nota do modelo contra índice do código, a mini auditoria ao vivo com 3× e relatório em Markdown) e o <code>ex8_auditar.py</code> completo com <code>llm.py</code> (cap. 10); <a href="06-prompt.html#c6">página 6, capítulo 6</a> (um critério por chamada, o construtor de critérios); <a href="07-validacao.html#c3">página 7, capítulo 3</a> (validação em código); <a href="08-avaliacao.html#c9">página 8, capítulo 9</a> (o índice por blocos e a concordância com o auditor). <b>Ao fechar:</b> o modelo classifica, o código calcula; um critério por chamada é mais barato, mais testável e menos propenso a invenção; este é o núcleo do <code>ia-worker</code>.</p>
 
     
     <p class="foot">Guia de estudo pessoal. Corpus com redação adaptada da Lei 14.133/2021 para fins didáticos; confira o texto oficial antes de qualquer uso real. A chave da API fica apenas neste navegador; experimentos ao vivo chamam a API do Google diretamente e consomem a sua cota.</p>
   </div></main>
   <aside class="toc" aria-label="Nesta página" hidden><div class="t">Nesta página</div><ol id="toc-list"></ol></aside>
 </div>
-<script>window.GUIA_MANIFEST = {pages: [{"id": "p0", "file": "index.html", "num": "0", "title": "Início", "chapters": [], "issue": null}, {"id": "p1", "file": "01-modelos.html", "num": "1", "title": "Como um modelo de linguagem funciona", "chapters": ["p1-c1", "p1-c2", "p1-c3", "p1-c4", "p1-c5", "p1-c6", "p1-c7", "p1-c8", "p1-c9", "p1-c10"], "issue": "VIN-5"}, {"id": "p2", "file": "02-embeddings.html", "num": "2", "title": "Embeddings", "chapters": ["p2-c1", "p2-c2", "p2-c3", "p2-c4", "p2-c5", "p2-c6", "p2-c7", "p2-c8", "p2-c9", "p2-c10"], "issue": "VIN-7"}, {"id": "p3", "file": "03-busca-vetorial.html", "num": "3", "title": "Busca vetorial e índices", "chapters": ["p3-c1", "p3-c2", "p3-c3", "p3-c4", "p3-c5", "p3-c6", "p3-c7", "p3-c8", "p3-c9", "p3-c10"], "issue": "VIN-7"}, {"id": "p4", "file": "04-busca-lexical-hibrida.html", "num": "4", "title": "Busca lexical e híbrida", "chapters": ["p4-c1", "p4-c2", "p4-c3", "p4-c4", "p4-c5", "p4-c6", "p4-c7", "p4-c8", "p4-c9", "p4-c10"], "issue": "VIN-8"}, {"id": "p5", "file": "05-rag.html", "num": "5", "title": "RAG de ponta a ponta e ingestão", "chapters": ["p5-c1", "p5-c2", "p5-c3", "p5-c4", "p5-c5", "p5-c6", "p5-c7", "p5-c8", "p5-c9", "p5-c10"], "issue": "VIN-6"}, {"id": "p6", "file": "06-prompt.html", "num": "6", "title": "Prompt engineering", "chapters": ["p6-c1", "p6-c2", "p6-c3", "p6-c4", "p6-c5", "p6-c6", "p6-c7", "p6-c8", "p6-c9", "p6-c10"], "issue": "VIN-9"}, {"id": "p7", "file": "07-validacao.html", "num": "7", "title": "Alucinação, validação e guardrails", "chapters": ["p7-c1", "p7-c2", "p7-c3", "p7-c4", "p7-c5", "p7-c6", "p7-c7", "p7-c8", "p7-c9", "p7-c10"], "issue": "VIN-10"}, {"id": "p8", "file": "08-avaliacao.html", "num": "8", "title": "Avaliação", "chapters": ["p8-c1", "p8-c2", "p8-c3", "p8-c4", "p8-c5", "p8-c6", "p8-c7", "p8-c8", "p8-c9", "p8-c10"], "issue": "VIN-11"}, {"id": "p9", "file": "09-dados-python.html", "num": "9", "title": "Dados e Python para RAG", "chapters": ["p9-c1", "p9-c2", "p9-c3", "p9-c4", "p9-c5", "p9-c6", "p9-c7", "p9-c8", "p9-c9", "p9-c10"], "issue": "VIN-6"}, {"id": "p10", "file": "10-custo-operacao.html", "num": "10", "title": "Custo, modelos e operação", "chapters": ["p10-c1", "p10-c2", "p10-c3", "p10-c4", "p10-c5", "p10-c6", "p10-c7", "p10-c8", "p10-c9", "p10-c10"], "issue": "VIN-12"}, {"id": "glossario", "file": "glossario.html", "num": "•", "title": "Glossário", "chapters": [], "issue": null}, {"id": "exercicios", "file": "exercicios.html", "num": "•", "title": "Exercícios", "chapters": [], "issue": null}, {"id": "prompts", "file": "prompts.html", "num": "•", "title": "Biblioteca de prompts", "chapters": [], "issue": null}]};</script>
+<script>window.GUIA_MANIFEST = {pages: [{"id": "p0", "file": "index.html", "num": "0", "title": "Início", "chapters": [], "issue": null}, {"id": "p1", "file": "01-modelos.html", "num": "1", "title": "Como um modelo de linguagem funciona", "chapters": ["p1-c1", "p1-c2", "p1-c3", "p1-c4", "p1-c5", "p1-c6", "p1-c7", "p1-c8", "p1-c9", "p1-c10"], "issue": "VIN-5"}, {"id": "p2", "file": "02-embeddings.html", "num": "2", "title": "Embeddings", "chapters": ["p2-c1", "p2-c2", "p2-c3", "p2-c4", "p2-c5", "p2-c6", "p2-c7", "p2-c8", "p2-c9", "p2-c10"], "issue": "VIN-7"}, {"id": "p3", "file": "03-busca-vetorial.html", "num": "3", "title": "Busca vetorial e índices", "chapters": ["p3-c1", "p3-c2", "p3-c3", "p3-c4", "p3-c5", "p3-c6", "p3-c7", "p3-c8", "p3-c9", "p3-c10"], "issue": "VIN-7"}, {"id": "p4", "file": "04-busca-lexical-hibrida.html", "num": "4", "title": "Busca lexical e híbrida", "chapters": ["p4-c1", "p4-c2", "p4-c3", "p4-c4", "p4-c5", "p4-c6", "p4-c7", "p4-c8", "p4-c9", "p4-c10"], "issue": "VIN-8"}, {"id": "p5", "file": "05-rag.html", "num": "5", "title": "RAG de ponta a ponta e ingestão", "chapters": ["p5-c1", "p5-c2", "p5-c3", "p5-c4", "p5-c5", "p5-c6", "p5-c7", "p5-c8", "p5-c9", "p5-c10"], "issue": "VIN-6"}, {"id": "p6", "file": "06-prompt.html", "num": "6", "title": "Prompt engineering", "chapters": ["p6-c1", "p6-c2", "p6-c3", "p6-c4", "p6-c5", "p6-c6", "p6-c7", "p6-c8", "p6-c9", "p6-c10"], "issue": "VIN-9"}, {"id": "p7", "file": "07-validacao.html", "num": "7", "title": "Alucinação, validação e guardrails", "chapters": ["p7-c1", "p7-c2", "p7-c3", "p7-c4", "p7-c5", "p7-c6", "p7-c7", "p7-c8", "p7-c9", "p7-c10"], "issue": "VIN-10"}, {"id": "p8", "file": "08-avaliacao.html", "num": "8", "title": "Avaliação", "chapters": ["p8-c1", "p8-c2", "p8-c3", "p8-c4", "p8-c5", "p8-c6", "p8-c7", "p8-c8", "p8-c9", "p8-c10"], "issue": "VIN-11"}, {"id": "p9", "file": "09-dados-python.html", "num": "9", "title": "Dados e Python para RAG", "chapters": ["p9-c1", "p9-c2", "p9-c3", "p9-c4", "p9-c5", "p9-c6", "p9-c7", "p9-c8", "p9-c9", "p9-c10"], "issue": "VIN-6"}, {"id": "p10", "file": "10-custo-operacao.html", "num": "10", "title": "Custo, modelos e operação", "chapters": ["p10-c1", "p10-c2", "p10-c3", "p10-c4", "p10-c5", "p10-c6", "p10-c7", "p10-c8", "p10-c9", "p10-c10"], "issue": "VIN-12"}, {"id": "glossario", "file": "glossario.html", "num": "•", "title": "Glossário", "chapters": [], "issue": null}, {"id": "exercicios", "file": "exercicios.html", "num": "•", "title": "Exercícios", "chapters": [], "issue": null}, {"id": "roteiros", "file": "roteiros.html", "num": "•", "title": "Roteiros do Linear", "chapters": [], "issue": null}, {"id": "prompts", "file": "prompts.html", "num": "•", "title": "Biblioteca de prompts", "chapters": [], "issue": null}]};</script>
 <script src="assets/corpus.js"></script>
 <script src="assets/core.js"></script>
 <script src="assets/site.js"></script>
+<script>
+/* ===== plataforma de exercícios: painel, filtros, editor, validação, progresso ===== */
+window.GUIA_EX = window.GUIA_EX || {};
+(function () {
+  const CM_URL = 'https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/';
+  const PY_URL = 'https://cdn.jsdelivr.net/pyodide/v314.0.6/full/';
+  const TIPOS = { python: 'Python', js: 'JavaScript', calculo: 'cálculo', dados: 'dados', sql: 'SQL', prompt: 'prompt', texto: 'análise escrita', projeto: 'projeto' };
+  const NIVEL = { 1: 'básico', 2: 'intermediário', 3: 'avançado' };
+  const STATUS = { nao: 'não iniciado', tentado: 'tentado', ok: 'concluído', revelado: 'revelado' };
+  const PAGES = (window.GUIA_MANIFEST?.pages || []).filter((p) => /^p\d+$/.test(p.id) && p.id !== 'p0');
+  const app = $('#ex-app'); if (!app) return;
 
+  /* ---------- progresso (localStorage) ---------- */
+  const PK = 'ex.progresso';
+  let prog = store.get(PK, {});
+  const rec = (id) => (prog[id] = prog[id] || { status: 'nao', tentativas: 0, revelado: false, dica: false, resposta: null, rubrica: [], notas: '', ts: 0 });
+  const save = () => { store.set(PK, prog); store.set('ex.ultimo', current?.id || null); };
+  const statusOf = (id) => { const r = prog[id]; if (!r) return 'nao'; if (r.status === 'ok') return 'ok'; if (r.revelado) return 'revelado'; return r.status; };
+
+  /* ---------- dados ---------- */
+  const DATA = {}; let ALL = []; let current = null; let filtered = [];
+  const loadPage = (n) => new Promise((res) => { if (GUIA_EX['p' + n]) return res(GUIA_EX['p' + n]); const s = document.createElement('script'); s.src = `assets/ex/p${n}.js`; s.onload = () => res(GUIA_EX['p' + n] || null); s.onerror = () => res(null); document.head.appendChild(s); });
+  async function loadAll() {
+    for (const p of PAGES) { const n = +p.id.slice(1); const d = await loadPage(n); if (d) { DATA[n] = d; d.itens.forEach((it, i) => { it.pagina = n; it.num = i + 1; it.tituloPagina = d.titulo; it.tituloCap = d.capitulos[it.cap - 1] || `Capítulo ${it.cap}`; ALL.push(it); }); } }
+  }
+
+  /* ---------- markdown mínimo ---------- */
+  function md(src) {
+    if (!src) return ''; const blocks = []; let s = String(src).replace(/```(\w*)\n([\s\S]*?)```/g, (_, lang, code) => { blocks.push(`<pre class="cm-static"><code class="language-${lang || 'text'}">${esc(code.replace(/\n$/, ''))}</code></pre>`); return `\u0000${blocks.length - 1}\u0000`; });
+    s = esc(s);
+    s = s.replace(/`([^`\n]+)`/g, (_, c) => `<code>${c}</code>`).replace(/\*\*([^*\n]+)\*\*/g, '<strong>$1</strong>').replace(/(^|[\s(])\*([^*\n]+)\*/g, '$1<em>$2</em>');
+    const paras = s.split(/\n\s*\n/).map((p) => {
+      if (/^(- |\d+\. )/.test(p.trim())) { const items = p.trim().split(/\n/).map((l) => l.replace(/^(- |\d+\. )/, '')); return (/^\d/.test(p.trim()) ? '<ol>' : '<ul>') + items.map((i) => `<li>${i}</li>`).join('') + (/^\d/.test(p.trim()) ? '</ol>' : '</ul>'); }
+      if (/^\u0000\d+\u0000$/.test(p.trim())) return p.trim();
+      if (/^#{1,3} /.test(p)) return `<h5>${p.replace(/^#{1,3} /, '')}</h5>`;
+      return `<p>${p.replace(/\n/g, '<br>')}</p>`;
+    }).join('');
+    return paras.replace(/\u0000(\d+)\u0000/g, (_, i) => blocks[+i]);
+  }
+
+  /* ---------- editor (CodeMirror com fallback) ---------- */
+  let cmReady = null;
+  const loadScript = (src) => new Promise((res, rej) => { const s = document.createElement('script'); s.src = src; s.onload = res; s.onerror = () => rej(new Error('falha ao carregar ' + src)); document.head.appendChild(s); });
+  const loadCss = (href) => { const l = document.createElement('link'); l.rel = 'stylesheet'; l.href = href; document.head.appendChild(l); };
+  function ensureCM() {
+    if (cmReady) return cmReady;
+    cmReady = (async () => { try { loadCss(CM_URL + 'codemirror.min.css'); loadCss(CM_URL + 'theme/material-darker.min.css'); await loadScript(CM_URL + 'codemirror.min.js'); await Promise.all(['python/python', 'javascript/javascript', 'sql/sql', 'markdown/markdown'].map((m) => loadScript(CM_URL + 'mode/' + m + '.min.js'))); return !!window.CodeMirror; } catch (e) { console.warn(e); return false; } })();
+    return cmReady;
+  }
+  const MODE = { python: 'python', js: 'javascript', sql: 'text/x-pgsql', prompt: 'markdown', dados: null, texto: null };
+  async function makeEditor(ta, tipo) {
+    const ok = await ensureCM(); if (!ok || !window.CodeMirror || !ta.isConnected) return { get: () => ta.value, set: (v) => { ta.value = v; }, el: ta };
+    const dark = document.documentElement.getAttribute('data-theme') === 'dark';
+    const cm = CodeMirror.fromTextArea(ta, { mode: MODE[tipo] || 'text/plain', lineNumbers: !!MODE[tipo], indentUnit: 4, tabSize: 4, indentWithTabs: false, lineWrapping: true, theme: dark ? 'material-darker' : 'default', viewportMargin: Infinity, extraKeys: { Tab: (c) => c.replaceSelection('    ', 'end') } });
+    cm.on('change', () => { ta.value = cm.getValue(); ta.dispatchEvent(new Event('input', { bubbles: true })); });
+    return { get: () => cm.getValue(), set: (v) => cm.setValue(v), el: cm.getWrapperElement(), cm };
+  }
+
+  /* ---------- Python no navegador (Pyodide) ---------- */
+  let pyP = null; const pyLoaded = new Set();
+  function getPy(onStatus) {
+    if (!pyP) pyP = (async () => { onStatus?.('Carregando Python no navegador (primeira vez: ~10 MB)…'); await loadScript(PY_URL + 'pyodide.js'); const py = await window.loadPyodide({ indexURL: PY_URL }); return py; })().catch((e) => { pyP = null; throw new Error('Não foi possível carregar o Python no navegador (' + e.message + '). Sem rede para o CDN? Valide localmente com o arquivo de testes da solução.'); });
+    return pyP;
+  }
+  async function runPython(code, tests, opts, onStatus) {
+    const py = await getPy(onStatus);
+    const pk = (opts.pacotes || []).filter((p) => !pyLoaded.has(p)); if (pk.length) { onStatus?.('Carregando pacotes: ' + pk.join(', ') + '…'); await py.loadPackage(pk); pk.forEach((p) => pyLoaded.add(p)); }
+    onStatus?.('Executando…');
+    const out = []; py.setStdout({ batched: (s) => out.push(s) }); py.setStderr({ batched: (s) => out.push(s) });
+    const ns = py.globals.get('dict')();
+    const res = { saida: out, testes: [], erro: null };
+    try { await py.runPythonAsync((opts.setup || '') + '\n' + code, { globals: ns }); }
+    catch (e) { res.erro = pyErr(e); ns.destroy(); return res; }
+    for (const t of tests) { try { await py.runPythonAsync(t.codigo, { globals: ns }); res.testes.push({ nome: t.nome, ok: true }); } catch (e) { res.testes.push({ nome: t.nome, ok: false, msg: pyErr(e) }); } }
+    ns.destroy(); return res;
+  }
+  const pyErr = (e) => { const lines = String(e.message || e).trim().split('\n').filter((l) => l.trim()); const last = lines[lines.length - 1] || String(e); const where = lines.filter((l) => /File "<exec>", line \d+/.test(l)).pop(); return last + (where ? ' (' + where.trim().replace(/File "<exec>", /, '') + ')' : ''); };
+
+  /* ---------- JavaScript no navegador ---------- */
+  const HELPERS = { iguais: (a, b) => JSON.stringify(a) === JSON.stringify(b), aprox: (a, b, tol = 1e-6) => Math.abs(a - b) <= tol, contem: (arr, x) => Array.isArray(arr) && arr.includes(x) };
+  function runJS(code, tests, opts) {
+    const names = opts.exports || []; const res = { testes: [], erro: null, saida: [] };
+    let fns;
+    try { const log = (...a) => res.saida.push(a.map((x) => typeof x === 'string' ? x : JSON.stringify(x)).join(' ')); fns = new Function('console', code + '\n;return {' + names.join(',') + '};')({ log, error: log, warn: log }); }
+    catch (e) { res.erro = e.message; return res; }
+    for (const t of tests) { try { const v = new Function(...names, ...Object.keys(HELPERS), 'return (' + t.codigo + ');')(...names.map((n) => fns[n]), ...Object.values(HELPERS)); if (v === true || (v !== false && v != null && typeof v !== 'boolean')) res.testes.push({ nome: t.nome, ok: true }); else res.testes.push({ nome: t.nome, ok: false, msg: 'retornou ' + JSON.stringify(v) }); } catch (e) { res.testes.push({ nome: t.nome, ok: false, msg: e.message }); } }
+    return res;
+  }
+
+  /* ---------- outros validadores ---------- */
+  const normTxt = (s) => String(s ?? '').replace(/\r/g, '').split('\n').map((l) => l.replace(/\s+/g, ' ').trim()).filter(Boolean).join('\n');
+  function checkDados(answer, it) {
+    const modo = it.modo || 'texto';
+    try {
+      if (modo === 'json') { const a = JSON.parse(answer), b = typeof it.esperado === 'string' ? JSON.parse(it.esperado) : it.esperado; return { ok: JSON.stringify(canon(a)) === JSON.stringify(canon(b)), msg: 'comparação de JSON (ordem das chaves ignorada)' }; }
+      if (modo === 'jsonl') { const a = answer.split('\n').filter((l) => l.trim()).map((l) => canon(JSON.parse(l))), b = String(it.esperado).split('\n').filter((l) => l.trim()).map((l) => canon(JSON.parse(l))); return { ok: JSON.stringify(a) === JSON.stringify(b), msg: `${a.length} linha(s) lida(s); esperado ${b.length}` }; }
+      if (modo === 'conjunto') { const a = new Set(normTxt(answer).split('\n')), b = new Set(normTxt(it.esperado).split('\n')); const falt = [...b].filter((x) => !a.has(x)), sobra = [...a].filter((x) => !b.has(x)); return { ok: !falt.length && !sobra.length, msg: (falt.length ? 'faltam: ' + falt.join(' · ') : '') + (sobra.length ? ' sobram: ' + sobra.join(' · ') : '') || 'ordem ignorada' }; }
+      const a = normTxt(answer), b = normTxt(it.esperado); if (a === b) return { ok: true, msg: 'igual ao esperado (espaços normalizados)' };
+      const al = a.split('\n'), bl = b.split('\n'); const i = al.findIndex((l, k) => l !== bl[k]); return { ok: false, msg: al.length !== bl.length ? `${al.length} linha(s), esperado ${bl.length}` : `primeira diferença na linha ${i + 1}` };
+    } catch (e) { return { ok: false, msg: 'não deu para ler a resposta: ' + e.message }; }
+  }
+  const canon = (v) => Array.isArray(v) ? v.map(canon) : (v && typeof v === 'object') ? Object.fromEntries(Object.keys(v).sort().map((k) => [k, canon(v[k])])) : v;
+  function checkCampos(vals, it) { return it.campos.map((c, i) => { const v = parseFloat(String(vals[i] ?? '').replace(',', '.')); if (isNaN(v)) return { nome: c.label, ok: false, msg: 'sem valor' }; const tol = c.rel ? Math.abs(c.valor) * c.rel : (c.tol ?? 0.01); const ok = Math.abs(v - c.valor) <= tol + 1e-12; return { nome: c.label, ok, msg: ok ? 'dentro da tolerância' : `fora da tolerância (±${tol.toPrecision(2)})` }; }); }
+  function checkRegex(text, it) { return (it.checks || []).map((c) => { const re = new RegExp(c.re, c.flags || 'i'); const hit = re.test(text); const ok = c.deve === false ? !hit : hit; return { nome: c.msg, ok, msg: ok ? '' : (c.deve === false ? 'encontrado, mas não devia' : 'não encontrado') }; }); }
+  async function runAoVivo(promptText, it, onStatus) {
+    if (!gemini.ready()) throw new Error('Precisa de chave (configure na página inicial).');
+    const out = []; const av = it.aovivo;
+    for (const [i, caso] of av.casos.entries()) {
+      onStatus?.(`Caso ${i + 1}/${av.casos.length}: ${caso.titulo || ''}…`);
+      const r = await gemini.generate({ system: promptText, user: caso.entrada, schema: av.schema || null, json: !!av.schema, temperature: 0, maxTokens: av.maxTokens || 1024 });
+      const obj = av.schema ? parseJSON(r.text) : null; let ok = false, got = '';
+      if (caso.espera.campo) { got = obj ? JSON.stringify(obj[caso.espera.campo]) : 'sem JSON'; ok = !!obj && JSON.stringify(obj[caso.espera.campo]) === JSON.stringify(caso.espera.valor); }
+      else if (caso.espera.regex) { got = r.text.slice(0, 120); ok = new RegExp(caso.espera.regex, caso.espera.flags || 'i').test(r.text); }
+      out.push({ nome: caso.titulo || `caso ${i + 1}`, ok, msg: ok ? `obtido ${got}` : `esperado ${caso.espera.campo ? caso.espera.campo + ' = ' + JSON.stringify(caso.espera.valor) : '/' + caso.espera.regex + '/'}; obtido ${got}` });
+    }
+    return out;
+  }
+
+  /* ---------- painel ---------- */
+  const tiles = $('#ex-tiles'), pagesEl = $('#ex-pages'), listEl = $('#ex-list'), view = $('#ex-view'), dash = $('#ex-dash');
+  const F = { page: '', cap: '', tipo: '', nivel: '', status: '', busca: '', ordem: 'id' };
+  function fillPages() { const sel = $('#fx-page'); PAGES.forEach((p) => sel.add(new Option(`${p.num} · ${p.title}`, p.id.slice(1)))); }
+  function fillCaps() { const sel = $('#fx-cap'); sel.innerHTML = '<option value="">todos</option>'; const n = +F.page; if (n && DATA[n]) DATA[n].capitulos.forEach((t, i) => sel.add(new Option(`${i + 1} · ${t}`, String(i + 1)))); else for (let i = 1; i <= 10; i++) sel.add(new Option(`capítulo ${i} (de qualquer página)`, String(i))); sel.value = F.cap; }
+  function applyFilters() {
+    const q = norm(F.busca);
+    filtered = ALL.filter((it) => (!F.page || it.pagina === +F.page) && (!F.cap || it.cap === +F.cap) && (!F.tipo || it.tipo === F.tipo) && (!F.nivel || it.nivel === +F.nivel) && (!F.status || (F.status === 'pendente' ? statusOf(it.id) !== 'ok' : F.status === 'revelado' ? !!prog[it.id]?.revelado : statusOf(it.id) === F.status)) && (!q || norm(it.titulo + ' ' + it.id + ' ' + (it.tags || []).join(' ') + ' ' + it.tituloCap).includes(q)));
+    const order = { nivel: (a, b) => a.nivel - b.nivel || cmpId(a, b), tempo: (a, b) => (a.tempo || 0) - (b.tempo || 0) || cmpId(a, b), status: (a, b) => ['nao', 'tentado', 'revelado', 'ok'].indexOf(statusOf(a.id)) - ['nao', 'tentado', 'revelado', 'ok'].indexOf(statusOf(b.id)) || cmpId(a, b), id: cmpId };
+    filtered.sort(order[F.ordem] || cmpId);
+  }
+  const cmpId = (a, b) => a.pagina - b.pagina || a.cap - b.cap || a.num - b.num;
+  const norm = (s) => String(s).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+  function renderTiles() {
+    const c = { total: ALL.length, ok: 0, tentado: 0, revelado: 0, min: 0, minOk: 0 };
+    ALL.forEach((it) => { const s = statusOf(it.id); c[s] = (c[s] || 0) + 1; if (prog[it.id]?.revelado) c.rev = (c.rev || 0) + 1; c.min += it.tempo || 10; if (s === 'ok') c.minOk += it.tempo || 10; });
+    const pct = c.total ? Math.round((c.ok / c.total) * 100) : 0; const rest = c.min - c.minOk;
+    tiles.innerHTML = [['exercícios carregados', c.total, `${Object.keys(DATA).length} de ${PAGES.length} páginas`], ['concluídos', c.ok, `${pct}% do total`], ['tentados', c.tentado || 0, 'com resposta salva, sem passar'], ['solução revelada', c.rev || 0, 'abertas (concluídas ou não)'], ['tempo restante', rest >= 120 ? Math.round(rest / 60) + ' h' : rest + ' min', 'estimativa somada']].map(([l, v, s]) => `<div class="tile"><span class="v">${v}</span><span class="l">${l}</span><span class="s">${s}</span></div>`).join('');
+  }
+  function renderPages() {
+    pagesEl.innerHTML = PAGES.map((p) => { const n = +p.id.slice(1); const d = DATA[n]; if (!d) return `<button class="pg soon" type="button" disabled><span class="n">${n}</span><span class="t">${esc(p.title)}</span><span class="c">em breve</span></button>`; const its = ALL.filter((it) => it.pagina === n); const ok = its.filter((it) => statusOf(it.id) === 'ok').length; return `<button class="pg ${F.page === String(n) ? 'on' : ''}" type="button" data-p="${n}"><span class="n">${n}</span><span class="t">${esc(p.title)}</span><span class="c">${ok}/${its.length}</span><i class="bar"><b style="width:${its.length ? (ok / its.length) * 100 : 0}%"></b></i></button>`; }).join('');
+    $$('#ex-pages .pg[data-p]').forEach((b) => b.addEventListener('click', () => { F.page = F.page === b.dataset.p ? '' : b.dataset.p; F.cap = ''; $('#fx-page').value = F.page; fillCaps(); renderList(); }));
+  }
+  function renderList() {
+    applyFilters(); renderPages();
+    $('#fx-count').textContent = `${filtered.length} exercício(s) · ${filtered.reduce((a, it) => a + (it.tempo || 10), 0)} min estimados`;
+    if (!filtered.length) { listEl.innerHTML = '<p class="mini">Nenhum exercício com esses filtros' + (Object.keys(DATA).length ? '.' : ': nenhuma página de exercícios foi encontrada em assets/ex/.') + '</p>'; return; }
+    let lastCap = null;
+    listEl.innerHTML = filtered.map((it) => { const s = statusOf(it.id); const capKey = it.pagina + '-' + it.cap; const head = (F.ordem === 'id' && capKey !== lastCap) ? `<div class="ex-caphead"><span>Página ${it.pagina} · Capítulo ${it.cap}</span> ${esc(it.tituloCap)}</div>` : ''; lastCap = capKey; return head + `<button class="ex-card s-${s}" type="button" data-id="${it.id}"><span class="id">${it.id}</span><span class="tt">${esc(it.titulo)}</span><span class="meta"><i class="tp t-${it.tipo}">${TIPOS[it.tipo]}</i><i class="nv" title="nível ${it.nivel}">${'●'.repeat(it.nivel)}${'○'.repeat(3 - it.nivel)}</i><i class="tm">${it.tempo || 10} min</i>${it.aovivo ? '<i class="lv">ao vivo</i>' : ''}</span><span class="st">${STATUS[s]}${s === 'ok' && prog[it.id]?.revelado ? ' · com solução' : ''}</span></button>`; }).join('');
+    $$('#ex-list .ex-card').forEach((b) => b.addEventListener('click', () => open(b.dataset.id)));
+  }
+
+  /* ---------- exercício ---------- */
+  let editor = null, unsub = [];
+  function open(id) {
+    const it = ALL.find((x) => x.id === id); if (!it) return; current = it; location.hash = id; save();
+    const r = rec(id); const s = statusOf(id); const idx = filtered.findIndex((x) => x.id === id);
+    dash.hidden = true; view.hidden = false; window.scrollTo({ top: 0 });
+    const prev = idx > 0 ? filtered[idx - 1] : null, next = idx >= 0 && idx < filtered.length - 1 ? filtered[idx + 1] : null;
+    view.innerHTML = `
+      <div class="ex-top"><button class="btn ghost small" id="ex-back" type="button">← painel</button><span class="mini">${idx >= 0 ? `${idx + 1} de ${filtered.length} na seleção` : ''}</span><span class="grow"></span>${prev ? `<button class="btn ghost small" data-go="${prev.id}" type="button">← ${prev.id}</button>` : ''}${next ? `<button class="btn ghost small" data-go="${next.id}" type="button">${next.id} →</button>` : ''}</div>
+      <div class="ex-title"><span class="id">${it.id}</span><h2>${esc(it.titulo)}</h2><div class="meta"><i class="tp t-${it.tipo}">${TIPOS[it.tipo]}</i><i class="nv">nível ${it.nivel} · ${NIVEL[it.nivel]}</i><i class="tm">${it.tempo || 10} min</i><i class="st s-${s}" id="ex-status">${STATUS[s]}</i></div><p class="mini">Página ${it.pagina} · ${esc(it.tituloPagina)} · Capítulo ${it.cap} · ${esc(it.tituloCap)}${(it.ligacoes || []).map((l) => ` · <a href="${l}" target="_blank" rel="noopener">ver no guia</a>`).join('')}</p></div>
+      <div class="ex-grid">
+        <div class="ex-left">
+          <div class="ex-box"><h4>Enunciado</h4>${md(it.enunciado)}${it.dados ? `<h4>Dados</h4>${typeof it.dados === 'string' ? md(it.dados) : `<pre class="cm-static"><code>${esc(JSON.stringify(it.dados, null, 2))}</code></pre>`}` : ''}${it.entrega ? `<h4>Entrega</h4>${md(it.entrega)}` : ''}</div>
+          ${it.rubrica ? `<div class="ex-box"><h4>Rubrica de autoavaliação</h4><p class="mini">Marque só o que você fez de verdade; o exercício conta como concluído com todos os itens.</p><ul class="checks rub">${it.rubrica.map((t, i) => `<li><label><input type="checkbox" data-rub="${i}" ${r.rubrica[i] ? 'checked' : ''}> ${esc(t)}</label></li>`).join('')}</ul></div>` : ''}
+          <div class="ex-box hidden-box"><h4>Dica</h4>${it.dica ? (r.dica ? md(it.dica) : `<button class="btn ghost small" id="ex-dica" type="button">Mostrar dica</button>`) : '<p class="mini">Este exercício não tem dica.</p>'}</div>
+          <div class="ex-box hidden-box sol"><h4>Solução</h4><p class="mini">Fica oculta até você pedir. Revelar registra o exercício como "solução revelada"; concluir depois disso continua valendo, marcado.</p>${r.revelado ? md(it.solucao) : `<div class="row"><div class="fixed"><button class="btn ghost small" id="ex-rev1" type="button">Revelar solução…</button></div><div class="fixed"><button class="btn small" id="ex-rev2" type="button" hidden>Confirmo: revelar</button></div></div>`}</div>
+        </div>
+        <div class="ex-right">
+          <div class="ex-box" id="ex-answer"></div>
+          <div class="ex-box"><h4>Resultado</h4><div id="ex-result"><p class="mini">Ainda não verificado.</p></div><p class="status" id="ex-st"></p></div>
+          <div class="ex-box"><h4>Notas</h4><textarea id="ex-notas" rows="3" placeholder="o que aprendeu, o que travou…">${esc(r.notas || '')}</textarea></div>
+        </div>
+      </div>`;
+    $('#ex-back').addEventListener('click', backToDash); $$('#ex-view [data-go]').forEach((b) => b.addEventListener('click', () => open(b.dataset.go)));
+    $('#ex-notas').addEventListener('input', (e) => { r.notas = e.target.value; save(); });
+    $$('#ex-view [data-rub]').forEach((c) => c.addEventListener('change', () => { r.rubrica[+c.dataset.rub] = c.checked; const all = it.rubrica.every((_, i) => r.rubrica[i]); const auto = ['python', 'js', 'calculo', 'dados'].includes(it.tipo); if (!auto) r.status = all ? 'ok' : 'tentado'; else if (r.status === 'nao') r.status = 'tentado'; r.ts = Date.now(); save(); setStatusBadge(); }));
+    const d = $('#ex-dica'); if (d) d.addEventListener('click', () => { r.dica = true; save(); d.parentElement.innerHTML = '<h4>Dica</h4>' + md(it.dica); });
+    const r1 = $('#ex-rev1'), r2 = $('#ex-rev2'); if (r1) { r1.addEventListener('click', () => { r2.hidden = false; r1.textContent = 'Tem certeza? Tente mais uma vez antes.'; }); r2.addEventListener('click', () => { r.revelado = true; r.ts = Date.now(); save(); r2.closest('.ex-box').innerHTML = '<h4>Solução</h4>' + md(it.solucao); setStatusBadge(); }); }
+    renderAnswer(it, r);
+  }
+  function setStatusBadge() { const s = statusOf(current.id); const b = $('#ex-status'); if (b) { b.textContent = STATUS[s] + (s === 'ok' && prog[current.id]?.revelado ? ' · com solução' : ''); b.className = 'st s-' + s; } }
+  function backToDash() { current = null; location.hash = ''; view.hidden = true; dash.hidden = false; editor = null; renderTiles(); renderList(); }
+
+  async function renderAnswer(it, r) {
+    const box = $('#ex-answer'); const t = it.tipo;
+    const saved = r.resposta;
+    if (t === 'python' || t === 'js' || t === 'sql' || t === 'prompt') {
+      box.innerHTML = `<h4>${t === 'python' ? 'Seu código Python' : t === 'js' ? 'Seu código JavaScript' : t === 'sql' ? 'Sua consulta SQL' : 'Seu prompt'}</h4>${t === 'js' && it.exports ? `<p class="mini">Defina: <code>${it.exports.join('</code>, <code>')}</code>. Nos testes há <code>iguais(a, b)</code>, <code>aprox(a, b, tol)</code> e <code>contem(lista, x)</code>.</p>` : ''}${t === 'python' && it.pacotes?.length ? `<p class="mini">Pacotes disponíveis: ${it.pacotes.join(', ')} (carregados no navegador na primeira verificação).</p>` : ''}<textarea id="ex-code" rows="14" spellcheck="false">${esc(saved ?? it.esqueleto ?? '')}</textarea><div class="row" style="margin-top:8px"><div class="fixed"><button class="btn" id="ex-run" type="button">${t === 'prompt' && it.aovivo ? 'Checar' : 'Verificar'}</button></div>${t === 'prompt' && it.aovivo ? `<div class="fixed"><button class="btn ghost" id="ex-live" type="button">Rodar ao vivo (${it.aovivo.casos.length} chamadas)</button></div>` : ''}<div class="fixed"><label class="btn ghost small" for="ex-file">Carregar arquivo<input type="file" id="ex-file" hidden accept=".py,.js,.sql,.md,.txt"></label></div><div class="fixed"><button class="btn ghost small" id="ex-reset" type="button">Restaurar esqueleto</button></div></div>${t === 'python' ? '<p class="mini">O código roda no seu navegador (Pyodide); a primeira verificação baixa o Python (~10 MB, fica em cache).</p>' : ''}`;
+      const ta = $('#ex-code'); editor = await makeEditor(ta, t);
+      ta.addEventListener('input', () => { r.resposta = ta.value; if (r.status === 'nao') r.status = 'tentado'; save(); });
+      $('#ex-file').addEventListener('change', async (e) => { const f = e.target.files[0]; if (!f) return; const txt = await f.text(); editor.set(txt); r.resposta = txt; save(); setStatus($('#ex-st'), `arquivo ${f.name} carregado (${txt.length} caracteres)`, 'ok'); });
+      $('#ex-reset').addEventListener('click', () => { editor.set(it.esqueleto || ''); });
+      $('#ex-run').addEventListener('click', () => verify(it, r, editor.get()));
+      const lv = $('#ex-live'); if (lv) lv.addEventListener('click', () => guard($('#ex-st'), async () => { const res = await runAoVivo(editor.get(), it, (m) => setStatus($('#ex-st'), m)); showResults(res, null, it, r, true); }));
+    } else if (t === 'calculo') {
+      box.innerHTML = `<h4>Sua resposta</h4>${it.campos.map((c, i) => `<div class="row"><div><label class="f" for="ex-c${i}">${esc(c.label)}${c.unidade ? ' (' + esc(c.unidade) + ')' : ''}</label><input type="text" id="ex-c${i}" inputmode="decimal" value="${esc((saved || [])[i] ?? '')}" placeholder="${c.tol ? 'tolerância ±' + c.tol : ''}"></div></div>`).join('')}<div class="row"><div class="fixed"><button class="btn" id="ex-run" type="button">Verificar</button></div></div><p class="mini">Use ponto ou vírgula decimal. Mostre a conta nas notas: é ela que você vai reler.</p>`;
+      $$('#ex-answer input').forEach((inp) => inp.addEventListener('input', () => { r.resposta = it.campos.map((_, i) => $('#ex-c' + i).value); if (r.status === 'nao') r.status = 'tentado'; save(); }));
+      $('#ex-run').addEventListener('click', () => verify(it, r, it.campos.map((_, i) => $('#ex-c' + i).value)));
+    } else if (t === 'dados') {
+      box.innerHTML = `<h4>Sua saída</h4><p class="mini">${it.modo === 'json' ? 'Cole um JSON.' : it.modo === 'jsonl' ? 'Uma linha JSON por registro.' : it.modo === 'conjunto' ? 'Uma linha por item; a ordem não importa.' : 'Texto; espaços e linhas vazias são normalizados.'}</p><textarea id="ex-code" rows="12" spellcheck="false">${esc(saved ?? it.esqueleto ?? '')}</textarea><div class="row" style="margin-top:8px"><div class="fixed"><button class="btn" id="ex-run" type="button">Verificar</button></div><div class="fixed"><label class="btn ghost small" for="ex-file">Carregar arquivo<input type="file" id="ex-file" hidden></label></div></div>`;
+      const ta = $('#ex-code'); editor = await makeEditor(ta, 'dados'); ta.addEventListener('input', () => { r.resposta = ta.value; if (r.status === 'nao') r.status = 'tentado'; save(); });
+      $('#ex-file').addEventListener('change', async (e) => { const f = e.target.files[0]; if (!f) return; const txt = await f.text(); editor.set(txt); r.resposta = txt; save(); });
+      $('#ex-run').addEventListener('click', () => verify(it, r, editor.get()));
+    } else {
+      box.innerHTML = `<h4>${t === 'texto' ? 'Sua análise' : 'Registro do que você fez'}</h4><p class="mini">${t === 'texto' ? 'Escreva com as suas palavras; depois confira com a rubrica e, só então, com a solução.' : 'Este exercício é feito no seu projeto. Anote aqui o comando, o resultado ou o número que obteve; a rubrica ao lado fecha o exercício.'}</p><textarea id="ex-code" rows="10">${esc(saved ?? '')}</textarea>${it.checks ? '<div class="row" style="margin-top:8px"><div class="fixed"><button class="btn" id="ex-run" type="button">Checar pontos-chave</button></div></div>' : ''}`;
+      const ta = $('#ex-code'); ta.addEventListener('input', () => { r.resposta = ta.value; if (r.status === 'nao') r.status = 'tentado'; save(); });
+      const run = $('#ex-run'); if (run) run.addEventListener('click', () => verify(it, r, ta.value));
+    }
+  }
+
+  async function verify(it, r, answer) {
+    const st = $('#ex-st'); const res = $('#ex-result'); r.tentativas++; r.resposta = answer; r.ts = Date.now(); save();
+    try {
+      let tests = null, extra = null;
+      if (it.tipo === 'python') { setStatus(st, 'Preparando…'); const out = await runPython(answer, it.testes || [], it, (m) => setStatus(st, m)); if (out.erro) { res.innerHTML = `<p class="status err">Erro ao executar o seu código: ${esc(out.erro)}${/No module named/.test(out.erro) ? ' — o pacote não carregou do CDN (rede?); se persistir, rode os testes localmente.' : ''}</p>${out.saida.length ? `<pre class="cm-static"><code>${esc(out.saida.join('\n'))}</code></pre>` : ''}`; setStatus(st, 'corrija o erro e verifique de novo', 'err'); r.status = 'tentado'; save(); setStatusBadge(); return; } tests = out.testes; extra = out.saida.join('\n'); }
+      else if (it.tipo === 'js') { const out = runJS(answer, it.testes || [], it); if (out.erro) { res.innerHTML = `<p class="status err">Erro ao executar: ${esc(out.erro)}</p>`; setStatus(st, 'corrija o erro', 'err'); r.status = 'tentado'; save(); setStatusBadge(); return; } tests = out.testes; extra = out.saida.join('\n'); }
+      else if (it.tipo === 'calculo') tests = checkCampos(answer, it);
+      else if (it.tipo === 'dados') { const c = checkDados(answer, it); tests = [{ nome: 'saída igual à esperada', ok: c.ok, msg: c.msg }]; }
+      else tests = checkRegex(answer, it);
+      showResults(tests, extra, it, r, false);
+    } catch (e) { setStatus(st, e.message, 'err'); }
+  }
+  function showResults(tests, extra, it, r, live) {
+    const res = $('#ex-result'); const st = $('#ex-st'); const ok = tests.length > 0 && tests.every((t) => t.ok);
+    res.innerHTML = `<ul class="checks">${tests.map((t) => `<li class="${t.ok ? 'ok' : 'bad'}">${t.ok ? '✓' : '✗'} ${esc(t.nome)}${t.msg && !t.ok ? ` — <span class="mini">${esc(t.msg)}</span>` : ''}</li>`).join('')}</ul>${extra ? `<details><summary>saída (print)</summary><pre class="cm-static"><code>${esc(extra)}</code></pre></details>` : ''}${it.tipo === 'sql' || it.tipo === 'prompt' || it.tipo === 'texto' ? '<p class="mini">Checagens estruturais pegam o essencial, não tudo: compare com a solução depois de passar.</p>' : ''}`;
+    if (ok) { r.status = 'ok'; setStatus(st, live ? `passou nos ${tests.length} casos ao vivo` : `passou: ${tests.length} de ${tests.length}`, 'ok'); }
+    else { r.status = 'tentado'; setStatus(st, `${tests.filter((t) => t.ok).length} de ${tests.length}`, 'warn'); }
+    r.ts = Date.now(); save(); setStatusBadge();
+  }
+
+  /* ---------- exportar / importar / resumo ---------- */
+  function exportProg() { const blob = new Blob([JSON.stringify({ versao: 1, exportado: new Date().toISOString(), progresso: prog }, null, 2)], { type: 'application/json' }); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `exercicios-progresso-${new Date().toISOString().slice(0, 10)}.json`; a.click(); }
+  async function importProg(file) { try { const j = JSON.parse(await file.text()); const p = j.progresso || j; if (typeof p !== 'object') throw new Error('formato'); Object.entries(p).forEach(([id, r]) => { const cur = prog[id]; if (!cur || (r.ts || 0) >= (cur.ts || 0)) prog[id] = r; }); save(); renderTiles(); renderList(); $('#fx-count').textContent += ' · progresso importado'; } catch (e) { alert('Não deu para importar: ' + e.message); } }
+  function resumoMD() {
+    const lines = ['# Exercícios · progresso', '']; PAGES.forEach((p) => { const n = +p.id.slice(1); if (!DATA[n]) return; const its = ALL.filter((it) => it.pagina === n); const ok = its.filter((it) => statusOf(it.id) === 'ok'); const rev = its.filter((it) => prog[it.id]?.revelado); lines.push(`- **${p.num} · ${p.title}**: ${ok.length}/${its.length} concluídos${rev.length ? `, ${rev.length} com solução revelada` : ''}`); const caps = {}; its.forEach((it) => { caps[it.cap] = caps[it.cap] || [0, 0]; caps[it.cap][1]++; if (statusOf(it.id) === 'ok') caps[it.cap][0]++; }); lines.push('  ' + Object.entries(caps).map(([c, [a, b]]) => `c${c} ${a}/${b}`).join(' · ')); });
+    const notas = ALL.filter((it) => prog[it.id]?.notas?.trim()); if (notas.length) { lines.push('', '## Notas'); notas.forEach((it) => lines.push(`- ${it.id} ${it.titulo}: ${prog[it.id].notas.trim()}`)); }
+    return lines.join('\n');
+  }
+
+  /* ---------- boot ---------- */
+  async function boot() {
+    fillPages(); await loadAll(); fillCaps(); renderTiles(); renderList();
+    const bind = (id, key, fn) => $('#' + id).addEventListener(fn === 'input' ? 'input' : 'change', (e) => { F[key] = e.target.value; if (key === 'page') { F.cap = ''; fillCaps(); } renderList(); });
+    bind('fx-page', 'page'); bind('fx-cap', 'cap'); bind('fx-tipo', 'tipo'); bind('fx-nivel', 'nivel'); bind('fx-status', 'status'); bind('fx-ordem', 'ordem'); bind('fx-busca', 'busca', 'input');
+    $('#fx-sortear').addEventListener('click', () => { const pend = filtered.filter((it) => statusOf(it.id) !== 'ok'); if (!pend.length) { $('#fx-count').textContent += ' · nada pendente na seleção'; return; } open(pend[Math.floor(Math.random() * pend.length)].id); });
+    $('#fx-continuar').addEventListener('click', () => { const last = store.get('ex.ultimo'); if (last && ALL.some((x) => x.id === last)) open(last); else { const first = ALL.find((it) => statusOf(it.id) !== 'ok'); if (first) open(first.id); } });
+    $('#fx-export').addEventListener('click', exportProg); $('#fx-import').addEventListener('change', (e) => { if (e.target.files[0]) importProg(e.target.files[0]); });
+    $('#fx-md').addEventListener('click', async () => { try { await navigator.clipboard.writeText(resumoMD()); $('#fx-md').textContent = 'Copiado'; setTimeout(() => ($('#fx-md').textContent = 'Copiar resumo em markdown'), 1500); } catch { $('#fx-md').textContent = 'Não deu para copiar'; } });
+    const h = location.hash.slice(1); if (h && ALL.some((x) => x.id === h)) open(h);
+    window.addEventListener('hashchange', () => { const id = location.hash.slice(1); if (!id && current) backToDash(); else if (id && (!current || current.id !== id) && ALL.some((x) => x.id === id)) open(id); });
+  }
+  boot();
+})();
+
+</script>
 </body>
 </html>
