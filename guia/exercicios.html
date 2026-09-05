@@ -146,7 +146,7 @@ window.GUIA_EX = window.GUIA_EX || {};
     for (const t of tests) { try { await py.runPythonAsync(t.codigo, { globals: ns }); res.testes.push({ nome: t.nome, ok: true }); } catch (e) { res.testes.push({ nome: t.nome, ok: false, msg: pyErr(e) }); } }
     ns.destroy(); return res;
   }
-  const pyErr = (e) => { const lines = String(e.message || e).trim().split('\n').filter((l) => l.trim()); const last = lines[lines.length - 1] || String(e); const where = lines.filter((l) => /File "<exec>", line \d+/.test(l)).pop(); return last + (where ? ' (' + where.trim().replace(/File "<exec>", /, '') + ')' : ''); };
+  const pyErr = (e) => { const lines = String(e.message || e).trim().split('\n').filter((l) => l.trim()); const exc = lines.filter((l) => /^\w+(Error|Exception|Warning)\b/.test(l.trim())).pop(); const last = exc || lines[lines.length - 1] || String(e); const where = lines.filter((l) => /File "<exec>", line \d+/.test(l)).pop(); return last + (where ? ' (' + where.trim().replace(/File "<exec>", /, '') + ')' : ''); };
 
   /* ---------- JavaScript no navegador ---------- */
   const HELPERS = { iguais: (a, b) => JSON.stringify(a) === JSON.stringify(b), aprox: (a, b, tol = 1e-6) => Math.abs(a - b) <= tol, contem: (arr, x) => Array.isArray(arr) && arr.includes(x) };
@@ -177,6 +177,14 @@ window.GUIA_EX = window.GUIA_EX || {};
   async function runAoVivo(promptText, it, onStatus) {
     if (!gemini.ready()) throw new Error('Precisa de chave (configure na página inicial).');
     const out = []; const av = it.aovivo;
+    if (av.tipo === 'embed') {
+      // um lote: cada caso tem consulta + candidatos; espera o índice do candidato mais próximo (cosseno)
+      onStatus?.('Embutindo os textos (1 lote)…');
+      const items = []; av.casos.forEach((c) => { items.push({ text: c.consulta, taskType: c.tipoConsulta || 'RETRIEVAL_QUERY' }); c.candidatos.forEach((t) => items.push({ text: t, taskType: c.tipoDocumento || 'RETRIEVAL_DOCUMENT' })); });
+      const vecs = await gemini.embedItems(items, av.dims || null); let k = 0;
+      for (const c of av.casos) { const q = vecs[k++]; const sc = c.candidatos.map((t) => cosine(q, vecs[k++])); const best = sc.indexOf(Math.max(...sc)); const ok = best === c.espera.mais_proximo; out.push({ nome: c.titulo, ok, msg: c.candidatos.map((t, i) => `${i === best ? '→' : ' '} ${sc[i].toFixed(3)} ${t.slice(0, 50)}`).join(' | ') }); }
+      return out;
+    }
     for (const [i, caso] of av.casos.entries()) {
       onStatus?.(`Caso ${i + 1}/${av.casos.length}: ${caso.titulo || ''}…`);
       const r = await gemini.generate({ system: promptText, user: caso.entrada, schema: av.schema || null, json: !!av.schema, temperature: 0, maxTokens: av.maxTokens || 1024 });
@@ -232,7 +240,7 @@ window.GUIA_EX = window.GUIA_EX || {};
       <div class="ex-title"><span class="id">${it.id}</span><h2>${esc(it.titulo)}</h2><div class="meta"><i class="tp t-${it.tipo}">${TIPOS[it.tipo]}</i><i class="nv">nível ${it.nivel} · ${NIVEL[it.nivel]}</i><i class="tm">${it.tempo || 10} min</i><i class="st s-${s}" id="ex-status">${STATUS[s]}</i></div><p class="mini">Página ${it.pagina} · ${esc(it.tituloPagina)} · Capítulo ${it.cap} · ${esc(it.tituloCap)}${(it.ligacoes || []).map((l) => ` · <a href="${l}" target="_blank" rel="noopener">ver no guia</a>`).join('')}</p></div>
       <div class="ex-grid">
         <div class="ex-left">
-          <div class="ex-box"><h4>Enunciado</h4>${md(it.enunciado)}${it.dados ? `<h4>Dados</h4>${typeof it.dados === 'string' ? md(it.dados) : `<pre class="cm-static"><code>${esc(JSON.stringify(it.dados, null, 2))}</code></pre>`}` : ''}${it.entrega ? `<h4>Entrega</h4>${md(it.entrega)}` : ''}</div>
+          <div class="ex-box"><h4>Enunciado</h4>${md(it.enunciado)}${it.dados ? `<h4>Dados</h4>${typeof it.dados === 'string' ? md(it.dados) : `<pre class="cm-static"><code>${esc(JSON.stringify(it.dados, null, 2))}</code></pre>`}` : ''}${it.entrega ? `<h4>Entrega</h4>${md(it.entrega)}` : ''}${it.aovivo ? `<h4>Casos ao vivo</h4>${it.aovivo.casos.map((c, i) => `<p class="mini"><b>${esc(c.titulo || 'caso ' + (i + 1))}</b>${c.consulta ? ` — consulta: <em>${esc(c.consulta)}</em><br>${c.candidatos.map((t, j) => `${j + 1}. ${esc(t)}`).join('<br>')}` : c.entrada ? ` — entrada: <em>${esc(c.entrada)}</em>` : ''}</p>`).join('')}` : ''}</div>
           ${it.rubrica ? `<div class="ex-box"><h4>Rubrica de autoavaliação</h4><p class="mini">Marque só o que você fez de verdade; o exercício conta como concluído com todos os itens.</p><ul class="checks rub">${it.rubrica.map((t, i) => `<li><label><input type="checkbox" data-rub="${i}" ${r.rubrica[i] ? 'checked' : ''}> ${esc(t)}</label></li>`).join('')}</ul></div>` : ''}
           <div class="ex-box hidden-box"><h4>Dica</h4>${it.dica ? (r.dica ? md(it.dica) : `<button class="btn ghost small" id="ex-dica" type="button">Mostrar dica</button>`) : '<p class="mini">Este exercício não tem dica.</p>'}</div>
           <div class="ex-box hidden-box sol"><h4>Solução</h4><p class="mini">Fica oculta até você pedir. Revelar registra o exercício como "solução revelada"; concluir depois disso continua valendo, marcado.</p>${r.revelado ? md(it.solucao) : `<div class="row"><div class="fixed"><button class="btn ghost small" id="ex-rev1" type="button">Revelar solução…</button></div><div class="fixed"><button class="btn small" id="ex-rev2" type="button" hidden>Confirmo: revelar</button></div></div>`}</div>
@@ -277,6 +285,7 @@ window.GUIA_EX = window.GUIA_EX || {};
       box.innerHTML = `<h4>${t === 'texto' ? 'Sua análise' : 'Registro do que você fez'}</h4><p class="mini">${t === 'texto' ? 'Escreva com as suas palavras; depois confira com a rubrica e, só então, com a solução.' : 'Este exercício é feito no seu projeto. Anote aqui o comando, o resultado ou o número que obteve; a rubrica ao lado fecha o exercício.'}</p><textarea id="ex-code" rows="10">${esc(saved ?? '')}</textarea>${it.checks ? '<div class="row" style="margin-top:8px"><div class="fixed"><button class="btn" id="ex-run" type="button">Checar pontos-chave</button></div></div>' : ''}`;
       const ta = $('#ex-code'); ta.addEventListener('input', () => { r.resposta = ta.value; if (r.status === 'nao') r.status = 'tentado'; save(); });
       const run = $('#ex-run'); if (run) run.addEventListener('click', () => verify(it, r, ta.value));
+      if (it.aovivo) { box.insertAdjacentHTML('beforeend', `<div class="row" style="margin-top:8px"><div class="fixed"><button class="btn" id="ex-live" type="button">Rodar ao vivo (${it.aovivo.tipo === 'embed' ? '1 lote de embeddings' : it.aovivo.casos.length + ' chamadas'})</button></div></div>`); $('#ex-live').addEventListener('click', () => guard($('#ex-st'), async () => { const res = await runAoVivo(ta.value, it, (m) => setStatus($('#ex-st'), m)); showResults(res, null, it, r, true); })); }
     }
   }
 
@@ -294,7 +303,7 @@ window.GUIA_EX = window.GUIA_EX || {};
   }
   function showResults(tests, extra, it, r, live) {
     const res = $('#ex-result'); const st = $('#ex-st'); const ok = tests.length > 0 && tests.every((t) => t.ok);
-    res.innerHTML = `<ul class="checks">${tests.map((t) => `<li class="${t.ok ? 'ok' : 'bad'}">${t.ok ? '✓' : '✗'} ${esc(t.nome)}${t.msg && !t.ok ? ` — <span class="mini">${esc(t.msg)}</span>` : ''}</li>`).join('')}</ul>${extra ? `<details><summary>saída (print)</summary><pre class="cm-static"><code>${esc(extra)}</code></pre></details>` : ''}${it.tipo === 'sql' || it.tipo === 'prompt' || it.tipo === 'texto' ? '<p class="mini">Checagens estruturais pegam o essencial, não tudo: compare com a solução depois de passar.</p>' : ''}`;
+    res.innerHTML = `<ul class="checks">${tests.map((t) => `<li class="${t.ok ? 'ok' : 'bad'}">${t.ok ? '✓' : '✗'} ${esc(t.nome)}${t.msg && (!t.ok || live) ? ` — <span class="mini">${esc(t.msg)}</span>` : ''}</li>`).join('')}</ul>${extra ? `<details><summary>saída (print)</summary><pre class="cm-static"><code>${esc(extra)}</code></pre></details>` : ''}${it.tipo === 'sql' || it.tipo === 'prompt' || it.tipo === 'texto' ? '<p class="mini">Checagens estruturais pegam o essencial, não tudo: compare com a solução depois de passar.</p>' : ''}`;
     if (ok) { r.status = 'ok'; setStatus(st, live ? `passou nos ${tests.length} casos ao vivo` : `passou: ${tests.length} de ${tests.length}`, 'ok'); }
     else { r.status = 'tentado'; setStatus(st, `${tests.filter((t) => t.ok).length} de ${tests.length}`, 'warn'); }
     r.ts = Date.now(); save(); setStatusBadge();
