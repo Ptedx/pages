@@ -1,0 +1,836 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Avaliação · Guia RAG aplicado</title>
+<meta name="description" content="Conjuntos de avaliação, métricas de busca e de resposta, protocolo.">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/guia.css">
+</head>
+<body data-page="p8">
+<a class="skip" href="#main">Pular para o conteúdo</a>
+<header class="topbar">
+  <button class="iconbtn" id="menu" aria-expanded="false" aria-controls="sidenav" aria-label="Abrir navegação">☰ Páginas</button>
+  <a class="brand" href="index.html">Guia de estudo · RAG aplicado<small>Plataforma de Conformidade e Risco · trilha dos exercícios VIN-5 a VIN-12</small></a>
+  <button class="iconbtn" id="theme" aria-pressed="false">Tema escuro</button>
+</header>
+<div class="scrim"></div>
+<div class="shell">
+  <nav class="side" id="sidenav" aria-label="Páginas do guia">
+    <div class="progress"><span id="prog-text">0 capítulos concluídos</span><div class="bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" aria-label="Progresso do estudo"><i id="prog-bar"></i></div></div>
+    <div class="group">Trilha</div><ol><li><a href="index.html" data-page="p0"><span class="num">0</span><span>Início</span><span class="done-mark" aria-hidden="true"></span></a></li><li><a href="01-modelos.html" data-page="p1"><span class="num">1</span><span>Modelos de linguagem</span><span class="done-mark" aria-hidden="true"></span></a></li><li><a href="02-embeddings.html" data-page="p2"><span class="num">2</span><span>Embeddings</span><span class="done-mark" aria-hidden="true"></span></a></li><li><a href="03-busca-vetorial.html" data-page="p3"><span class="num">3</span><span>Busca vetorial e índices</span><span class="done-mark" aria-hidden="true"></span></a></li><li><a href="04-busca-lexical-hibrida.html" data-page="p4"><span class="num">4</span><span>Busca lexical e híbrida</span><span class="done-mark" aria-hidden="true"></span></a></li><li><a href="05-rag.html" data-page="p5"><span class="num">5</span><span>RAG e ingestão</span><span class="done-mark" aria-hidden="true"></span></a></li><li><a href="06-prompt.html" data-page="p6"><span class="num">6</span><span>Prompt engineering</span><span class="done-mark" aria-hidden="true"></span></a></li><li><a href="07-validacao.html" data-page="p7"><span class="num">7</span><span>Validação e guardrails</span><span class="done-mark" aria-hidden="true"></span></a></li><li><a href="08-avaliacao.html" data-page="p8" aria-current="page"><span class="num">8</span><span>Avaliação</span><span class="done-mark" aria-hidden="true"></span></a></li><li><span class="soon" title="PDF, limpeza, regex, JSONL, pandas, Pydantic, psycopg."><span class="num">9</span><span>Dados e Python</span><span class="tag">em breve</span></span></li><li><span class="soon" title="Tokens, cache, limites de taxa, retentativa, observabilidade, escolha de modelo."><span class="num">10</span><span>Custo e operação</span><span class="tag">em breve</span></span></li></ol><div class="group">Referência rápida</div><ol><li><a href="glossario.html" data-page="glossario"><span class="num">•</span><span>Glossário</span><span class="done-mark" aria-hidden="true"></span></a></li><li><span class="soon" title="Os oito exercícios com roteiro completo."><span class="num">•</span><span>Exercícios</span><span class="tag">em breve</span></span></li><li><a href="prompts.html" data-page="prompts"><span class="num">•</span><span>Biblioteca de prompts</span><span class="done-mark" aria-hidden="true"></span></a></li></ol>
+  </nav>
+  <main id="main" tabindex="-1"><div class="page-in">
+    <div class="toc-inline" ><label for="toc-select">Nesta página</label><select id="toc-select"><option value="">ir para o capítulo…</option></select></div>
+    <div id="keybanner" hidden><div class="callout warn"><span class="t">Sem chave do Gemini configurada</span><p>Os experimentos ao vivo desta página ficam desativados. Configure a chave na <a href="index.html#chave">página inicial</a>; os experimentos de brinquedo funcionam sem ela.</p></div></div>
+    <div class="page-head">
+  <div class="kicker">Página 8 · Medição</div>
+  <h1>Avaliação</h1>
+  <p class="lead">Todas as páginas anteriores terminaram na mesma frase: "meça no conjunto de avaliação". Esta página constrói esse instrumento. O que é um caso e como se fabrica um que meça alguma coisa; as métricas de busca (recall@k, MRR, nDCG) e as de resposta (fidelidade, cobertura, recusa correta); o protocolo que impede você de se enganar; a rodada completa do Ex. 7 aqui no navegador; e o que os números dizem quando n é pequeno, quando duas versões diferem por dois pontos, e quando o índice de conformidade precisa ser defendido diante de um auditor.</p>
+  <div class="meta"><a class="exlink" href="https://linear.app/vinicius-costa/issue/VIN-11" target="_blank" rel="noopener">VIN-11 · Ex. 7</a><span>·</span><span>10 capítulos · leitura ativa de 70 a 90 minutos · 12 experimentos, 11 sem chave</span></div>
+</div>
+
+<div class="goals">
+  <h3>Ao terminar esta página você consegue</h3>
+  <ul>
+    <li>Dizer o que cada um dos quatro alvos do projeto (recall@k ≥ 0,80, fidelidade ≥ 0,98, cobertura ≥ 0,70, recusa correta ≥ 0,90) mede, e o que significa cada um ficar abaixo.</li>
+    <li>Escrever um caso de avaliação bem formado, reconhecer um caso "vazado" e montar um conjunto com perguntas com resposta, sem resposta, casos-limite e injeções.</li>
+    <li>Calcular recall@k, precisão@k, MRR e nDCG à mão sobre um ranking, e explicar quando cada um muda.</li>
+    <li>Definir fidelidade, cobertura e recusa correta de forma operacional e medir a concordância de um juiz automático com rótulos humanos (kappa).</li>
+    <li>Seguir o protocolo (dev e teste separados, temperatura 0, três execuções, versões registradas) e reconhecer sobreajuste ao conjunto.</li>
+    <li>Ler um resultado com intervalo de confiança, comparar duas versões pareadas e defender o índice de conformidade com um número de concordância.</li>
+  </ul>
+</div>
+
+<!-- ============================================================ 1 -->
+<section class="chapter" id="c1" data-ch="p8-c1">
+  <div class="ch-head"><span class="n">Capítulo 1</span><h2>O que "bom" significa: quatro números e um contrato</h2><label class="donebox"><input type="checkbox" data-done> Capítulo concluído</label></div>
+
+  <p>Sem medição, a qualidade de um RAG é uma impressão: "parece bom nas perguntas que eu testei". Com medição, é um contrato: quatro números, cada um com um alvo, medidos num conjunto fixo, registrados por versão. O projeto fixou os seus: <strong>recall@k ≥ 0,80</strong> (a busca entrega o trecho certo entre os k na maioria das perguntas), <strong>fidelidade ≥ 0,98</strong> (o que o sistema afirma é sustentado pelo que cita), <strong>cobertura ≥ 0,70</strong> (dos achados que auditores apontariam, o sistema aponta a maioria) e <strong>recusa correta ≥ 0,90</strong> (quando a base não responde, o sistema diz que não responde). Os quatro medem partes diferentes, e é por isso que são quatro.</p>
+  <p>Repare na assimetria dos alvos. Fidelidade em 0,98 e cobertura em 0,70 dizem uma coisa sobre o projeto: <em>é aceitável deixar passar; não é aceitável afirmar o que a fonte não diz</em>. Um sistema de auditoria que aponta 70% dos achados com 98% de fidelidade é útil e confiável; um que aponta 95% com 90% de fidelidade faz o auditor conferir tudo, e perde a razão de existir. Os alvos codificam prioridades, e mudá-los é uma decisão de produto, não de engenharia.</p>
+
+  <figure class="diagram" data-caps='["A busca é medida sozinha: o trecho esperado está entre os k? Recall@k, MRR, nDCG. Não envolve o modelo de linguagem.","A resposta é medida contra os trechos citados e contra a referência: fidelidade (sustentada?), cobertura (apontou o esperado?), recusa correta (disse não quando devia?).","O sistema é medido contra o auditor: o índice de conformidade concorda com o parecer humano? É a única medida que envolve pessoas e é a que o cliente vê.","As três camadas se compõem: recall baixo derruba fidelidade e cobertura mesmo com o modelo perfeito; e um índice só é defensável se as duas camadas abaixo dele estão medidas."]' aria-label="Três camadas de medição: busca, resposta, sistema">
+    <div class="dtools"><button class="btn small" data-stepper="mt">Passo a passo</button><button class="btn small ghost" data-stepper-reset="mt">Reiniciar</button><span class="mini" id="mt-cap"></span></div>
+    <svg viewBox="0 0 760 230" role="img" aria-labelledby="mtt"><title id="mtt">Três camadas de medição</title>
+      <g class="node ia stage" data-stage="mt-0"><rect x="20" y="150" width="720" height="56" rx="8"/><text x="380" y="173" text-anchor="middle" class="t">Busca · recall@k · MRR · nDCG</text><text x="380" y="191" text-anchor="middle">o trecho esperado está entre os k? sem modelo de linguagem</text></g>
+      <g class="node gate stage" data-stage="mt-1"><rect x="100" y="85" width="560" height="56" rx="8"/><text x="380" y="108" text-anchor="middle" class="t">Resposta · fidelidade · cobertura · recusa correta</text><text x="380" y="126" text-anchor="middle">sustentada pelo que cita? apontou o esperado? recusou quando devia?</text></g>
+      <g class="node ok stage" data-stage="mt-2"><rect x="200" y="20" width="360" height="56" rx="8"/><text x="380" y="43" text-anchor="middle" class="t">Sistema · concordância com o auditor</text><text x="380" y="61" text-anchor="middle">o índice de conformidade bate com o parecer humano?</text></g>
+      <g class="stage" data-stage="mt-3"><text class="lbl" x="20" y="225">cada camada depende da de baixo: recall baixo derruba tudo acima; índice sem as duas camadas medidas não se defende</text></g>
+    </svg>
+    <figcaption>Os quatro alvos do projeto vivem nas duas camadas de baixo. A de cima é o que o cliente enxerga, e só se sustenta sobre as outras.</figcaption>
+  </figure>
+
+  <div class="lab">
+    <header><h4>Experimento · Painel-alvo</h4><span class="badge toy">roda no navegador</span></header>
+    <div class="body">
+      <p>Mova cada número e leia o que ele significa para o sistema quando fica abaixo do alvo. É o painel que a versão precisa passar para entrar.</p>
+      <div id="al-form" class="row">
+        <div><label class="f" for="al-recall">recall@12 = <span id="al-recallv"></span></label><input type="range" id="al-recall" min="40" max="100" step="1" value="86"></div>
+        <div><label class="f" for="al-fidelidade">fidelidade = <span id="al-fidelidadev"></span></label><input type="range" id="al-fidelidade" min="70" max="100" step="1" value="97"></div>
+        <div><label class="f" for="al-cobertura">cobertura = <span id="al-coberturav"></span></label><input type="range" id="al-cobertura" min="30" max="100" step="1" value="74"></div>
+        <div><label class="f" for="al-recusa">recusa correta = <span id="al-recusav"></span></label><input type="range" id="al-recusa" min="40" max="100" step="1" value="92"></div>
+      </div>
+      <div class="targets" id="al-out"></div>
+      <p class="mini" id="al-note"></p>
+    </div>
+  </div>
+
+  <div class="doit"><span class="ic">faça agora</span><p>Coloque recall em 60% e os outros três no máximo. Leia: com o trecho certo chegando em 60% das perguntas, a fidelidade de 100% é "fiel ao que recebeu", e a cobertura não tem como passar de 60%. Agora recall em 95% e fidelidade em 90%: o sistema vê tudo e afirma coisas que a fonte não diz. Qual dos dois cenários você preferiria auditar? O projeto escolheu.</p></div>
+
+  <div class="faq">
+    <h3>Perguntas que aparecem aqui</h3>
+    <details><summary>Por que não uma nota única de 0 a 10?</summary><p>Porque uma nota única esconde qual parte falhou. Recall baixo com fidelidade alta pede mexer na busca; o contrário pede mexer no prompt ou na validação. Uma nota que soma as duas não diz nada sobre o que fazer. Quatro números com alvos são um diagnóstico; uma nota é uma opinião.</p><p class="why">Métrica por componente aponta onde mexer.</p></details>
+    <details><summary>De onde saíram os alvos 0,80 / 0,98 / 0,70 / 0,90?</summary><p>De uma conversa de produto: o que o auditor tolera (deixar passar 30% dos achados numa primeira versão) e o que não tolera (uma afirmação errada em cada dez). São ponto de partida, revisados a cada ciclo com o cliente; o que não muda é que existem, estão escritos e são medidos antes de cada versão entrar.</p><p class="why">Alvos são decisão de produto, registrada e revisável.</p></details>
+    <details><summary>Fidelidade 0,98 é realista?</summary><p>Com esquema de saída, evidência literal, validação em código e recusa bem calibrada, sim: a maioria das falhas de fidelidade é pega antes de virar resposta aceita, e a fidelidade se mede sobre as aceitas. É um alvo exigente de propósito, porque uma afirmação não sustentada em auditoria custa mais que uma recusa.</p><p class="why">As camadas da página 7 existem para tornar 0,98 possível.</p></details>
+    <details><summary>E a latência e o custo, não são métricas?</summary><p>São, e a página 10 as trata como restrições: a versão precisa atender aos quatro alvos <em>dentro</em> de um orçamento de tempo e de tokens por documento. Qualidade sem orçamento é um protótipo.</p><p class="why">Qualidade é o alvo; custo e tempo são as restrições.</p></details>
+  </div>
+
+  <div class="notes"><label for="n-p8-c1">Caderno · com as suas palavras</label><p class="hint">Escreva os quatro alvos, o que cada um mede, e explique a assimetria (fidelidade 0,98 contra cobertura 0,70) com as suas palavras.</p><textarea class="prose" id="n-p8-c1" data-note="p8-c1"></textarea><div class="saved"></div></div>
+</section>
+
+<!-- ============================================================ 2 -->
+<section class="chapter" id="c2" data-ch="p8-c2">
+  <div class="ch-head"><span class="n">Capítulo 2</span><h2>O conjunto de avaliação: fabricar casos que medem</h2><label class="donebox"><input type="checkbox" data-done> Capítulo concluído</label></div>
+
+  <p>Um <strong>caso</strong> é uma pergunta com o que se espera dela: os ids dos trechos que a respondem (<code>esperado</code>), uma resposta de referência revisada por uma pessoa, e o <strong>tipo</strong>. Quatro tipos, cada um medindo uma coisa: <strong>com resposta</strong> (mede recall, fidelidade, cobertura), <strong>sem resposta na base</strong> (mede recusa correta; a pergunta é plausível, mas a resposta está em outra norma), <strong>caso-limite</strong> (percentual na fronteira, vigência antiga, redação ambígua; mede estabilidade e ALERTA) e <strong>injeção</strong> (documento que tenta dar ordens; mede as camadas da página 6). Um conjunto só de perguntas fáceis com resposta mede uma coisa só e superestima tudo.</p>
+  <p>De onde vêm os casos, por ordem de valor: <strong>perguntas reais</strong> de analistas (anonimizadas), <strong>critérios de auditoria</strong> com excertos reais classificados por auditores, <strong>erros de produção</strong> (o laço de volta da página 7), e por último, casos escritos pela equipe. O que torna um caso ruim: a pergunta copia as palavras do trecho (a busca lexical acha sem esforço; o caso não mede nada; é o <strong>vazamento lexical</strong>), o esperado está errado (mede o erro, não o sistema), ou a pergunta é absurda (mede nada). O construtor abaixo aponta o vazamento pela sobreposição de radicais entre pergunta e trecho.</p>
+  <p>Tamanho e organização: dezenas de casos por critério, centenas no total, com os quatro tipos representados. Divididos em <strong>desenvolvimento</strong> (para iterar prompts e parâmetros) e <strong>teste</strong> (para o número final, tocado só quando uma versão candidata está pronta). Versionados como o corpus: <code>avaliacao/v3.jsonl</code>, com quem revisou cada caso. O capítulo 5 explica por que a divisão não é burocracia.</p>
+
+  <figure class="diagram" data-caps='["Fontes: perguntas reais de analistas, excertos classificados por auditores, erros de produção, e (por último) casos escritos pela equipe.","Redação: a pergunta com as palavras de quem pergunta, não com as do trecho. O construtor mede o vazamento lexical.","Esperado e referência: ids dos trechos que respondem, resposta de referência; para os sem resposta, esperado vazio e o motivo.","Revisão: outra pessoa confirma que o esperado está certo e que o caso mede o que diz medir. Um caso errado mede o erro.","Divisão: desenvolvimento (para iterar) e teste (para o número final). Versionado, com quem revisou.","Uso: cada versão candidata roda o conjunto inteiro; o resultado fica ao lado da versão."]' aria-label="Fluxo de construção do conjunto de avaliação">
+    <div class="dtools"><button class="btn small" data-stepper="cs">Passo a passo</button><button class="btn small ghost" data-stepper-reset="cs">Reiniciar</button><span class="mini" id="cs-cap"></span></div>
+    <svg viewBox="0 0 760 170" role="img" aria-labelledby="cst"><title id="cst">Do caso bruto ao conjunto versionado</title>
+      <defs><marker id="ar8" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="var(--muted)"/></marker></defs>
+      <g class="node ext stage" data-stage="cs-0"><rect x="10" y="30" width="110" height="56" rx="8"/><text x="65" y="53" text-anchor="middle" class="t">Fontes</text><text x="65" y="71" text-anchor="middle">reais primeiro</text></g>
+      <g class="node stage" data-stage="cs-1"><rect x="135" y="30" width="110" height="56" rx="8"/><text x="190" y="53" text-anchor="middle" class="t">Redação</text><text x="190" y="71" text-anchor="middle">sem vazamento</text></g>
+      <g class="node stage" data-stage="cs-2"><rect x="260" y="30" width="120" height="56" rx="8"/><text x="320" y="53" text-anchor="middle" class="t">Esperado</text><text x="320" y="71" text-anchor="middle">ids + referência</text></g>
+      <g class="node gate stage" data-stage="cs-3"><rect x="395" y="30" width="110" height="56" rx="8"/><text x="450" y="53" text-anchor="middle" class="t">Revisão</text><text x="450" y="71" text-anchor="middle">outra pessoa</text></g>
+      <g class="node stage" data-stage="cs-4"><rect x="520" y="30" width="110" height="56" rx="8"/><text x="575" y="53" text-anchor="middle" class="t">Divisão</text><text x="575" y="71" text-anchor="middle">dev · teste</text></g>
+      <g class="node ok stage" data-stage="cs-5"><rect x="645" y="30" width="105" height="56" rx="8"/><text x="697" y="53" text-anchor="middle" class="t">Uso</text><text x="697" y="71" text-anchor="middle">por versão</text></g>
+      <path class="edge" d="M120 58 H131" marker-end="url(#ar8)"/><path class="edge" d="M245 58 H256" marker-end="url(#ar8)"/><path class="edge" d="M380 58 H391" marker-end="url(#ar8)"/><path class="edge" d="M505 58 H516" marker-end="url(#ar8)"/><path class="edge" d="M630 58 H641" marker-end="url(#ar8)"/>
+      <text class="lbl" x="10" y="125">quatro tipos em todo conjunto: com resposta · sem resposta · caso-limite · injeção</text>
+      <text class="lbl" x="10" y="150">erros de produção voltam para a etapa 1 (laço de volta da página 7)</text>
+    </svg>
+    <figcaption>O conjunto é um produto com dono, versão e revisão. Ele envelhece: perguntas mudam, a base muda, e casos novos entram do laço de volta.</figcaption>
+  </figure>
+
+  <div class="lab">
+    <header><h4>Experimento · Construtor de casos</h4><span class="badge toy">roda no navegador · salva nos seus casos</span></header>
+    <div class="body">
+      <p>Escolha o trecho que responde, escreva a pergunta com as suas palavras, o tipo e uma resposta de referência. O construtor mostra a linha JSONL, aponta vazamento lexical e outros problemas, e guarda os casos neste navegador: eles entram na avaliação do capítulo 6 junto com os do guia.</p>
+      <div class="chips" id="cs-presets" style="margin-bottom:10px"><button class="chip" type="button" data-q="É dispensável a licitação para contratação que envolva valores inferiores a cem mil reais em obras?" data-t="L14133-art75-incI">exemplo vazado</button><button class="chip" type="button" data-q="Até quanto a prefeitura pode gastar numa reforma sem abrir licitação?" data-t="L14133-art75-incI">exemplo com as palavras do usuário</button><button class="chip" type="button" data-q="Qual é a alíquota de ISS que incide sobre o contrato de engenharia?" data-tipo="sem">exemplo sem resposta</button></div>
+      <div class="row top">
+        <div><label class="f" for="cs-trecho">Trecho que responde</label><select id="cs-trecho"></select><p class="mini" id="cs-trecho-text"></p></div>
+        <div><label class="f" for="cs-tipo">Tipo</label><select id="cs-tipo"><option value="com">com resposta</option><option value="sem">sem resposta na base</option><option value="limite">caso-limite</option><option value="injecao">injeção</option></select></div>
+      </div>
+      <div class="row top"><div><label class="f" for="cs-q">Pergunta</label><input type="text" id="cs-q" placeholder="com as palavras de quem pergunta"></div></div>
+      <div class="row top"><div><label class="f" for="cs-ref">Resposta de referência (revisada)</label><textarea id="cs-ref" rows="2" placeholder="o que uma resposta correta precisa dizer"></textarea></div></div>
+      <div id="cs-warn"></div>
+      <pre><code id="cs-jsonl" class="language-json"></code></pre>
+      <div class="row"><div class="fixed"><button class="btn" id="cs-add" type="button">Salvar este caso</button></div><div class="fixed"><button class="btn ghost" id="cs-export" type="button">Copiar todos em JSONL</button></div><div><span class="mini" id="cs-n"></span></div></div>
+      <div class="status" id="cs-status"></div>
+      <div id="cs-list"></div>
+    </div>
+  </div>
+
+  <div class="doit"><span class="ic">faça agora</span><p>Clique em "exemplo vazado" e leia o aviso: a pergunta é o trecho reescrito. Clique em "exemplo com as palavras do usuário": mesma resposta, quase nenhuma palavra em comum; é o caso que mede a vetorial. Escreva três casos seus (um de cada tipo: com resposta, sem resposta, limite) sobre trechos diferentes e salve; eles vão aparecer no capítulo 6.</p></div>
+
+  <div class="faq">
+    <h3>Perguntas que aparecem aqui</h3>
+    <details><summary>Posso gerar casos com o próprio modelo de linguagem?</summary><p>Como rascunho, sim: "escreva dez perguntas que este trecho responde" produz candidatos rápido. Mas eles vêm com vazamento (o modelo reusa as palavras do trecho) e sem garantia de que o esperado está certo. Cada um precisa de reescrita e revisão humana antes de contar. Casos gerados e não revisados medem o gerador, não o sistema.</p><p class="why">Gerado é rascunho; revisado é caso.</p></details>
+    <details><summary>Quantos casos "sem resposta" o conjunto precisa?</summary><p>Uma fração relevante, uns 20 a 30%, e plausíveis: perguntas do domínio cuja resposta está em outra norma (tributária, trabalhista) ou em dados que a base não tem. Perguntas absurdas medem nada. Sem casos assim, a recusa correta não é medida, e um sistema que nunca recusa passa com nota máxima.</p><p class="why">Sem "sem resposta", a invenção é invisível.</p></details>
+    <details><summary>O esperado pode ter mais de um id?</summary><p>Pode e deve, quando a resposta está em mais de um dispositivo (o limite de obras e o de compras; o caput e o parágrafo). Recall conta acerto se qualquer esperado aparece entre os k; cobertura, na auditoria, conta quantos dos esperados foram apontados. O construtor do guia grava um id por caso para simplificar; no projeto, o campo é lista.</p><p class="why">Lista de ids: recall por qualquer um, cobertura por todos.</p></details>
+    <details><summary>Sobreposição lexical baixa garante um caso bom?</summary><p>Não: garante que a lexical não acha de graça. O caso ainda pode estar com o esperado errado, ou a pergunta pode ser ambígua (duas respostas válidas). Sobreposição é um filtro barato para o erro mais comum; a revisão humana continua sendo o filtro que vale.</p><p class="why">Filtro automático para o comum; pessoa para o resto.</p></details>
+    <details><summary>Como manter o conjunto vivo?</summary><p>Três entradas: erros de produção (com a saída esperada revisada), perguntas novas dos analistas a cada ciclo, e casos que a mudança de base torna necessários (uma norma nova, uma vigência que fechou). E uma saída: casos que ficaram triviais (todo mundo acerta há meses) podem ir para um conjunto de regressão rápida, liberando a leitura para os difíceis.</p><p class="why">Entra o que o sistema errou; sai o que ninguém erra mais.</p></details>
+  </div>
+
+  <div class="notes"><label for="n-p8-c2">Caderno</label><p class="hint">Descreva os quatro tipos de caso, as fontes por ordem de valor, o que é vazamento lexical e por que dev e teste são separados.</p><textarea class="prose" id="n-p8-c2" data-note="p8-c2"></textarea><div class="saved"></div></div>
+</section>
+
+<!-- ============================================================ 3 -->
+<section class="chapter" id="c3" data-ch="p8-c3">
+  <div class="ch-head"><span class="n">Capítulo 3</span><h2>Métricas de busca: recall@k, precisão, MRR, nDCG</h2><label class="donebox"><input type="checkbox" data-done> Capítulo concluído</label></div>
+
+  <p>A busca devolve uma lista ordenada; o caso diz quais itens são relevantes. Todas as métricas de busca são formas de perguntar "os relevantes estão na lista, e onde?". Cada uma responde a uma parte.</p>
+
+  <div class="tbl-wrap"><table>
+    <thead><tr><th>Métrica</th><th>Pergunta que responde</th><th>Fórmula</th><th>Quando usar</th><th>Cega para</th></tr></thead>
+    <tbody>
+      <tr><td><b>recall@k</b></td><td>dos relevantes, quantos estão entre os k?</td><td>relevantes nos k ÷ relevantes totais</td><td>a métrica principal do projeto: o modelo vai ler os k</td><td>a ordem dentro dos k; o lixo entre os k</td></tr>
+      <tr><td><b>precisão@k</b></td><td>dos k, quantos são relevantes?</td><td>relevantes nos k ÷ k</td><td>quando cada item custa (tokens no prompt)</td><td>relevantes que ficaram fora</td></tr>
+      <tr><td><b>hit@k</b></td><td>tem pelo menos um relevante entre os k?</td><td>1 ou 0 por pergunta, média no conjunto</td><td>perguntas com um único trecho esperado (vira recall@k)</td><td>quantos relevantes; a ordem</td></tr>
+      <tr><td><b>MRR</b></td><td>o primeiro relevante está em que posição?</td><td>média de 1 ÷ posição do primeiro relevante</td><td>quando só o topo importa (reranker, k pequeno)</td><td>os relevantes depois do primeiro</td></tr>
+      <tr><td><b>nDCG@k</b></td><td>os mais relevantes estão mais no topo?</td><td>ganho com desconto logarítmico por posição ÷ ganho ideal</td><td>relevância graduada (responde / relacionado); comparar rerankers</td><td>difícil de explicar a quem não é de busca</td></tr>
+    </tbody>
+  </table></div>
+  <p>O projeto reporta <strong>recall@12</strong> como alvo (o modelo lê os 12; o que importa é o certo estar lá) e <strong>MRR</strong> como diagnóstico (se o certo costuma estar em 9º, um reranker ou um k menor mudam as coisas). nDCG entra quando se compara rerankers, porque distingue "responde" de "só relacionado". Precisão@k quase não é usada: com trechos curtos, 12 itens cabem no orçamento, e o custo do lixo é pequeno.</p>
+
+  <div class="lab">
+    <header><h4>Experimento · Calculadora de ranking</h4><span class="badge toy">roda no navegador</span></header>
+    <div class="body">
+      <p>Dez posições de um ranking. Clique num item para mudar a relevância (irrelevante → relacionado → responde). Mova o k. Todas as métricas recalculam; veja quais mudam e quais ficam iguais.</p>
+      <div class="row"><div><label class="f" for="rk-k">k = <span id="rk-kv">5</span></label><input type="range" id="rk-k" min="1" max="10" step="1" value="5"></div><div class="fixed"><button class="btn ghost" id="rk-shuffle" type="button">Embaralhar relevâncias</button></div></div>
+      <div class="rank-grid" id="rk-list"></div>
+      <div class="bars" id="rk-out" style="margin-top:12px"></div>
+      <p class="mini" id="rk-note"></p>
+    </div>
+  </div>
+
+  <div class="doit"><span class="ic">faça agora</span><p>Com a configuração inicial (relevantes em 2º, 4º, 7º e 10º), coloque k = 3: recall@3 baixo, MRR alto (o primeiro relevante está em 2º). Torne o 1º item "responde": MRR vai a 1 e nDCG sobe; recall@3 sobe um degrau. Agora mova k para 10: recall vira 100% e precisão cai. Cada métrica olha para um pedaço do mesmo ranking.</p></div>
+
+  <div class="faq">
+    <h3>Perguntas que aparecem aqui</h3>
+    <details><summary>Por que o desconto do nDCG é logarítmico?</summary><p>Porque a atenção de quem lê (ou do modelo, pelo efeito "perdido no meio") cai rápido nas primeiras posições e devagar depois: a diferença entre 1º e 2º importa mais que entre 9º e 10º. O logaritmo da posição modela isso; o ganho de um item na posição p vale (2^relevância − 1) ÷ log₂(p + 1). Normalizar pelo ranking ideal deixa o número entre 0 e 1 e comparável entre perguntas.</p><p class="why">Desconto logarítmico: o topo pesa muito, a cauda pouco.</p></details>
+    <details><summary>Recall@k sobe sempre com k; então k grande é melhor?</summary><p>Recall sim; o sistema não: k grande enche o prompt com trechos irrelevantes (custo, e o modelo pode usar o errado). O k certo é o menor em que o recall estabiliza; a curva recall × k, que o Ex. 7 traça, mostra onde. No projeto ficou em 12 com folga; o número se revisa com o conjunto.</p><p class="why">O k certo é onde a curva de recall achata.</p></details>
+    <details><summary>MRR de 0,5 significa que o certo está em 2º?</summary><p>Em média, sim, mas a média de recíprocos engana: metade das perguntas com o certo em 1º e metade sem o certo em lugar nenhum também dá 0,5. Leia MRR junto com recall e, quando puder, com a distribuição das posições (o experimento do capítulo 6 mostra a posição por pergunta).</p><p class="why">Média de recíprocos: olhe a distribuição.</p></details>
+    <details><summary>Como medir a busca quando o esperado tem vários ids?</summary><p>Recall@k conta os esperados encontrados sobre o total de esperados (a fórmula da tabela); hit@k conta se algum apareceu. Para a auditoria, onde cada critério tem os seus dispositivos, recall por todos é o que interessa: o modelo precisa de todos para classificar.</p><p class="why">Vários esperados: recall por fração, não por "algum".</p></details>
+  </div>
+
+  <div class="notes"><label for="n-p8-c3">Caderno</label><p class="hint">Para cada métrica da tabela, escreva a pergunta que ela responde e uma situação em que ela muda enquanto as outras ficam iguais.</p><textarea class="prose" id="n-p8-c3" data-note="p8-c3"></textarea><div class="saved"></div></div>
+</section>
+<!-- ============================================================ 4 -->
+<section class="chapter" id="c4" data-ch="p8-c4">
+  <div class="ch-head"><span class="n">Capítulo 4</span><h2>Métricas de resposta: fidelidade, cobertura, recusa, e quem rotula</h2><label class="donebox"><input type="checkbox" data-done> Capítulo concluído</label></div>
+
+  <p>Medir a busca é comparar listas: exato e barato. Medir a resposta é decidir se um texto é sustentado por outro, e isso exige uma definição operacional e alguém (ou algo) que aplique a definição igual em todos os casos. As três métricas do projeto são definidas assim:</p>
+
+  <div class="tbl-wrap"><table>
+    <thead><tr><th>Métrica</th><th>Definição operacional</th><th>Quem decide</th><th>Denominador</th></tr></thead>
+    <tbody>
+      <tr><td><b>fidelidade</b></td><td>a resposta aceita cita o trecho esperado e não afirma nada que os trechos citados não sustentem</td><td>código (cita o esperado?) + juiz ou pessoa (afirmações sustentadas?)</td><td>respostas aceitas pela validação</td></tr>
+      <tr><td><b>cobertura</b></td><td>dos achados esperados de um documento (a lista dos auditores), quantos o sistema classificou como NAO_CONFORME ou ALERTA no critério certo</td><td>código, contra a lista revisada</td><td>achados esperados</td></tr>
+      <tr><td><b>recusa correta</b></td><td>em pergunta sem resposta na base, o sistema devolveu <code>sem_evidencia</code></td><td>código</td><td>perguntas sem resposta</td></tr>
+      <tr><td><b>recusa indevida</b></td><td>em pergunta com resposta, o sistema devolveu <code>sem_evidencia</code></td><td>código</td><td>perguntas com resposta</td></tr>
+      <tr><td><b>exatidão</b> (opcional)</td><td>a resposta diz o mesmo que a referência</td><td>juiz ou pessoa</td><td>perguntas com referência</td></tr>
+    </tbody>
+  </table></div>
+  <p>A parte que exige leitura ("afirmações sustentadas?", "diz o mesmo que a referência?") tem dois caminhos: <strong>pessoas</strong>, que são a referência mas não escalam, e um <strong>juiz automático</strong> (página 7), que escala mas precisa provar que concorda com as pessoas. A prova é uma medida de <strong>concordância</strong>: um lote de respostas rotulado por humanos e pelo juiz, e o <em>kappa de Cohen</em>, que desconta o acordo que aconteceria por acaso. Kappa acima de 0,8 é concordância forte: o juiz pode substituir a leitura em rotina; entre 0,6 e 0,8, serve para triagem; abaixo, ou a definição é ambígua ou o juiz é ruim. O experimento coloca você no papel do rotulador e calcula o seu kappa contra a referência, para sentir o que "definição operacional" significa.</p>
+
+  <div class="lab">
+    <header><h4>Experimento · Rotule e meça a sua concordância</h4><span class="badge toy">roda no navegador</span></header>
+    <div class="body">
+      <p>Seis respostas, cada uma com os trechos citados. Marque "fiel" se tudo o que a resposta afirma está sustentado pelos trechos, "não fiel" se não. Ao fim, a matriz contra a referência e o kappa.</p>
+      <div id="lb-list"></div>
+      <div id="lb-out"></div>
+    </div>
+  </div>
+
+  <div class="doit"><span class="ic">faça agora</span><p>Rotule sem reler o capítulo. Se o seu kappa ficou abaixo de 1, olhe as discordâncias: quase sempre são respostas "quase certas" (o número certo com um alcance a mais, "vale também para compras"). É exatamente o que a definição operacional precisa dizer com clareza, para pessoas e para o juiz: uma afirmação a mais sem sustentação torna a resposta não fiel.</p></div>
+
+  <div class="faq">
+    <h3>Perguntas que aparecem aqui</h3>
+    <details><summary>Fidelidade e exatidão não são a mesma coisa?</summary><p>Não. Fiel é "sustentada pelos trechos citados"; exata é "diz o mesmo que a referência". Uma resposta pode ser fiel e incompleta (cita e sustenta, mas deixa de fora metade), ou exata e não fiel (acertou de memória, sem citar). Para auditoria, fidelidade é a métrica inegociável; exatidão é útil para perguntas com resposta única.</p><p class="why">Fiel = sustentada; exata = igual à referência.</p></details>
+    <details><summary>Por que o kappa e não a concordância simples?</summary><p>Porque se 90% das respostas são fiéis, um juiz que diz "fiel" para tudo concorda em 90% sem olhar nada. O kappa desconta esse acordo esperado pelo acaso: o mesmo juiz preguiçoso tem kappa zero. É o número que diz se o juiz está fazendo trabalho.</p><p class="why">Concordância simples premia o juiz que não lê.</p></details>
+    <details><summary>Quantas respostas rotular à mão para calibrar o juiz?</summary><p>Algumas dezenas por tipo (com resposta, sem resposta, limite), rotuladas por duas pessoas (para saber a concordância entre humanos também; se elas discordam, a definição é o problema, não o juiz). Depois, uma amostra pequena por mês para conferir que o juiz não derivou.</p><p class="why">Dezenas para calibrar; amostra mensal para vigiar.</p></details>
+    <details><summary>Cobertura precisa da lista de achados dos auditores?</summary><p>Precisa, e é o dado mais caro do conjunto: documentos reais com os achados que auditores apontaram, critério a critério. Sem essa lista, cobertura não existe; com ela, é código puro. O projeto começa com poucos documentos anotados e cresce com o uso, porque cada auditoria revisada é um documento anotado a mais.</p><p class="why">Cobertura é cara de montar e barata de medir.</p></details>
+    <details><summary>O juiz pode rotular o conjunto de teste do próprio juiz?</summary><p>Não: seria avaliar um aluno com a prova que ele mesmo corrigiu. A referência para calibrar o juiz é humana; o juiz só entra depois de calibrado, e nunca avalia a própria calibração.</p><p class="why">Referência humana para o juiz; juiz para o resto.</p></details>
+  </div>
+
+  <div class="notes"><label for="n-p8-c4">Caderno</label><p class="hint">Escreva a definição operacional de fidelidade, cobertura e recusa correta, e explique com as suas palavras o que o kappa desconta.</p><textarea class="prose" id="n-p8-c4" data-note="p8-c4"></textarea><div class="saved"></div></div>
+</section>
+
+<!-- ============================================================ 5 -->
+<section class="chapter" id="c5" data-ch="p8-c5">
+  <div class="ch-head"><span class="n">Capítulo 5</span><h2>O protocolo: como não se enganar</h2><label class="donebox"><input type="checkbox" data-done> Capítulo concluído</label></div>
+
+  <p>Uma medição vale pelo que impede. O protocolo do projeto tem seis regras, e cada uma bloqueia um jeito conhecido de produzir um número bonito e falso. <strong>Fixe as condições</strong>: temperatura 0, pensamento mínimo, mesmo modelo, mesma base, mesma versão de prompt; grave tudo no resultado. <strong>Rode três vezes</strong>: a variação entre execuções é a barra de erro mínima; uma métrica que oscila mais que a diferença entre versões não distingue as versões. <strong>Separe desenvolvimento de teste</strong>: itere olhando o dev; o teste só entra quando a versão está pronta, e o número do teste é o que se reporta. <strong>Nunca ajuste olhando o teste</strong>: cada olhada é uma iteração de ajuste disfarçada, e o teste vira dev. <strong>Meça sempre as mesmas coisas</strong>: as quatro métricas, no mesmo conjunto, com o mesmo código de medição versionado. <strong>Registre por versão</strong>: resultado ao lado da versão do prompt, do modelo, da base e do conjunto, para que uma regressão seja rastreável.</p>
+  <p>O jeito mais comum de se enganar é o <strong>sobreajuste ao conjunto</strong>: iterar o prompt até ele acertar as perguntas do dev, e concluir que ele melhorou. Com dev pequeno, boa parte do "ganho" é o prompt aprendendo as peculiaridades daquelas perguntas (uma palavra, um formato), e o teste não acompanha. O simulador mostra as duas curvas se separando conforme você itera, e como o tamanho do dev muda a inclinação.</p>
+
+  <figure class="diagram" data-caps='["Congele: modelo, base, prompt, conjunto e código de medição, todos com versão. O resultado vai carregar essas cinco versões.","Rode no conjunto de desenvolvimento, três vezes. A média é o número; a variação entre execuções é a barra de erro mínima.","Itere (prompt, parâmetros da busca) olhando só o dev. Cada iteração é uma versão com resultado registrado.","Quando a versão candidata está pronta, rode uma vez no teste. O número do teste é o que se reporta; não se ajusta nada depois de vê-lo.","Compare com a versão anterior pergunta a pergunta (capítulo 8), não só pela média.","Registre: as cinco versões, os números, o intervalo. A versão entra se os quatro alvos são atendidos no teste."]' aria-label="Protocolo de medição em seis passos">
+    <div class="dtools"><button class="btn small" data-stepper="pr">Passo a passo</button><button class="btn small ghost" data-stepper-reset="pr">Reiniciar</button><span class="mini" id="pr-cap"></span></div>
+    <svg viewBox="0 0 760 190" role="img" aria-labelledby="prt"><title id="prt">Protocolo</title>
+      <defs><marker id="ar9" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="var(--muted)"/></marker></defs>
+      <g class="node stage" data-stage="pr-0"><rect x="10" y="30" width="105" height="56" rx="8"/><text x="62" y="53" text-anchor="middle" class="t">Congelar</text><text x="62" y="71" text-anchor="middle">5 versões</text></g>
+      <g class="node ia stage" data-stage="pr-1"><rect x="130" y="30" width="110" height="56" rx="8"/><text x="185" y="53" text-anchor="middle" class="t">Dev ×3</text><text x="185" y="71" text-anchor="middle">média · variação</text></g>
+      <g class="node stage" data-stage="pr-2"><rect x="255" y="30" width="110" height="56" rx="8"/><text x="310" y="53" text-anchor="middle" class="t">Iterar</text><text x="310" y="71" text-anchor="middle">só olhando o dev</text></g>
+      <g class="node gate stage" data-stage="pr-3"><rect x="380" y="30" width="110" height="56" rx="8"/><text x="435" y="53" text-anchor="middle" class="t">Teste ×1</text><text x="435" y="71" text-anchor="middle">não se ajusta</text></g>
+      <g class="node stage" data-stage="pr-4"><rect x="505" y="30" width="115" height="56" rx="8"/><text x="562" y="53" text-anchor="middle" class="t">Comparar</text><text x="562" y="71" text-anchor="middle">pareado</text></g>
+      <g class="node ok stage" data-stage="pr-5"><rect x="635" y="30" width="115" height="56" rx="8"/><text x="692" y="53" text-anchor="middle" class="t">Registrar</text><text x="692" y="71" text-anchor="middle">entra ou não</text></g>
+      <path class="edge" d="M115 58 H126" marker-end="url(#ar9)"/><path class="edge" d="M240 58 H251" marker-end="url(#ar9)"/><path class="edge" d="M365 58 H376" marker-end="url(#ar9)"/><path class="edge" d="M490 58 H501" marker-end="url(#ar9)"/><path class="edge" d="M620 58 H631" marker-end="url(#ar9)"/>
+      <path class="edge" d="M310 86 V120 H185 V90" marker-end="url(#ar9)" stroke-dasharray="4 3"/><text class="lbl" x="200" y="135">volta ao dev quantas vezes quiser</text>
+      <text class="lbl" x="560" y="156" text-anchor="middle">o teste só se olha uma vez por versão candidata;</text><text class="lbl" x="560" y="170" text-anchor="middle">olhar e ajustar transforma o teste em dev</text>
+    </svg>
+    <figcaption>Cinco versões congeladas, três execuções, dev e teste separados, comparação pareada, registro. Cada regra fecha um jeito de se enganar.</figcaption>
+  </figure>
+
+  <div class="lab">
+    <header><h4>Experimento · Simulador de sobreajuste</h4><span class="badge toy">simulação</span></header>
+    <div class="body">
+      <p>Você itera o prompt olhando o conjunto de desenvolvimento. A curva laranja é o que você vê (dev); a verde, o que o teste diria. Mova as iterações e o tamanho do dev.</p>
+      <div class="row">
+        <div><label class="f" for="of-it">Iterações de ajuste = <span id="of-itv">10</span></label><input type="range" id="of-it" min="0" max="30" step="1" value="10"></div>
+        <div><label class="f" for="of-n">Tamanho do dev = <span id="of-nv">20</span> perguntas</label><input type="range" id="of-n" min="10" max="300" step="10" value="20"></div>
+      </div>
+      <figure class="diagram" style="margin:0"><svg id="of-svg" viewBox="0 0 760 230" role="img" aria-label="Curvas de dev e teste ao longo das iterações"></svg></figure>
+      <p class="mini" id="of-note"></p>
+    </div>
+  </div>
+
+  <div class="doit"><span class="ic">faça agora</span><p>Com dev de 20 perguntas, vá de 0 a 30 iterações e veja a laranja subir para perto de 100% enquanto a verde para em 80% e começa a cair. Suba o dev para 200: a laranja passa a acompanhar a verde. Moral: iterar muito num dev pequeno produz um prompt que decorou o dev. É uma simulação, mas a forma é a que se observa na prática.</p></div>
+
+  <div class="faq">
+    <h3>Perguntas que aparecem aqui</h3>
+    <details><summary>Três execuções em temperatura zero não são iguais?</summary><p>Quase: a página 1 explicou que "zero" é "quase determinístico". Três execuções medem essa variação residual e a do provedor. Se as três dão o mesmo número, ótimo: a barra de erro é zero e você sabe disso. Se diferem, você sabe quanto, e uma diferença entre versões menor que isso não é diferença.</p><p class="why">Três execuções compram a barra de erro mínima.</p></details>
+    <details><summary>E se o teste for pequeno demais para dizer algo?</summary><p>Então o número do teste vem com um intervalo largo (capítulo 7) e a decisão de "entra ou não" fica honesta: "não dá para afirmar que passou do alvo". A solução é o conjunto crescer, não olhar mais vezes para o mesmo teste.</p><p class="why">Teste pequeno dá intervalo largo, não dá licença para espiar.</p></details>
+    <details><summary>Posso reciclar o teste quando o dev esgota?</summary><p>Uma vez por ciclo grande, com um teste novo montado a partir de casos novos (produção, analistas), o teste antigo pode virar dev. O que não pode é iterar no teste atual. A regra é que o número reportado vem de casos que ninguém usou para ajustar.</p><p class="why">Teste antigo vira dev quando há teste novo.</p></details>
+    <details><summary>O código de medição também precisa de versão?</summary><p>Precisa: uma mudança na regra de "cita o esperado" (aceitar o caput quando o esperado é o inciso, por exemplo) muda todos os números. Sem versão do código de medição, uma melhoria de métrica pode ser uma mudança de régua.</p><p class="why">Régua com versão; senão, o ganho pode ser a régua.</p></details>
+  </div>
+
+  <div class="notes"><label for="n-p8-c5">Caderno</label><p class="hint">Escreva as seis regras do protocolo e, para cada uma, o jeito de se enganar que ela bloqueia.</p><textarea class="prose" id="n-p8-c5" data-note="p8-c5"></textarea><div class="saved"></div></div>
+</section>
+
+<!-- ============================================================ 6 -->
+<section class="chapter" id="c6" data-ch="p8-c6">
+  <div class="ch-head"><span class="n">Capítulo 6</span><h2>A rodada completa: o Ex. 7 no navegador</h2><label class="donebox"><input type="checkbox" data-done> Capítulo concluído</label></div>
+
+  <p>Tudo junto: o conjunto (as 12 perguntas do guia, mais as quatro sem resposta, mais os casos que você salvou no capítulo 2) passa pela busca nas três variantes e, se você quiser, pela geração e validação. O painel mostra os números contra os alvos, com o intervalo de confiança do recall; a tabela mostra a posição do esperado em cada busca, pergunta a pergunta, e o que aconteceu na geração. Cada rodada fica registrada neste navegador com o rótulo dos parâmetros, para o capítulo 8 comparar.</p>
+  <p>Custo: um lote de embeddings para todas as perguntas (uma chamada) e, na geração, uma chamada por pergunta gerada. "Só a busca" não gasta geração nenhuma e já mede recall e MRR, que é a maior parte do Ex. 7.</p>
+
+  <div class="lab">
+    <header><h4>Experimento · Rodar a avaliação</h4><span class="badge live">ao vivo · 1 lote + gerações opcionais</span></header>
+    <div class="body">
+      <div class="row">
+        <div><label class="f" for="ev-k">k</label><select id="ev-k"><option value="3">3</option><option value="6">6</option><option value="12" selected>12</option></select></div>
+        <div><label class="f" for="ev-K">K do RRF</label><select id="ev-K"><option value="10">10</option><option value="60" selected>60</option><option value="200">200</option></select></div>
+        <div><label class="f" for="ev-cand">candidatos por lista</label><select id="ev-cand"><option value="10">10</option><option value="25">25</option><option value="50" selected>50</option></select></div>
+        <div><label class="f" for="ev-gen">Geração</label><select id="ev-gen"><option value="none" selected>só a busca (0 gerações)</option><option value="some">amostra: 4 com + 2 sem (6 gerações)</option><option value="all">todas as perguntas</option></select></div>
+        <div class="fixed"><button class="btn" id="ev-run">Rodar</button></div>
+      </div>
+      <div class="bars" id="ev-out" aria-live="polite"></div>
+      <div class="status" id="ev-status"></div>
+      <div class="tbl-wrap" style="margin-top:10px"><table id="ev-tbl" class="evtbl"><thead><tr><th>pergunta</th><th>tipo</th><th>vetorial</th><th>lexical</th><th>híbrida</th><th>geração</th></tr></thead><tbody></tbody></table></div>
+    </div>
+  </div>
+
+  <div class="doit"><span class="ic">faça agora</span><p>Rode "só a busca" com os padrões e anote recall e intervalo. Rode de novo com k = 3: o recall cai, e a tabela diz quais perguntas caíram (as que tinham o esperado em 4º a 12º). Rode com candidatos = 10 e K = 10: veja o que muda. Por fim, uma rodada com a amostra de geração: fidelidade e recusa aparecem no painel. Cada rodada está registrada para o capítulo 8.</p></div>
+
+  <div class="faq">
+    <h3>Perguntas que aparecem aqui</h3>
+    <details><summary>Por que o recall da híbrida às vezes é menor que o da lexical numa pergunta?</summary><p>Porque a fusão pode empurrar para baixo um trecho que só uma busca achou, se a outra trouxe muitos concorrentes. Na média a híbrida ganha; em perguntas isoladas, pode perder. É o que a tabela pergunta a pergunta mostra e a média esconde.</p><p class="why">Média para decidir; tabela para entender.</p></details>
+    <details><summary>Os meus casos do capítulo 2 contam igual aos do guia?</summary><p>Contam: entram no mesmo conjunto, com o mesmo peso. Se um caso seu tiver o esperado errado, o recall cai por causa dele, e é assim que você descobre que o caso está errado: olhando a linha dele na tabela.</p><p class="why">Caso errado aparece como "erro do sistema" até alguém olhar.</p></details>
+    <details><summary>Fidelidade medida com 4 gerações vale alguma coisa?</summary><p>Vale para ver o mecanismo, não para decidir: com n = 4 o intervalo vai de zero a um. O capítulo 7 mostra a conta. No Ex. 7 de verdade, a fidelidade se mede com dezenas de perguntas, e a cota gratuita é o limite prático; é um bom motivo para rodar a busca sempre e a geração por amostra.</p><p class="why">Poucas gerações mostram o mecanismo; muitas dão o número.</p></details>
+    <details><summary>A rodada registra os textos das respostas?</summary><p>Aqui, só os resultados (posições, acertos, rótulo). No projeto, o registro guarda também os ids citados e a resposta, para a análise de erro do capítulo 7 e para o laço de volta. Registro sem detalhe só diz "caiu"; com detalhe diz "caiu nesta pergunta por este motivo".</p><p class="why">Registro detalhado transforma número em diagnóstico.</p></details>
+  </div>
+
+  <div class="notes"><label for="n-p8-c6">Caderno</label><p class="hint">Registre os números da sua melhor rodada (parâmetros, recall, intervalo, MRR, fidelidade e recusa se mediu) e as perguntas que a híbrida perdeu.</p><textarea class="prose" id="n-p8-c6" data-note="p8-c6"></textarea><div class="saved"></div></div>
+</section>
+<!-- ============================================================ 7 -->
+<section class="chapter" id="c7" data-ch="p8-c7">
+  <div class="ch-head"><span class="n">Capítulo 7</span><h2>Ler o número: intervalo de confiança e análise de erro</h2><label class="donebox"><input type="checkbox" data-done> Capítulo concluído</label></div>
+
+  <p>"Recall@12 de 83% em 12 perguntas" não é 83%: é "10 de 12", e 10 de 12 é compatível com um recall verdadeiro de 55% e com um de 95%. Toda proporção medida numa amostra vem com um <strong>intervalo de confiança</strong>, e com n pequeno ele é largo o bastante para engolir o alvo. O intervalo de Wilson (o que o guia usa; é bem comportado perto de 0 e 1) diz, para k acertos em n, a faixa onde o valor verdadeiro provavelmente está. A decisão "atingiu o alvo" só é defensável quando o <em>limite inferior</em> passa do alvo; até lá, "o ponto passa" é conversa.</p>
+  <p>A largura do intervalo cai com a raiz de n: de 12 para 48 perguntas, a largura cai pela metade; para 200, cai a um quarto. É a conta que dimensiona o conjunto: para afirmar recall ≥ 0,80 com um recall observado de 0,88, são necessárias em torno de 100 perguntas; com 0,84 observado, várias centenas. A calculadora faz a conta e o gráfico mostra a curva.</p>
+  <p>O outro lado da leitura é a <strong>análise de erro</strong>: o número diz quanto; a tabela pergunta a pergunta diz onde. Cortar os resultados por tipo (com/sem resposta), por artigo, por comprimento da pergunta, por fonte do caso, revela padrões que a média esconde: "a vetorial perde as perguntas com número de artigo", "a recusa indevida se concentra nos casos-limite". Cada padrão é um lugar para mexer, e cada lugar para mexer é uma hipótese para a próxima versão testar.</p>
+
+  <div class="lab">
+    <header><h4>Experimento · Calculadora de intervalo</h4><span class="badge toy">roda no navegador</span></header>
+    <div class="body">
+      <p>Escolha n e a proporção observada. O intervalo de Wilson a 95% e a curva da largura em função de n.</p>
+      <div class="row">
+        <div><label class="f" for="ci-n">n = <span id="ci-nv">12</span> perguntas</label><input type="range" id="ci-n" min="5" max="500" step="1" value="12"></div>
+        <div><label class="f" for="ci-p">observado = <span id="ci-pv">83%</span></label><input type="range" id="ci-p" min="50" max="100" step="1" value="83"></div>
+      </div>
+      <div class="bars" id="ci-out"></div>
+      <figure class="diagram" style="margin:10px 0 0"><svg id="ci-svg" viewBox="0 0 760 170" role="img" aria-label="Largura do intervalo em função de n"></svg></figure>
+      <p class="mini" id="ci-note"></p>
+    </div>
+  </div>
+
+  <div class="tbl-wrap"><table>
+    <thead><tr><th>Corte para a análise de erro</th><th>O que costuma revelar</th><th>Hipótese para a próxima versão</th></tr></thead>
+    <tbody>
+      <tr><td>por tipo (com / sem resposta / limite / injeção)</td><td>recusa indevida concentrada nos casos-limite; invenção nos "sem resposta" com score alto</td><td>regra explícita de ALERTA; limiar de busca</td></tr>
+      <tr><td>por artigo ou tema</td><td>um artigo com muitos incisos parecidos derruba a vetorial (empates)</td><td>reranker; caput mais longo como prefixo</td></tr>
+      <tr><td>por comprimento da pergunta</td><td>perguntas curtas com identificador perdem na vetorial; longas perdem na lexical em modo "e"</td><td>roteamento simples; lexical em modo "ou"</td></tr>
+      <tr><td>por posição do esperado (1º, 2º–5º, 6º–12º, fora)</td><td>muitos em 6º–12º: o modelo tem o trecho mas "no meio"</td><td>k menor com reranker; melhores nas pontas</td></tr>
+      <tr><td>por fonte do caso</td><td>casos escritos pela equipe fáceis demais; casos de produção difíceis</td><td>reponderar o conjunto; mais casos reais</td></tr>
+    </tbody>
+  </table></div>
+
+  <div class="doit"><span class="ic">faça agora</span><p>Na calculadora, n = 12 e 83%: leia o limite inferior. Quantas perguntas você precisaria, com os mesmos 83%, para o limite inferior passar de 80%? Mova n até achar. Depois volte ao capítulo 6 e faça um corte à mão: quais perguntas a híbrida perdeu e o que elas têm em comum?</p></div>
+
+  <div class="faq">
+    <h3>Perguntas que aparecem aqui</h3>
+    <details><summary>Por que Wilson e não "média ± 1,96 × desvio"?</summary><p>O intervalo normal (Wald) quebra perto de 0 e 1 e com n pequeno: dá limites acima de 100% ou abaixo de 0, e é estreito demais quando a proporção é alta, que é exatamente o caso de fidelidade em 0,98. Wilson corrige isso; é a escolha padrão para proporções com n pequeno.</p><p class="why">Wald mente perto das bordas; Wilson não.</p></details>
+    <details><summary>Bootstrap é melhor?</summary><p>Para proporções simples, Wilson basta e é fechado. Bootstrap (reamostrar o conjunto com reposição e recalcular a métrica milhares de vezes) é útil para métricas compostas (MRR, nDCG, índice) onde não há fórmula fechada, e para comparar versões. O Ex. 7 pode implementar em dez linhas de numpy.</p><p class="why">Fórmula quando existe; bootstrap para o resto.</p></details>
+    <details><summary>Com n pequeno, então, não vale medir?</summary><p>Vale, com honestidade: reporte o ponto e o intervalo, e use o resultado para diagnóstico (análise de erro) mais que para decisão. O que não vale é reportar "83%" como se fosse um número, e decidir sobre ele.</p><p class="why">n pequeno diagnostica; n grande decide.</p></details>
+    <details><summary>O intervalo vale para fidelidade também?</summary><p>Vale, e é onde ele mais surpreende: para afirmar fidelidade ≥ 0,98 com 95% de confiança, são necessárias centenas de respostas aceitas sem falha. É o motivo de a fidelidade ser medida continuamente (juiz por amostragem em produção) e não só numa rodada.</p><p class="why">Alvo alto exige n grande para ser provado.</p></details>
+  </div>
+
+  <div class="notes"><label for="n-p8-c7">Caderno</label><p class="hint">Explique por que "10 de 12" não é 83%, quantas perguntas seriam necessárias para provar o alvo com o seu recall observado, e três cortes que você faria na análise de erro.</p><textarea class="prose" id="n-p8-c7" data-note="p8-c7"></textarea><div class="saved"></div></div>
+</section>
+
+<!-- ============================================================ 8 -->
+<section class="chapter" id="c8" data-ch="p8-c8">
+  <div class="ch-head"><span class="n">Capítulo 8</span><h2>Comparar versões: pergunta a pergunta, não média contra média</h2><label class="donebox"><input type="checkbox" data-done> Capítulo concluído</label></div>
+
+  <p>"A v3 fez 86% e a v2 fez 83%" parece uma melhoria de três pontos. Em 30 perguntas, são três pontos que cabem dentro do intervalo das duas; a diferença pode ser acaso. A comparação certa é <strong>pareada</strong>: as duas versões responderam às mesmas perguntas, então olhe pergunta a pergunta e conte em quantas a v3 acertou e a v2 errou (vitórias), em quantas o contrário (derrotas) e em quantas as duas fizeram o mesmo (empates, que não informam nada). Se são 4 vitórias e 1 derrota em 30 perguntas, a v3 é melhor em 4 casos específicos e pior em 1; e o <strong>teste do sinal</strong> sobre os 5 pares discordantes diz se 4 a 1 é distinguível de cara ou coroa (com 5 pares, não é).</p>
+  <p>A comparação pareada também é a melhor análise de erro: as perguntas que mudaram de lado são exatamente as que a mudança de versão afetou. Ler essas perguntas (e não a média) diz se a v3 melhorou o que pretendia melhorar ou se ganhou por acaso em outro lugar e perdeu onde não devia. Uma <strong>regressão</strong> (pergunta que a v2 acertava e a v3 erra) é sempre digna de leitura, mesmo quando a média subiu.</p>
+
+  <div class="lab">
+    <header><h4>Experimento · Comparador de rodadas</h4><span class="badge toy">usa as rodadas do capítulo 6</span></header>
+    <div class="body">
+      <p>Escolha duas rodadas registradas (A e B) e veja a comparação pareada do recall da híbrida: vitórias, derrotas, empates e o teste do sinal.</p>
+      <div id="cp-runs"></div>
+      <div class="row"><div><label class="f" for="cp-a">Rodada A</label><select id="cp-a"></select></div><div><label class="f" for="cp-b">Rodada B</label><select id="cp-b"></select></div><div class="fixed"><button class="btn" id="cp-run" type="button">Comparar</button></div></div>
+      <div class="bars" id="cp-out"></div>
+      <div class="status" id="cp-status"></div>
+    </div>
+  </div>
+
+  <div class="doit"><span class="ic">faça agora</span><p>Compare a rodada com k = 12 e a com k = 3 do capítulo 6: as "derrotas" de k = 3 são as perguntas com o esperado entre 4º e 12º. Depois compare k = 12 contra k = 12 com K = 10: provavelmente quase só empates, com p alto. É a diferença entre uma mudança que muda o sistema e uma que muda a média por acaso.</p></div>
+
+  <div class="faq">
+    <h3>Perguntas que aparecem aqui</h3>
+    <details><summary>O teste do sinal é rigoroso o bastante?</summary><p>Para acertos binários (acertou/errou) pareados, o teste do sinal ou o de McNemar são os corretos e não assumem nada sobre a distribuição. São conservadores com poucos pares discordantes, o que é uma virtude: impedem de declarar vitória com 4 a 1. Para métricas contínuas (MRR), o bootstrap pareado é o equivalente.</p><p class="why">Pareado e sem suposições: o rigor certo para acertos.</p></details>
+    <details><summary>Muitos empates são um problema?</summary><p>São informação: dizem que a mudança não tocou naquelas perguntas. Se quase tudo empata, a mudança é pequena, e o conjunto não tem casos onde ela importe. Ou ela não importa, ou faltam casos do tipo que ela deveria melhorar.</p><p class="why">Empate diz onde a mudança não chega.</p></details>
+    <details><summary>Uma versão pode "ganhar" no teste do sinal e ser pior?</summary><p>Pode, se ganhar em perguntas fáceis e perder numa pergunta crítica (um critério de alto risco). Por isso o projeto olha, além do teste, a lista de regressões, e trata algumas perguntas como bloqueantes: se a versão nova erra uma delas, não entra, independentemente da média.</p><p class="why">Estatística decide o comum; casos bloqueantes protegem o crítico.</p></details>
+    <details><summary>Comparar contra qual referência: a versão anterior ou a primeira?</summary><p>Contra a versão em produção (a que a candidata vai substituir). E, periodicamente, contra uma referência fixa (a v1), para ver a trajetória e detectar deriva lenta que comparações consecutivas não pegam (cada uma "sem diferença", a soma delas grande).</p><p class="why">Anterior para decidir; fixa para ver a trajetória.</p></details>
+  </div>
+
+  <div class="notes"><label for="n-p8-c8">Caderno</label><p class="hint">Explique por que "86% contra 83%" não decide nada com n = 30, o que a comparação pareada acrescenta, e o que é uma regressão.</p><textarea class="prose" id="n-p8-c8" data-note="p8-c8"></textarea><div class="saved"></div></div>
+</section>
+
+<!-- ============================================================ 9 -->
+<section class="chapter" id="c9" data-ch="p8-c9">
+  <div class="ch-head"><span class="n">Capítulo 9</span><h2>Avaliação contínua e o índice diante do auditor</h2><label class="donebox"><input type="checkbox" data-done> Capítulo concluído</label></div>
+
+  <p>A rodada do capítulo 6 é o que acontece antes de uma versão entrar. Depois que ela entra, a avaliação continua em três ritmos. <strong>A cada deploy</strong>: o conjunto de teste inteiro, com os quatro alvos como portão. <strong>Diariamente</strong>: um subconjunto de regressão rápida (dezenas de casos, só busca, custo zero de geração) que pega a mudança silenciosa do provedor ou da base (página 7, capítulo 9). <strong>Continuamente</strong>: o juiz por amostragem em produção, que mede fidelidade sobre respostas reais, e o contador de descartes. Os três alimentam o mesmo painel, com o mesmo código de medição versionado.</p>
+  <p>E há a medida que o cliente vê: o <strong>índice de conformidade</strong>. Ele é determinístico (25% por bloco; cada critério vale 100, 50 ou 0 conforme a classificação; NAO_AVALIAVEL não entra), calculado em código a partir da tabela de classificações. A pergunta que um auditor faz é "esse número significa o quê?", e a resposta honesta é uma medida de <strong>concordância</strong>: em documentos que auditores revisaram, critério a critério, em que fração a classificação do sistema coincide com a do auditor. Essa fração, com o seu intervalo, é o que sustenta o índice; sem ela, o índice é uma aritmética sobre palpites. As duas calculadoras abaixo mostram o índice e a concordância que ele precisa.</p>
+
+  <div class="lab">
+    <header><h4>Experimento · Calculadora do índice de conformidade</h4><span class="badge toy">roda no navegador</span></header>
+    <div class="body">
+      <p>Quatro blocos, três critérios cada (o projeto tem dezenas por bloco; a conta é a mesma). Escolha a classificação de cada critério e veja o bloco e o índice.</p>
+      <div id="sc-form" class="tbl-wrap"><table><thead><tr><th>Bloco</th><th>critério 1</th><th>critério 2</th><th>critério 3</th></tr></thead><tbody>
+        <tr><td>Habilitação</td><td><select id="sc-0-1"><option>CONFORME</option><option>ALERTA</option><option>NAO_CONFORME</option><option>NAO_AVALIAVEL</option></select></td><td><select id="sc-0-2"><option>CONFORME</option><option selected>ALERTA</option><option>NAO_CONFORME</option><option>NAO_AVALIAVEL</option></select></td><td><select id="sc-0-3"><option>CONFORME</option><option>ALERTA</option><option>NAO_CONFORME</option><option>NAO_AVALIAVEL</option></select></td></tr>
+        <tr><td>Objeto e especificação</td><td><select id="sc-1-1"><option>CONFORME</option><option>ALERTA</option><option>NAO_CONFORME</option><option>NAO_AVALIAVEL</option></select></td><td><select id="sc-1-2"><option>CONFORME</option><option>ALERTA</option><option>NAO_CONFORME</option><option>NAO_AVALIAVEL</option></select></td><td><select id="sc-1-3"><option>CONFORME</option><option>ALERTA</option><option>NAO_CONFORME</option><option selected>NAO_AVALIAVEL</option></select></td></tr>
+        <tr><td>Prazos e publicidade</td><td><select id="sc-2-1"><option>CONFORME</option><option>ALERTA</option><option selected>NAO_CONFORME</option><option>NAO_AVALIAVEL</option></select></td><td><select id="sc-2-2"><option>CONFORME</option><option>ALERTA</option><option>NAO_CONFORME</option><option>NAO_AVALIAVEL</option></select></td><td><select id="sc-2-3"><option>CONFORME</option><option>ALERTA</option><option>NAO_CONFORME</option><option>NAO_AVALIAVEL</option></select></td></tr>
+        <tr><td>Contrato e garantias</td><td><select id="sc-3-1"><option>CONFORME</option><option>ALERTA</option><option selected>NAO_CONFORME</option><option>NAO_AVALIAVEL</option></select></td><td><select id="sc-3-2"><option>CONFORME</option><option>ALERTA</option><option>NAO_CONFORME</option><option>NAO_AVALIAVEL</option></select></td><td><select id="sc-3-3"><option>CONFORME</option><option>ALERTA</option><option>NAO_CONFORME</option><option>NAO_AVALIAVEL</option></select></td></tr>
+      </tbody></table></div>
+      <div class="tbl-wrap"><table id="sc-tbl"><thead><tr><th>bloco</th><th>classificações</th><th>score do bloco</th></tr></thead><tbody></tbody></table></div>
+      <div id="sc-idx"></div>
+    </div>
+  </div>
+
+  <div class="lab">
+    <header><h4>Experimento · A concordância que sustenta o índice</h4><span class="badge toy">roda no navegador</span></header>
+    <div class="body">
+      <p>n critérios revisados por auditores, e a fração em que a classificação do sistema coincidiu. O intervalo diz se a concordância pode ser apresentada.</p>
+      <div class="row">
+        <div><label class="f" for="ag-n">critérios revisados = <span id="ag-nv"></span></label><input type="range" id="ag-n" min="20" max="2000" step="20" value="120"></div>
+        <div><label class="f" for="ag-agree">concordância observada = <span id="ag-agreev"></span></label><input type="range" id="ag-agree" min="70" max="100" step="1" value="93"></div>
+      </div>
+      <div class="bars" id="ag-out"></div>
+    </div>
+  </div>
+
+  <div class="doit"><span class="ic">faça agora</span><p>Na calculadora do índice, marque um critério como NAO_AVALIAVEL e veja que ele sai da média em vez de puxar para baixo: é uma decisão de design (não saber não é o mesmo que estar errado), e você deve conseguir defendê-la. Depois, na concordância, ache o n mínimo para sustentar 90% com 93% observados. É o tamanho do trabalho de revisão humana que o índice exige antes de ser mostrado.</p></div>
+
+  <div class="faq">
+    <h3>Perguntas que aparecem aqui</h3>
+    <details><summary>Por que NAO_AVALIAVEL não conta zero?</summary><p>Porque "não deu para avaliar com este excerto" não é uma violação; contar como zero puniria o documento pela limitação do sistema e transformaria uma dúvida em um achado. Ele sai da média e aparece separado ("3 critérios não avaliáveis"), para o auditor olhar. Um bloco inteiro não avaliável não entra no índice, e o relatório diz isso.</p><p class="why">Dúvida se reporta; não se pontua.</p></details>
+    <details><summary>Pesos iguais entre blocos (25%) fazem sentido?</summary><p>É o ponto de partida definido com o cliente, por simplicidade e transparência. Pesos diferentes por bloco, ou por critério, são possíveis e ficam em configuração, não em código; qualquer peso precisa ser explicável ao auditor, e "25% cada" é o mais fácil de explicar. A concordância com o parecer humano é o que diz se a ponderação precisa mudar.</p><p class="why">Simples e explicável primeiro; ponderação quando a medida pedir.</p></details>
+    <details><summary>Concordância de 93% é boa?</summary><p>Depende do n e de onde estão os 7%: se estão em ALERTA contra CONFORME (o sistema foi mais cauteloso), é aceitável; se estão em CONFORME contra NAO_CONFORME (o sistema absolveu uma violação), é grave mesmo em 3%. A matriz de confusão por classe, não só a fração, é o que se apresenta.</p><p class="why">Olhe a matriz: discordâncias não são todas iguais.</p></details>
+    <details><summary>O que vai no painel de avaliação contínua?</summary><p>As quatro métricas do teste por versão (uma linha por deploy); a regressão diária (uma curva); a fidelidade amostral e os descartes por motivo (curvas diárias); a concordância com auditores acumulada (com intervalo). E as versões de tudo, para que qualquer ponto do painel seja rastreável até um commit.</p><p class="why">Painel é histórico com versões; sem elas é decoração.</p></details>
+    <details><summary>Quem é o dono da avaliação no projeto?</summary><p>Uma pessoa: dona do conjunto (o que entra, quem revisa), do código de medição (versão) e do painel. Sem dono, o conjunto envelhece, o código muda de régua e os alvos viram sugestão. É o mesmo papel que uma equipe dá a testes automatizados de software.</p><p class="why">Avaliação tem dono, como testes têm.</p></details>
+  </div>
+
+  <div class="notes"><label for="n-p8-c9">Caderno</label><p class="hint">Descreva os três ritmos da avaliação contínua, a conta do índice, e a frase que você diria a um auditor que pergunta "esse índice significa o quê?".</p><textarea class="prose" id="n-p8-c9" data-note="p8-c9"></textarea><div class="saved"></div></div>
+</section>
+<!-- ============================================================ 10 -->
+<section class="chapter" id="c10" data-ch="p8-c10">
+  <div class="ch-head"><span class="n">Capítulo 10</span><h2>No projeto, checklist e autoavaliação</h2><label class="donebox"><input type="checkbox" data-done> Capítulo concluído</label></div>
+
+  <h3>No projeto</h3>
+  <p>O conjunto de avaliação vive em <code>avaliacao/</code>, versionado: <code>casos_v3.jsonl</code> (pergunta, tipo, esperado, resposta de referência, origem, revisor), dividido em dev e teste por um campo, com dezenas de casos por critério e os quatro tipos. O código de medição (<code>avaliar.py</code>) é versionado junto e calcula, para uma configuração congelada (modelo, base, prompt, parâmetros da busca): recall@k e MRR das três buscas; fidelidade, cobertura, recusa correta e recusa indevida sobre as gerações; intervalos de Wilson; e a comparação pareada contra a versão em produção. A rodada roda três vezes; o resultado vai para <code>resultados/&lt;versao&gt;.json</code> e para o painel. Portão de deploy: os quatro alvos no teste, nenhum caso bloqueante regredido. Em produção: regressão diária só de busca, juiz por amostragem, contador de descartes, e a concordância com auditores acumulada por documento revisado, que é o que sustenta o índice de conformidade.</p>
+  <p>O Ex. 7 (VIN-11) é o <code>avaliar.py</code> em pequeno: ler o JSONL, rodar as três buscas no pgvector do Ex. 3, calcular recall@k e MRR com intervalo, gerar para uma amostra e medir fidelidade e recusa, e gravar o resultado com as versões.</p>
+
+  <h3>Código de referência</h3>
+<pre><code class="language-python"># avaliacao/avaliar.py — métricas de busca e de resposta com intervalo (Ex. 7)
+import json, math, statistics
+from collections import Counter
+
+def wilson(k: int, n: int, z: float = 1.96) -> tuple[float, float]:
+    if n == 0: return (0.0, 1.0)
+    p = k / n; d = 1 + z * z / n
+    c = (p + z * z / (2 * n)) / d; h = z * math.sqrt(p * (1 - p) / n + z * z / (4 * n * n)) / d
+    return (max(0.0, c - h), min(1.0, c + h))
+
+def carregar(caminho: str, particao: str) -> list[dict]:
+    casos = [json.loads(l) for l in open(caminho, encoding="utf-8")]
+    return [c for c in casos if c.get("particao", "dev") == particao]
+
+def posicao(lista_ids: list[str], esperado: list[str]) -> int | None:
+    for i, cid in enumerate(lista_ids, 1):
+        if cid in esperado: return i
+    return None
+
+def metricas_busca(casos: list[dict], buscar, k: int = 12) -> dict:
+    """buscar(pergunta) -> {'vetorial': [ids], 'lexical': [ids], 'hibrida': [ids]}"""
+    com = [c for c in casos if c["tipo"] == "com"]
+    out = {}
+    for nome in ("vetorial", "lexical", "hibrida"):
+        acertos, rr = 0, 0.0
+        for c in com:
+            p = posicao(buscar(c["pergunta"])[nome], c["esperado"])
+            if p and p <= k: acertos += 1
+            if p: rr += 1 / p
+        lo, hi = wilson(acertos, len(com))
+        out[nome] = {"recall@k": acertos / len(com), "ic95": (lo, hi), "mrr": rr / len(com), "n": len(com)}
+    return out
+
+def metricas_resposta(casos: list[dict], responder, julgar=None) -> dict:
+    """responder(pergunta) -> {'ok', 'sem_evidencia', 'citacoes', 'resposta'}; julgar opcional (juiz calibrado)."""
+    com = [c for c in casos if c["tipo"] == "com"]; sem = [c for c in casos if c["tipo"] == "sem"]
+    fiel = aceitas = recusa_ind = 0
+    for c in com:
+        r = responder(c["pergunta"])
+        if r["sem_evidencia"]: recusa_ind += 1; continue
+        if not r["ok"]: continue
+        aceitas += 1
+        cita = any(cid in c["esperado"] for cid in r["citacoes"])
+        sustentada = julgar(r["resposta"], r["citacoes"]) if julgar else True
+        if cita and sustentada: fiel += 1
+    recusa_ok = sum(1 for c in sem if responder(c["pergunta"])["sem_evidencia"])
+    return {
+        "fidelidade": {"valor": fiel / aceitas if aceitas else None, "ic95": wilson(fiel, aceitas), "n": aceitas},
+        "recusa_correta": {"valor": recusa_ok / len(sem) if sem else None, "ic95": wilson(recusa_ok, len(sem)), "n": len(sem)},
+        "recusa_indevida": {"valor": recusa_ind / len(com), "n": len(com)},
+    }
+
+def comparar_pareado(acertos_a: list[int], acertos_b: list[int]) -> dict:
+    vit = sum(1 for a, b in zip(acertos_a, acertos_b) if b > a); der = sum(1 for a, b in zip(acertos_a, acertos_b) if a > b)
+    n = vit + der
+    p = min(1.0, 2 * sum(math.comb(n, i) for i in range(0, min(vit, der) + 1)) / 2 ** n) if n else 1.0   # teste do sinal
+    return {"vitorias_b": vit, "derrotas_b": der, "empates": len(acertos_a) - n, "p_sinal": p}
+
+def rodada(casos, buscar, responder, versoes: dict, k=12, repeticoes=3) -> dict:
+    execs = [metricas_busca(casos, buscar, k) for _ in range(repeticoes)]
+    recall_h = [e["hibrida"]["recall@k"] for e in execs]
+    res = {"versoes": versoes, "k": k, "busca": execs[0], "variacao_recall_h": (min(recall_h), max(recall_h)),
+           "resposta": metricas_resposta(casos, responder)}
+    json.dump(res, open(f"resultados/{versoes['prompt']}_{versoes['base']}.json", "w"), ensure_ascii=False, indent=2)
+    return res</code></pre>
+
+<pre><code class="language-text"># avaliacao/casos_v3.jsonl — uma linha por caso
+{"id": "c-0041", "pergunta": "Até quanto a prefeitura pode gastar numa reforma sem abrir licitação?", "tipo": "com", "esperado": ["L14133-art75-incI"], "referencia": "Até o limite do art. 75, I, para obras e serviços de engenharia, atualizado anualmente.", "origem": "analista", "revisor": "M.S.", "particao": "teste"}
+{"id": "c-0042", "pergunta": "Qual é a alíquota de ISS sobre o contrato de engenharia?", "tipo": "sem", "esperado": [], "referencia": "", "origem": "equipe", "revisor": "M.S.", "particao": "teste", "motivo_sem": "legislação tributária municipal não está na base"}
+{"id": "c-0043", "pergunta": "Garantia de 10% com justificativa técnica anexa está dentro do limite?", "tipo": "limite", "esperado": ["L14133-art98"], "referencia": "Sim: até 10% quando justificada pela complexidade técnica e riscos.", "origem": "auditor", "revisor": "R.L.", "particao": "dev", "bloqueante": true}</code></pre>
+
+  <h3>Checklist de domínio</h3>
+  <p>Marque só o que você faria sem consultar a página.</p>
+  <ul class="checklist">
+    <li><input type="checkbox" id="ck8-1"><label for="ck8-1">Digo o que cada um dos quatro alvos mede e o que significa ficar abaixo.</label></li>
+    <li><input type="checkbox" id="ck8-2"><label for="ck8-2">Escrevo um caso bem formado, reconheço vazamento lexical e monto os quatro tipos.</label></li>
+    <li><input type="checkbox" id="ck8-3"><label for="ck8-3">Calculo recall@k, precisão@k, MRR e nDCG à mão sobre um ranking.</label></li>
+    <li><input type="checkbox" id="ck8-4"><label for="ck8-4">Defino fidelidade, cobertura e recusa operacionalmente e calibro um juiz com kappa.</label></li>
+    <li><input type="checkbox" id="ck8-5"><label for="ck8-5">Sigo o protocolo (5 versões congeladas, ×3, dev/teste, pareado, registro) e reconheço sobreajuste.</label></li>
+    <li><input type="checkbox" id="ck8-6"><label for="ck8-6">Rodo a avaliação completa e leio a tabela pergunta a pergunta.</label></li>
+    <li><input type="checkbox" id="ck8-7"><label for="ck8-7">Reporto com intervalo de Wilson e dimensiono n para provar um alvo.</label></li>
+    <li><input type="checkbox" id="ck8-8"><label for="ck8-8">Comparo versões pareado, leio regressões e defendo o índice com a concordância.</label></li>
+  </ul>
+
+  <h3>Autoavaliação</h3>
+  <div class="quiz" id="quiz-p8">
+    <fieldset><legend>1. Fidelidade 0,98 e cobertura 0,70 como alvos dizem que o projeto prefere:</legend>
+      <label class="opt"><input type="radio" name="q1" data-correct="1"> Deixar passar achados a afirmar o que a fonte não sustenta.</label><div class="why">Correto. Os alvos codificam prioridades de produto.</div>
+      <label class="opt"><input type="radio" name="q1"> Apontar tudo, mesmo com erros.</label><div class="why">Seria cobertura alta com fidelidade baixa: o oposto.</div>
+      <label class="opt"><input type="radio" name="q1"> Não há relação entre os dois números.</label><div class="why">Há: são a mesma decisão vista de dois lados.</div>
+    </fieldset>
+    <fieldset><legend>2. A pergunta do caso é "É dispensável a licitação para contratação que envolva valores inferiores a cem mil reais?". O problema:</legend>
+      <label class="opt"><input type="radio" name="q2"> Nenhum; é uma pergunta clara.</label><div class="why">Clara e inútil: é o trecho reescrito.</div>
+      <label class="opt"><input type="radio" name="q2" data-correct="1"> Vazamento lexical: a busca lexical acha sem esforço; o caso não mede a busca.</label><div class="why">Correto. Reescreva com as palavras de quem pergunta.</div>
+      <label class="opt"><input type="radio" name="q2"> Falta o número do artigo.</label><div class="why">O número do artigo na pergunta pioraria o vazamento.</div>
+    </fieldset>
+    <fieldset><legend>3. Num ranking, o único relevante está em 4º. Com k = 3:</legend>
+      <label class="opt"><input type="radio" name="q3" data-correct="1"> recall@3 = 0, MRR = 0,25.</label><div class="why">Correto. Recall olha os k; MRR olha a posição do primeiro relevante, onde estiver.</div>
+      <label class="opt"><input type="radio" name="q3"> recall@3 = 0, MRR = 0.</label><div class="why">MRR não depende de k: 1/4.</div>
+      <label class="opt"><input type="radio" name="q3"> recall@3 = 0,25, MRR = 0,25.</label><div class="why">Recall@3 é 0: nenhum relevante entre os 3.</div>
+    </fieldset>
+    <fieldset><legend>4. Um juiz automático concorda em 90% com humanos, mas 90% das respostas são fiéis e ele diz "fiel" para tudo. Seu kappa é:</legend>
+      <label class="opt"><input type="radio" name="q4"> 0,9.</label><div class="why">Isso é a concordância simples, que premia o juiz que não lê.</div>
+      <label class="opt"><input type="radio" name="q4" data-correct="1"> Perto de zero: o acordo é o esperado por acaso.</label><div class="why">Correto. Kappa desconta o acordo ao acaso.</div>
+      <label class="opt"><input type="radio" name="q4"> 1.</label><div class="why">Kappa 1 seria concordância perfeita além do acaso.</div>
+    </fieldset>
+    <fieldset><legend>5. Você olhou o conjunto de teste, ajustou o prompt e o recall no teste subiu. O que aconteceu?</legend>
+      <label class="opt"><input type="radio" name="q5" data-correct="1"> O teste virou dev: o número dele deixou de ser reportável.</label><div class="why">Correto. Cada ajuste olhando o teste é sobreajuste disfarçado.</div>
+      <label class="opt"><input type="radio" name="q5"> O sistema melhorou, comprovadamente.</label><div class="why">Comprovado seria num conjunto que você não usou para ajustar.</div>
+      <label class="opt"><input type="radio" name="q5"> Nada de errado, se a subida foi grande.</label><div class="why">O tamanho da subida não muda a regra.</div>
+    </fieldset>
+    <fieldset><legend>6. Com dev pequeno e muitas iterações, a curva do dev sobe e a do teste não. O nome disso:</legend>
+      <label class="opt"><input type="radio" name="q6"> Deriva do modelo.</label><div class="why">Deriva é o provedor mudar o modelo; aqui quem mudou foi o prompt.</div>
+      <label class="opt"><input type="radio" name="q6" data-correct="1"> Sobreajuste ao conjunto: o prompt aprendeu as perguntas do dev.</label><div class="why">Correto. Dev maior e menos iterações reduzem.</div>
+      <label class="opt"><input type="radio" name="q6"> Vazamento lexical.</label><div class="why">Vazamento é sobre a redação do caso, não sobre iterar.</div>
+    </fieldset>
+    <fieldset><legend>7. Recall@12 = 10 de 12. Dá para afirmar que o alvo de 0,80 foi atingido?</legend>
+      <label class="opt"><input type="radio" name="q7"> Sim: 83% &gt; 80%.</label><div class="why">O ponto passa; o intervalo vai bem abaixo de 80%.</div>
+      <label class="opt"><input type="radio" name="q7" data-correct="1"> Não: o limite inferior do intervalo fica muito abaixo de 80%; precisa de mais perguntas.</label><div class="why">Correto. Com n = 12 o intervalo é largo demais para decidir.</div>
+      <label class="opt"><input type="radio" name="q7"> Sim, se rodar três vezes.</label><div class="why">Repetir não aumenta n de perguntas; reduz só a variação de execução.</div>
+    </fieldset>
+    <fieldset><legend>8. v3 fez 86% e v2 fez 83% em 30 perguntas. A comparação correta:</legend>
+      <label class="opt"><input type="radio" name="q8" data-correct="1"> Pareada: contar vitórias, derrotas e empates pergunta a pergunta e testar os discordantes; ler as regressões.</label><div class="why">Correto. Média contra média esconde o acaso e as regressões.</div>
+      <label class="opt"><input type="radio" name="q8"> 86 &gt; 83, v3 entra.</label><div class="why">Três pontos em 30 perguntas é uma pergunta; cabe no acaso.</div>
+      <label class="opt"><input type="radio" name="q8"> Rodar mais três vezes cada uma e comparar as médias.</label><div class="why">Repetições medem variação de execução, não a diferença entre versões.</div>
+    </fieldset>
+    <fieldset><legend>9. Por que NAO_AVALIAVEL sai da média do índice em vez de valer zero?</legend>
+      <label class="opt"><input type="radio" name="q9"> Para o índice ficar mais alto.</label><div class="why">Não é para inflar; é para não punir dúvida como violação.</div>
+      <label class="opt"><input type="radio" name="q9" data-correct="1"> Porque "não deu para avaliar" não é violação; ele é reportado à parte para o auditor.</label><div class="why">Correto. Dúvida se reporta, não se pontua.</div>
+      <label class="opt"><input type="radio" name="q9"> Porque o modelo raramente devolve NAO_AVALIAVEL.</label><div class="why">A frequência não muda a lógica.</div>
+    </fieldset>
+    <fieldset><legend>10. O que sustenta o índice de conformidade diante de um auditor?</legend>
+      <label class="opt"><input type="radio" name="q10"> A fórmula (25% por bloco) ser transparente.</label><div class="why">Transparência da conta não diz se as classificações estão certas.</div>
+      <label class="opt"><input type="radio" name="q10" data-correct="1"> A concordância medida, critério a critério, entre o sistema e auditores, com intervalo e matriz por classe.</label><div class="why">Correto. Sem ela, o índice é aritmética sobre palpites.</div>
+      <label class="opt"><input type="radio" name="q10"> O modelo ser o mais recente.</label><div class="why">Versão do modelo não é evidência de acerto.</div>
+    </fieldset>
+    <button class="btn grade">Corrigir</button>
+    <div class="score"></div>
+  </div>
+
+  <div class="callout"><span class="t">Próxima página</span><p>A página 9, Dados e Python para RAG, é a caixa de ferramentas do Ex. 2: extrair texto de PDF (pdfplumber, pymupdf, OCR), limpar com regex, estruturar em JSONL, pandas para inspecionar, Pydantic para validar e psycopg para carregar, com um laboratório de regex e um inspetor de JSONL no navegador.</p></div>
+</section>
+
+    <div class="pager"><a class="prev" href="07-validacao.html"><small>anterior</small>Alucinação, validação e guardrails</a><a class="next disabled" href="#"><small>próxima</small>em construção</a></div>
+    <p class="foot">Guia de estudo pessoal. Corpus com redação adaptada da Lei 14.133/2021 para fins didáticos; confira o texto oficial antes de qualquer uso real. A chave da API fica apenas neste navegador; experimentos ao vivo chamam a API do Google diretamente e consomem a sua cota.</p>
+  </div></main>
+  <aside class="toc" aria-label="Nesta página" ><div class="t">Nesta página</div><ol id="toc-list"></ol></aside>
+</div>
+<script>window.GUIA_MANIFEST = {pages: [{"id": "p0", "file": "index.html", "num": "0", "title": "Início", "chapters": [], "issue": null}, {"id": "p1", "file": "01-modelos.html", "num": "1", "title": "Como um modelo de linguagem funciona", "chapters": ["p1-c1", "p1-c2", "p1-c3", "p1-c4", "p1-c5", "p1-c6", "p1-c7", "p1-c8", "p1-c9", "p1-c10"], "issue": "VIN-5"}, {"id": "p2", "file": "02-embeddings.html", "num": "2", "title": "Embeddings", "chapters": ["p2-c1", "p2-c2", "p2-c3", "p2-c4", "p2-c5", "p2-c6", "p2-c7", "p2-c8", "p2-c9", "p2-c10"], "issue": "VIN-7"}, {"id": "p3", "file": "03-busca-vetorial.html", "num": "3", "title": "Busca vetorial e índices", "chapters": ["p3-c1", "p3-c2", "p3-c3", "p3-c4", "p3-c5", "p3-c6", "p3-c7", "p3-c8", "p3-c9", "p3-c10"], "issue": "VIN-7"}, {"id": "p4", "file": "04-busca-lexical-hibrida.html", "num": "4", "title": "Busca lexical e híbrida", "chapters": ["p4-c1", "p4-c2", "p4-c3", "p4-c4", "p4-c5", "p4-c6", "p4-c7", "p4-c8", "p4-c9", "p4-c10"], "issue": "VIN-8"}, {"id": "p5", "file": "05-rag.html", "num": "5", "title": "RAG de ponta a ponta e ingestão", "chapters": ["p5-c1", "p5-c2", "p5-c3", "p5-c4", "p5-c5", "p5-c6", "p5-c7", "p5-c8", "p5-c9", "p5-c10"], "issue": "VIN-6"}, {"id": "p6", "file": "06-prompt.html", "num": "6", "title": "Prompt engineering", "chapters": ["p6-c1", "p6-c2", "p6-c3", "p6-c4", "p6-c5", "p6-c6", "p6-c7", "p6-c8", "p6-c9", "p6-c10"], "issue": "VIN-9"}, {"id": "p7", "file": "07-validacao.html", "num": "7", "title": "Alucinação, validação e guardrails", "chapters": ["p7-c1", "p7-c2", "p7-c3", "p7-c4", "p7-c5", "p7-c6", "p7-c7", "p7-c8", "p7-c9", "p7-c10"], "issue": "VIN-10"}, {"id": "p8", "file": "08-avaliacao.html", "num": "8", "title": "Avaliação", "chapters": ["p8-c1", "p8-c2", "p8-c3", "p8-c4", "p8-c5", "p8-c6", "p8-c7", "p8-c8", "p8-c9", "p8-c10"], "issue": "VIN-11"}, {"id": "p9", "file": "09-dados-python.html", "num": "9", "title": "Dados e Python para RAG", "chapters": [], "issue": "VIN-6"}, {"id": "p10", "file": "10-custo-operacao.html", "num": "10", "title": "Custo, modelos e operação", "chapters": [], "issue": "VIN-12"}, {"id": "glossario", "file": "glossario.html", "num": "•", "title": "Glossário", "chapters": [], "issue": null}, {"id": "exercicios", "file": "exercicios.html", "num": "•", "title": "Exercícios", "chapters": [], "issue": null}, {"id": "prompts", "file": "prompts.html", "num": "•", "title": "Biblioteca de prompts", "chapters": [], "issue": null}]};</script>
+<script src="assets/corpus.js"></script>
+<script src="assets/core.js"></script>
+<script src="assets/site.js"></script>
+<script>
+(function () {
+  const needKey = () => { if (!gemini.ready()) throw new Error('Precisa de chave (configure na página inicial).'); };
+  const bar = (label, val, max = 1, cls = '', txt = null) => `<div class="b"><span>${esc(label)}</span><i class="${cls}" style="width:${Math.max(0, Math.min(100, ((val / max) * 100)))}%"></i><span class="v">${txt ?? fmt(val, 3)}</span></div>`;
+  const pct = (x) => (x * 100).toFixed(0) + '%';
+  const norm = (s) => String(s).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/\s+/g, ' ').trim();
+  const SYSTEM = `Você responde perguntas sobre licitações e contratos usando SOMENTE os trechos normativos fornecidos entre as tags <trecho>. Regras: (1) cite os ids dos trechos que embasam cada afirmação; (2) se os trechos não contêm a resposta, devolva sem_evidencia = true e explique o que faltou; (3) não use conhecimento externo; (4) responda em português, em até 4 frases.`;
+  async function ensureIndexed(statusEl) { if (corpus.indexed()) return; needKey(); setStatus(statusEl, 'Indexando o corpus (uma vez; 3 lotes)…'); await corpus.index((i, n) => setStatus(statusEl, `Indexando ${i}/${n}…`)); }
+  const ALVOS = { recall: 0.80, fidelidade: 0.98, cobertura: 0.70, recusa: 0.90 };
+  // intervalo de Wilson (95%)
+  function wilson(k, n, z = 1.96) { if (!n) return [0, 1]; const p = k / n; const d = 1 + (z * z) / n; const c = (p + (z * z) / (2 * n)) / d; const h = (z * Math.sqrt((p * (1 - p)) / n + (z * z) / (4 * n * n))) / d; return [Math.max(0, c - h), Math.min(1, c + h)]; }
+  const SEM = [
+    { pergunta: 'Qual é a alíquota do ISS sobre serviços de engenharia?', tipo: 'sem' },
+    { pergunta: 'Qual é o prazo de validade da certidão negativa do FGTS para habilitação?', tipo: 'sem' },
+    { pergunta: 'Quantos servidores deve ter a comissão de contratação em município de 20 mil habitantes?', tipo: 'sem' },
+    { pergunta: 'Qual o percentual de retenção previdenciária sobre a fatura de serviços com cessão de mão de obra?', tipo: 'sem' },
+  ];
+
+  /* ============ c1 · painel-alvo ============ */
+  (function () {
+    const f = $('#al-form'); if (!f) return;
+    const MSG = {
+      recall: (v) => v >= ALVOS.recall ? 'A busca entrega o trecho certo entre os 12 na maioria das perguntas: o modelo tem o que precisa para responder.' : `Em ${pct(1 - v)} das perguntas o trecho certo não chega ao modelo. Nada depois da busca conserta isso; é o primeiro número a olhar.`,
+      fidelidade: (v) => v >= ALVOS.fidelidade ? 'Quase toda resposta aceita é sustentada pelo que citou: o analista pode confiar na citação.' : `${pct(1 - v)} das respostas aceitas afirmam algo que os trechos citados não sustentam. Em auditoria, é o número que não pode ceder.`,
+      cobertura: (v) => v >= ALVOS.cobertura ? 'A auditoria aponta a maior parte dos achados que os auditores apontariam.' : `${pct(1 - v)} dos achados esperados passam sem apontamento. O sistema é seguro no que diz, mas deixa passar.`,
+      recusa: (v) => v >= ALVOS.recusa ? 'Perguntas sem resposta na base recebem "sem evidência" quase sempre: o sistema não inventa.' : `Em ${pct(1 - v)} das perguntas sem resposta o sistema inventou uma. É a alucinação clássica, medida.`,
+    };
+    function render() {
+      let ok = 0; const out = Object.keys(ALVOS).map((k) => { const v = +$('#al-' + k).value / 100; const hit = v >= ALVOS[k]; if (hit) ok++; $('#al-' + k + 'v').textContent = pct(v); return `<div class="target ${hit ? 'ok' : 'bad'}"><div class="h"><b>${k}</b> <span>${pct(v)} · alvo ≥ ${pct(ALVOS[k])}</span></div><p>${MSG[k](v)}</p></div>`; }).join('');
+      $('#al-out').innerHTML = out; $('#al-note').textContent = ok === 4 ? 'Os quatro alvos atendidos: a versão pode entrar. Repare que "atender" é uma decisão sobre números medidos num conjunto, não uma impressão.' : `${4 - ok} alvo(s) não atendido(s): a versão não entra. Cada número aponta para uma parte diferente do sistema.`;
+    }
+    $$('#al-form input').forEach((e) => e.addEventListener('input', render)); render();
+  })();
+
+  /* ============ c2 · construtor de casos ============ */
+  (function () {
+    const sel = $('#cs-trecho'); if (!sel) return;
+    corpus.trechos.forEach((t) => sel.add(new Option(`${t.dispositivo} · ${t.conteudo.slice(0, 60)}…`, t.id)));
+    const KEY = 'casos'; let casos = store.get(KEY, []);
+    const overlap = (q, t) => { const qs = new Set(tokenize(q)); const ts = new Set(tokenize(t)); if (!qs.size) return 0; let n = 0; qs.forEach((w) => { if (ts.has(w)) n++; }); return n / qs.size; };
+    function preview() {
+      const t = corpus.byId[sel.value]; const q = $('#cs-q').value.trim(); const tipo = $('#cs-tipo').value; const ov = q ? overlap(q, t.conteudo) : 0;
+      $('#cs-trecho-text').textContent = t.conteudo;
+      const obj = { pergunta: q, tipo, esperado: tipo === 'sem' ? [] : [t.id], resposta_referencia: $('#cs-ref').value.trim(), origem: 'manual', revisado_por: '' };
+      $('#cs-jsonl').textContent = JSON.stringify(obj, { ensure_ascii: false });
+      const warn = [];
+      if (q.length < 15) warn.push('pergunta curta demais para ser um caso');
+      if (tipo !== 'sem' && ov > 0.6) warn.push(`vazamento lexical: ${pct(ov)} das palavras da pergunta estão no trecho; a busca lexical acha sem esforço e o caso não mede nada`);
+      if (tipo !== 'sem' && ov < 0.15 && q.length >= 15) warn.push('quase nenhuma palavra em comum com o trecho: bom para medir a vetorial; confira se a resposta está mesmo nesse trecho');
+      if (tipo === 'sem' && corpus.trechos.some((x) => overlap(q, x.conteudo) > 0.5)) warn.push('esta pergunta "sem resposta" compartilha muito vocabulário com um trecho da base: confira se a base realmente não responde');
+      if (!$('#cs-ref').value.trim() && tipo !== 'sem') warn.push('sem resposta de referência: fidelidade e cobertura não poderão ser medidas neste caso');
+      $('#cs-warn').innerHTML = warn.length ? '<ul class="checks">' + warn.map((w) => `<li class="bad">✗ ${esc(w)}</li>`).join('') + '</ul>' : '<ul class="checks"><li class="ok">✓ caso bem formado (sobreposição lexical ' + pct(ov) + ')</li></ul>';
+      return { obj, warn };
+    }
+    function renderList() { $('#cs-list').innerHTML = casos.length ? '<div class="tbl-wrap"><table><thead><tr><th>#</th><th>tipo</th><th>pergunta</th><th>esperado</th><th></th></tr></thead><tbody>' + casos.map((c, i) => `<tr><td>${i + 1}</td><td>${esc(c.tipo)}</td><td>${esc(c.pergunta.slice(0, 70))}</td><td>${esc(c.esperado.join(', ') || '—')}</td><td><button class="chip" type="button" data-del="${i}">remover</button></td></tr>`).join('') + '</tbody></table></div>' : '<p class="mini">Nenhum caso seu ainda. O conjunto do guia tem ' + corpus.avaliacao.length + ' perguntas com resposta; os seus somam a elas na avaliação do capítulo 6.</p>'; $$('#cs-list [data-del]').forEach((b) => b.addEventListener('click', () => { casos.splice(+b.dataset.del, 1); store.set(KEY, casos); renderList(); })); $('#cs-n').textContent = `${casos.length} caso(s) seus salvos neste navegador`; }
+    ['#cs-q', '#cs-ref'].forEach((s) => $(s).addEventListener('input', preview)); ['#cs-trecho', '#cs-tipo'].forEach((s) => $(s).addEventListener('change', preview));
+    $('#cs-add').addEventListener('click', () => { const { obj, warn } = preview(); if (!obj.pergunta) return; if (warn.some((w) => w.startsWith('vazamento'))) { setStatus($('#cs-status'), 'Reescreva a pergunta com as suas palavras: com esse vazamento o caso não mede a busca.', 'warn'); return; } casos.push(obj); store.set(KEY, casos); renderList(); $('#cs-q').value = ''; $('#cs-ref').value = ''; preview(); setStatus($('#cs-status'), 'Caso salvo. Ele entra na avaliação do capítulo 6.', 'ok'); });
+    $('#cs-export').addEventListener('click', async () => { const txt = corpus.avaliacao.map((a) => JSON.stringify({ pergunta: a.pergunta, tipo: 'com', esperado: a.esperado })).concat(casos.map((c) => JSON.stringify(c))).join('\n'); try { await navigator.clipboard.writeText(txt); setStatus($('#cs-status'), `${corpus.avaliacao.length + casos.length} linhas JSONL copiadas (conjunto do guia + os seus).`, 'ok'); } catch { setStatus($('#cs-status'), 'Não deu para copiar; selecione o texto abaixo.', 'err'); $('#cs-jsonl').textContent = txt; } });
+    $$('#cs-presets .chip').forEach((c) => c.addEventListener('click', () => { $('#cs-q').value = c.dataset.q; if (c.dataset.t) sel.value = c.dataset.t; $('#cs-tipo').value = c.dataset.tipo || 'com'; preview(); }));
+    preview(); renderList();
+    window.__casos = () => casos;
+  })();
+
+  /* ============ c3 · calculadora de ranking ============ */
+  (function () {
+    const el = $('#rk-list'); if (!el) return;
+    let rel = [0, 2, 0, 1, 0, 0, 2, 0, 0, 1]; // graus de relevância 0/1/2 nas 10 posições
+    const labels = ['Art. 6º, XLI', 'Art. 75, I', 'Art. 17', 'Art. 75, II', 'Art. 55, II', 'Art. 72', 'Art. 75, § 3º', 'Art. 98', 'Art. 125', 'Art. 74'];
+    function metrics(k) {
+      const relevant = rel.map((r, i) => r > 0 ? i : -1).filter((i) => i >= 0); const totalRel = relevant.length;
+      const hitsK = relevant.filter((i) => i < k).length;
+      const recall = totalRel ? hitsK / totalRel : 0, precision = hitsK / k, hit = hitsK > 0 ? 1 : 0;
+      const first = relevant.length ? relevant[0] + 1 : 0; const mrr = first ? 1 / first : 0;
+      const dcg = rel.slice(0, k).reduce((a, r, i) => a + (Math.pow(2, r) - 1) / Math.log2(i + 2), 0);
+      const ideal = rel.slice().sort((a, b) => b - a).slice(0, k).reduce((a, r, i) => a + (Math.pow(2, r) - 1) / Math.log2(i + 2), 0);
+      return { recall, precision, hit, mrr, ndcg: ideal ? dcg / ideal : 0, first, totalRel, hitsK };
+    }
+    function render() {
+      const k = +$('#rk-k').value; $('#rk-kv').textContent = k; const m = metrics(k);
+      el.innerHTML = rel.map((r, i) => `<button type="button" class="rk ${r === 1 ? 'r1' : r === 2 ? 'r2' : ''} ${i < k ? 'in' : 'out'}" data-i="${i}" title="clique para mudar a relevância">${i + 1}º · ${esc(labels[i])} <span>${r === 2 ? 'responde' : r === 1 ? 'relacionado' : 'irrelevante'}</span></button>`).join('');
+      $$('#rk-list .rk').forEach((b) => b.addEventListener('click', () => { rel[+b.dataset.i] = (rel[+b.dataset.i] + 1) % 3; render(); }));
+      $('#rk-out').innerHTML = bar(`recall@${k} (${m.hitsK} de ${m.totalRel} relevantes entre os ${k})`, m.recall, 1, 'f', pct(m.recall)) + bar(`precisão@${k} (${m.hitsK} de ${k} são relevantes)`, m.precision, 1, '', pct(m.precision)) + bar(`hit@${k} (algum relevante entre os ${k}?)`, m.hit, 1, '', m.hit ? 'sim' : 'não') + bar(`MRR (1 ÷ posição do primeiro relevante${m.first ? ' = 1/' + m.first : ''})`, m.mrr, 1, '', m.mrr.toFixed(3)) + bar(`nDCG@${k} (ganho com desconto por posição, normalizado)`, m.ndcg, 1, '', m.ndcg.toFixed(3));
+      $('#rk-note').textContent = m.totalRel ? `Relevantes: ${rel.map((r, i) => r ? i + 1 + 'º' : null).filter(Boolean).join(', ')}. Mova o k e veja recall subir e precisão cair; mova um relevante para o topo e veja MRR e nDCG reagirem enquanto recall@${k} fica igual.` : 'Marque pelo menos um item como relevante.';
+    }
+    $('#rk-k').addEventListener('input', render); $('#rk-shuffle').addEventListener('click', () => { rel = rel.map(() => (Math.random() < 0.25 ? (Math.random() < 0.5 ? 1 : 2) : 0)); if (!rel.some(Boolean)) rel[3] = 2; render(); }); render();
+  })();
+
+  /* ============ c4 · rotule respostas e compare com a referência (concordância e kappa) ============ */
+  (function () {
+    const el = $('#lb-list'); if (!el) return;
+    const ITENS = [
+      { r: 'O limite para dispensa em obras é de R$ 100.000,00 (art. 75, I).', ctx: 'Art. 75, I: …valores inferiores a R$ 100.000,00…', ref: true },
+      { r: 'O limite para dispensa em obras é de R$ 100.000,00 e vale também para compras.', ctx: 'Art. 75, I: …no caso de obras e serviços de engenharia… Art. 75, II: …R$ 50.000,00… outros serviços e compras.', ref: false },
+      { r: 'A garantia pode chegar a 10% se justificada pela complexidade técnica.', ctx: 'Art. 98: …até 5%… majoração para até 10% desde que justificada mediante análise da complexidade técnica e dos riscos…', ref: true },
+      { r: 'A garantia é obrigatória em toda contratação de obras.', ctx: 'Art. 98: …a garantia poderá ser de até 5%…', ref: false },
+      { r: 'O prazo mínimo para propostas em obras por menor preço é de 10 dias úteis.', ctx: 'Art. 55, II: …10 dias úteis, quando adotados os critérios de julgamento de menor preço ou de maior desconto…', ref: true },
+      { r: 'O contratado deve aceitar acréscimos de até 50% em qualquer obra.', ctx: 'Art. 125: …acréscimos ou supressões de até 25%… (50% para reforma de edifício ou de equipamento, no caso de acréscimos)', ref: false },
+    ];
+    const my = new Array(ITENS.length).fill(null);
+    function render() {
+      el.innerHTML = ITENS.map((it, i) => `<div class="lbl-item"><div><b>Resposta ${i + 1}:</b> ${esc(it.r)}<br><span class="mini">trechos citados: ${esc(it.ctx)}</span></div><div class="chips"><button class="chip" type="button" data-i="${i}" data-v="1" aria-pressed="${my[i] === true}">fiel</button><button class="chip" type="button" data-i="${i}" data-v="0" aria-pressed="${my[i] === false}">não fiel</button></div></div>`).join('');
+      $$('#lb-list .chip').forEach((b) => b.addEventListener('click', () => { my[+b.dataset.i] = b.dataset.v === '1'; render(); }));
+      const done = my.filter((x) => x !== null).length;
+      if (done === ITENS.length) {
+        let a = 0, bb = 0, c = 0, d = 0; ITENS.forEach((it, i) => { if (my[i] && it.ref) a++; else if (my[i] && !it.ref) bb++; else if (!my[i] && it.ref) c++; else d++; });
+        const n = ITENS.length, po = (a + d) / n, pe = ((a + bb) / n) * ((a + c) / n) + ((c + d) / n) * ((bb + d) / n); const kappa = pe === 1 ? 1 : (po - pe) / (1 - pe);
+        $('#lb-out').innerHTML = `<div class="tbl-wrap"><table class="mtx"><thead><tr><th></th><th>referência: fiel</th><th>referência: não fiel</th></tr></thead><tbody><tr><th>você: fiel</th><td class="ok">${a}</td><td class="bad">${bb}</td></tr><tr><th>você: não fiel</th><td class="bad">${c}</td><td class="ok">${d}</td></tr></tbody></table></div>` + bar('concordância simples (acordos ÷ total)', po, 1, '', pct(po)) + bar('kappa de Cohen (descontando o acaso)', Math.max(0, kappa), 1, 'f', kappa.toFixed(2)) + `<p class="mini">${kappa >= 0.8 ? 'Kappa ≥ 0,8: concordância forte. Um juiz automático com esse kappa contra rótulos humanos pode substituir a leitura em rotina.' : kappa >= 0.6 ? 'Kappa entre 0,6 e 0,8: concordância moderada. Um juiz assim serve para triagem, não para o número final.' : 'Kappa abaixo de 0,6: os rótulos discordam além do acaso. Ou a definição de "fiel" está ambígua, ou o rotulador precisa de mais critério.'}</p>`;
+      } else $('#lb-out').innerHTML = `<p class="mini">${done} de ${ITENS.length} rotuladas. Rotule todas para ver a concordância e o kappa.</p>`;
+    }
+    render();
+  })();
+
+  /* ============ c5 · simulador de sobreajuste ============ */
+  (function () {
+    const svg = $('#of-svg'); if (!svg) return;
+    function render() {
+      const it = +$('#of-it').value, ndev = +$('#of-n').value; $('#of-itv').textContent = it; $('#of-nv').textContent = ndev;
+      // modelo de brinquedo: cada iteração "ajusta ao dev"; o ganho real satura; o ganho espúrio cresce com 1/sqrt(n)
+      const real = (i) => 0.62 + 0.2 * (1 - Math.exp(-i / 6)); const spur = (i) => (0.35 / Math.sqrt(ndev)) * (1 - Math.exp(-i / 4)) * 3.2;
+      const dev = [], test = []; for (let i = 0; i <= 30; i++) { dev.push(Math.min(1, real(i) + spur(i))); test.push(real(i) - (i > 12 ? 0.004 * (i - 12) : 0)); }
+      const W = 760, H = 230, x0 = 40, y0 = 200; const px = (i) => x0 + (i / 30) * (W - 60), py = (v) => y0 - ((v - 0.5) / 0.5) * (y0 - 20);
+      let s = `<line x1="${x0}" y1="${y0}" x2="${W - 10}" y2="${y0}" stroke="var(--line)"/><line x1="${x0}" y1="10" x2="${x0}" y2="${y0}" stroke="var(--line)"/>`;
+      [0.5, 0.6, 0.7, 0.8, 0.9, 1.0].forEach((v) => { s += `<text x="${x0 - 6}" y="${py(v) + 4}" font-size="10" text-anchor="end" fill="var(--muted)">${pct(v)}</text><line x1="${x0}" y1="${py(v)}" x2="${W - 10}" y2="${py(v)}" stroke="var(--line)" stroke-dasharray="2 4"/>`; });
+      s += `<polyline points="${dev.slice(0, it + 1).map((v, i) => `${px(i)},${py(v)}`).join(' ')}" fill="none" stroke="var(--amber)" stroke-width="3"/>`;
+      s += `<polyline points="${test.slice(0, it + 1).map((v, i) => `${px(i)},${py(v)}`).join(' ')}" fill="none" stroke="var(--teal)" stroke-width="3"/>`;
+      s += `<text x="${px(Math.max(1, it)) + 6}" y="${py(dev[it])}" font-size="11" fill="var(--amber)">dev ${pct(dev[it])}</text><text x="${px(Math.max(1, it)) + 6}" y="${py(test[it]) + 14}" font-size="11" fill="var(--teal)">teste ${pct(test[it])}</text>`;
+      s += `<text x="${W - 10}" y="${y0 + 16}" font-size="11" text-anchor="end" fill="var(--muted)">iterações de ajuste do prompt olhando o conjunto de desenvolvimento</text>`;
+      svg.innerHTML = s;
+      const gap = dev[it] - test[it];
+      $('#of-note').textContent = gap > 0.12 ? `Diferença de ${pct(gap)} entre dev e teste: o prompt aprendeu as ${ndev} perguntas do dev, não a tarefa. Com um conjunto de desenvolvimento maior a curva laranja sobe menos "de graça".` : gap > 0.05 ? `Diferença de ${pct(gap)}: começa a haver sobreajuste. Pare de iterar no dev ou aumente-o.` : `Diferença de ${pct(gap)}: o que subiu no dev subiu no teste. O ganho é real.`;
+    }
+    ['#of-it', '#of-n'].forEach((s) => $(s).addEventListener('input', render)); render();
+  })();
+
+  /* ============ c6 · avaliação ao vivo (Ex. 7) ============ */
+  const RUNS_KEY = 'runs'; const runs = () => store.get(RUNS_KEY, []);
+  (function () {
+    const btn = $('#ev-run'); if (!btn) return;
+    btn.addEventListener('click', () => guard($('#ev-status'), async () => {
+      await ensureIndexed($('#ev-status')); const k = +$('#ev-k').value, K = +$('#ev-K').value, cand = +$('#ev-cand').value, gen = $('#ev-gen').value;
+      const meus = (window.__casos ? window.__casos() : []).filter((c) => c.tipo !== 'sem' && c.esperado.length);
+      const com = corpus.avaliacao.map((a) => ({ pergunta: a.pergunta, esperado: a.esperado, tipo: 'com' })).concat(meus.map((c) => ({ pergunta: c.pergunta, esperado: c.esperado, tipo: 'com' })));
+      const sem = SEM.concat((window.__casos ? window.__casos() : []).filter((c) => c.tipo === 'sem').map((c) => ({ pergunta: c.pergunta, tipo: 'sem' })));
+      const all = com.concat(sem);
+      setStatus($('#ev-status'), `Embutindo ${all.length} perguntas (um lote)…`);
+      const qv = await gemini.embedItems(all.map((x) => ({ text: x.pergunta, taskType: 'RETRIEVAL_QUERY' })));
+      const rows = all.map((x, i) => { const v = corpus.trechos.map((t) => ({ id: t.id, score: dot(qv[i], corpus.emb[t.id]) })).sort((a, b) => b.score - a.score).slice(0, cand); const l = bm25.search(x.pergunta, cand); const h = rrf([v, l], K, cand); return { ...x, v, l, h, topScore: v[0].score }; });
+      const posIn = (list, ids) => { const i = list.findIndex((r) => ids.includes(r.id)); return i < 0 ? null : i + 1; };
+      const rec = (key) => { const cs = rows.filter((r) => r.tipo === 'com'); return cs.filter((r) => { const p = posIn(r[key], r.esperado); return p && p <= k; }).length / cs.length; };
+      const mrr = (key) => { const cs = rows.filter((r) => r.tipo === 'com'); return cs.reduce((a, r) => { const p = posIn(r[key], r.esperado); return a + (p ? 1 / p : 0); }, 0) / cs.length; };
+      const res = { quando: new Date().toISOString(), rotulo: `k=${k} K=${K} cand=${cand} ${gemini.embedModel}${gen !== 'none' ? ' +' + gemini.model : ''}`, n_com: com.length, n_sem: sem.length, recall: { v: rec('v'), l: rec('l'), h: rec('h') }, mrr: { v: mrr('v'), l: mrr('l'), h: mrr('h') }, hits: rows.filter((r) => r.tipo === 'com').map((r) => { const p = posIn(r.h, r.esperado); return p && p <= k ? 1 : 0; }) };
+      // geração opcional
+      let fid = null, rcs = null, gens = 0; const detalhes = {};
+      if (gen !== 'none') {
+        const nGen = gen === 'some' ? Math.min(4, com.length) : com.length; const nSem = gen === 'some' ? Math.min(2, sem.length) : sem.length;
+        const alvoCom = rows.filter((r) => r.tipo === 'com').slice(0, nGen), alvoSem = rows.filter((r) => r.tipo === 'sem').slice(0, nSem);
+        let fiel = 0, recusou = 0, inventou = 0, recusaIndevida = 0;
+        for (const r of alvoCom.concat(alvoSem)) {
+          gens++; setStatus($('#ev-status'), `Gerando ${gens}/${alvoCom.length + alvoSem.length}…`);
+          const ids = r.h.slice(0, k).map((x) => x.id); const g = await gemini.generate({ system: SYSTEM, user: `<contexto>\n${buildContext(ids)}\n</contexto>\n\nPergunta: ${r.pergunta}`, json: true, schema: RESP_SCHEMA, maxTokens: 2048 });
+          const obj = parseJSON(g.text); const v = validateAnswer(obj, ids);
+          if (r.tipo === 'com') { if (v.sem_evidencia) { recusaIndevida++; detalhes[r.pergunta] = 'recusa indevida'; } else if (v.ok && v.citacoesOk.some((c) => r.esperado.includes(c.id))) { fiel++; detalhes[r.pergunta] = 'fiel (cita o esperado)'; } else detalhes[r.pergunta] = v.ok ? 'aceita sem citar o esperado' : 'rejeitada'; }
+          else { if (v.sem_evidencia) { recusou++; detalhes[r.pergunta] = 'recusa correta'; } else { inventou++; detalhes[r.pergunta] = `inventou (score topo ${r.topScore.toFixed(3)})`; } }
+        }
+        fid = alvoCom.length ? fiel / alvoCom.length : null; rcs = alvoSem.length ? recusou / alvoSem.length : null;
+        res.fidelidade = fid; res.recusa = rcs; res.recusa_indevida = alvoCom.length ? recusaIndevida / alvoCom.length : null; res.n_gen = gens;
+      }
+      const all_runs = runs(); all_runs.unshift(res); store.set(RUNS_KEY, all_runs.slice(0, 12));
+      // painel
+      const ci = wilson(Math.round(res.recall.h * com.length), com.length);
+      $('#ev-out').innerHTML = bar(`recall@${k} híbrida (alvo ≥ 80%) · IC95 ${pct(ci[0])}–${pct(ci[1])}`, res.recall.h, 1, res.recall.h >= ALVOS.recall ? 'f' : '', pct(res.recall.h)) + bar(`recall@${k} vetorial`, res.recall.v, 1, '', pct(res.recall.v)) + bar(`recall@${k} lexical`, res.recall.l, 1, '', pct(res.recall.l)) + bar('MRR híbrida', res.mrr.h, 1, '', res.mrr.h.toFixed(3)) + (fid !== null ? bar(`fidelidade (alvo ≥ 98%) · ${gens} gerações`, fid, 1, fid >= ALVOS.fidelidade ? 'f' : '', pct(fid)) + bar('recusa indevida (alvo ≈ 0)', res.recusa_indevida, 1, '', pct(res.recusa_indevida)) : '') + (rcs !== null ? bar('recusa correta (alvo ≥ 90%)', rcs, 1, rcs >= ALVOS.recusa ? 'f' : '', pct(rcs)) : '');
+      $('#ev-tbl tbody').innerHTML = rows.map((r) => { const pv = posIn(r.v, r.esperado || []), pl = posIn(r.l, r.esperado || []), ph = posIn(r.h, r.esperado || []); const cell = (p) => r.tipo === 'sem' ? '<td>—</td>' : `<td class="${p && p <= k ? 'ok' : 'bad'}">${p ? p + 'º' : '—'}</td>`; return `<tr><td>${esc(r.pergunta.slice(0, 60))}…</td><td>${r.tipo === 'sem' ? 'sem resposta' : 'com'}</td>${cell(pv)}${cell(pl)}${cell(ph)}<td>${esc(detalhes[r.pergunta] || (gen === 'none' ? '—' : 'não gerada'))}</td></tr>`; }).join('');
+      setStatus($('#ev-status'), `Rodada registrada (${res.rotulo}). ${com.length} com resposta, ${sem.length} sem. Com n = ${com.length}, o intervalo do recall é largo: veja o capítulo 7.`, 'ok');
+      renderRuns();
+    }));
+  })();
+  function renderRuns() {
+    const el = $('#cp-runs'); if (!el) return; const rs = runs();
+    el.innerHTML = rs.length ? '<div class="tbl-wrap"><table><thead><tr><th>#</th><th>rodada</th><th>recall h</th><th>MRR h</th><th>fidelidade</th><th>recusa</th><th>n</th></tr></thead><tbody>' + rs.map((r, i) => `<tr><td>${i + 1}</td><td>${esc(r.rotulo)}<br><span class="mini">${new Date(r.quando).toLocaleString('pt-BR')}</span></td><td>${pct(r.recall.h)}</td><td>${r.mrr.h.toFixed(3)}</td><td>${r.fidelidade != null ? pct(r.fidelidade) : '—'}</td><td>${r.recusa != null ? pct(r.recusa) : '—'}</td><td>${r.n_com}+${r.n_sem}</td></tr>`).join('') + '</tbody></table></div>' : '<p class="mini">Nenhuma rodada registrada. Rode a avaliação no capítulo 6; cada rodada fica salva neste navegador.</p>';
+    const a = $('#cp-a'), b = $('#cp-b'); if (a && b) { [a, b].forEach((s) => { s.innerHTML = ''; rs.forEach((r, i) => s.add(new Option(`#${i + 1} · ${r.rotulo}`, String(i)))); }); if (rs.length > 1) b.value = '1'; }
+  }
+  renderRuns();
+
+  /* ============ c7 · intervalo de confiança ============ */
+  (function () {
+    const svg = $('#ci-svg'); if (!svg) return;
+    function render() {
+      const n = +$('#ci-n').value, p = +$('#ci-p').value / 100; $('#ci-nv').textContent = n; $('#ci-pv').textContent = pct(p);
+      const k = Math.round(p * n); const [lo, hi] = wilson(k, n);
+      $('#ci-out').innerHTML = bar(`observado: ${k} de ${n}`, p, 1, 'f', pct(p)) + bar('limite inferior (95%)', lo, 1, '', pct(lo)) + bar('limite superior (95%)', hi, 1, '', pct(hi));
+      const W = 760, x0 = 40, y0 = 150; const px = (nn) => x0 + (Math.log10(nn) - 1) / 2 * (W - 60); let s = `<line x1="${x0}" y1="${y0}" x2="${W - 10}" y2="${y0}" stroke="var(--line)"/>`;
+      const pts = []; for (let nn = 10; nn <= 1000; nn *= 1.15) { const [l, h] = wilson(Math.round(p * nn), Math.round(nn)); pts.push([nn, h - l]); }
+      const py = (w) => y0 - (w / 0.7) * 120; s += `<polyline points="${pts.map(([nn, w]) => `${px(nn)},${py(w)}`).join(' ')}" fill="none" stroke="var(--teal)" stroke-width="3"/>`;
+      [10, 30, 100, 300, 1000].forEach((nn) => { s += `<text x="${px(nn)}" y="${y0 + 14}" font-size="10" text-anchor="middle" fill="var(--muted)">n=${nn}</text>`; });
+      s += `<circle cx="${px(n)}" cy="${py(hi - lo)}" r="6" fill="var(--amber)"/><text x="${px(n) + 9}" y="${py(hi - lo) - 6}" font-size="11" fill="var(--amber)">largura ${pct(hi - lo)}</text><text x="${x0}" y="14" font-size="11" fill="var(--muted)">largura do intervalo de 95% em função de n (escala logarítmica)</text>`;
+      svg.innerHTML = s;
+      const meets = lo >= ALVOS.recall;
+      $('#ci-note').textContent = `Com ${n} perguntas e ${pct(p)} observado, o recall verdadeiro está, com 95% de confiança, entre ${pct(lo)} e ${pct(hi)}. ${meets ? 'O limite inferior passa do alvo de 80%: dá para afirmar que o alvo foi atingido.' : p >= ALVOS.recall ? 'O ponto passa do alvo, mas o limite inferior não: não dá para afirmar que o alvo foi atingido; aumente n.' : 'Abaixo do alvo mesmo no ponto.'}`;
+    }
+    ['#ci-n', '#ci-p'].forEach((s) => $(s).addEventListener('input', render)); render();
+  })();
+
+  /* ============ c8 · comparador de rodadas (pareado) ============ */
+  (function () {
+    const btn = $('#cp-run'); if (!btn) return;
+    btn.addEventListener('click', () => {
+      const rs = runs(); const A = rs[+$('#cp-a').value], B = rs[+$('#cp-b').value]; if (!A || !B) { setStatus($('#cp-status'), 'Escolha duas rodadas.', 'err'); return; }
+      const n = Math.min(A.hits.length, B.hits.length); let win = 0, loss = 0, tie = 0; for (let i = 0; i < n; i++) { if (A.hits[i] === B.hits[i]) tie++; else if (B.hits[i] > A.hits[i]) win++; else loss++; }
+      const disc = win + loss; const pval = disc ? binomTwoSided(win, disc) : 1;
+      $('#cp-out').innerHTML = bar('perguntas em que B acertou e A errou', win, n, 'f', String(win)) + bar('perguntas em que A acertou e B errou', loss, n, '', String(loss)) + bar('empates (as duas acertaram ou erraram)', tie, n, '', String(tie)) + `<p class="mini">Teste do sinal sobre os ${disc} pares discordantes: p ≈ ${pval.toFixed(3)}. ${disc === 0 ? 'Nenhuma diferença pergunta a pergunta: as rodadas são idênticas neste conjunto.' : pval < 0.05 ? 'Diferença improvável por acaso: B é melhor (ou pior) de verdade neste conjunto.' : `Com ${disc} discordâncias, a diferença é compatível com acaso. Recall ${pct(A.recall.h)} contra ${pct(B.recall.h)} não prova nada com este n.`}</p>`;
+      setStatus($('#cp-status'), `A = ${A.rotulo} · B = ${B.rotulo}`, 'ok');
+    });
+    function binomTwoSided(k, n) { const c = (n, r) => { let x = 1; for (let i = 1; i <= r; i++) x = (x * (n - r + i)) / i; return x; }; const lo = Math.min(k, n - k); let p = 0; for (let i = 0; i <= lo; i++) p += c(n, i) * Math.pow(0.5, n); return Math.min(1, 2 * p); }
+  })();
+
+  /* ============ c9 · calculadora do índice e concordância ============ */
+  (function () {
+    const f = $('#sc-form'); if (!f) return;
+    const BLOCOS = ['Habilitação', 'Objeto e especificação', 'Prazos e publicidade', 'Contrato e garantias'];
+    const PESO = { CONFORME: 100, ALERTA: 50, NAO_CONFORME: 0, NAO_AVALIAVEL: null };
+    function render() {
+      let soma = 0, nb = 0; const rows = BLOCOS.map((b, i) => { const cls = [1, 2, 3].map((j) => $(`#sc-${i}-${j}`).value); const vals = cls.map((c) => PESO[c]).filter((v) => v !== null); const score = vals.length ? vals.reduce((a, x) => a + x, 0) / vals.length : null; if (score !== null) { soma += score; nb++; } return `<tr><td>${b}</td><td>${cls.join(' · ')}</td><td>${score === null ? 'não avaliável' : score.toFixed(0)}</td></tr>`; });
+      const idx = nb ? soma / nb : 0;
+      $('#sc-tbl tbody').innerHTML = rows.join(''); $('#sc-idx').innerHTML = bar(`índice de conformidade (média dos ${nb} blocos avaliáveis, 25% cada)`, idx, 100, 'f', idx.toFixed(0)) + `<p class="mini">Cada critério vale 100 (CONFORME), 50 (ALERTA) ou 0 (NAO_CONFORME); NAO_AVALIAVEL não entra na média. O bloco é a média dos seus critérios; o índice, a média dos blocos. Tudo em código, sem o modelo.</p>`;
+    }
+    $$('#sc-form select').forEach((s) => s.addEventListener('change', render)); render();
+    // concordância com o auditor
+    const ag = $('#ag-n'); if (ag) { const r2 = () => { const n = +ag.value, agree = +$('#ag-agree').value / 100; $('#ag-nv').textContent = n; $('#ag-agreev').textContent = pct(agree); const k = Math.round(agree * n); const [lo, hi] = wilson(k, n); $('#ag-out').innerHTML = bar(`critérios em que sistema e auditor concordam`, agree, 1, 'f', pct(agree)) + bar('limite inferior 95%', lo, 1, '', pct(lo)) + `<p class="mini">${lo >= 0.9 ? 'Com esse n, a concordância acima de 90% é estatisticamente sustentada: o índice pode ser mostrado como indicador ao auditor.' : 'O limite inferior fica abaixo de 90%: o índice é útil como triagem, mas ainda não como indicador que o auditor cita. Mais documentos revisados por pessoas resolvem.'}</p>`; }; ['#ag-n', '#ag-agree'].forEach((s) => $(s).addEventListener('input', r2)); r2(); }
+  })();
+})();
+
+</script>
+</body>
+</html>
