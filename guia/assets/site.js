@@ -54,6 +54,32 @@
     if (ta.value && saved) saved.textContent = 'salvo neste navegador';
   });
 
+  /* caderno: copiar por capítulo e exportar a página inteira (markdown pronto para o comentário do Linear) */
+  const pageInfo = M.pages.find((p) => p.id === PAGE) || {};
+  const chapterTitle = (el) => { const s = el.closest('section.chapter'); const h = s && $('h2', s); return h ? h.textContent.trim() : (pageInfo.title || ''); };
+  const noteMD = (ta) => { const hint = ta.parentElement.querySelector('.hint'); return `### ${chapterTitle(ta)}\n${hint ? '> ' + hint.textContent.trim() + '\n\n' : ''}${ta.value.trim()}\n`; };
+  async function copyText(btn, text, label) { try { await navigator.clipboard.writeText(text); btn.textContent = 'Copiado'; } catch { btn.textContent = 'Não deu para copiar'; } setTimeout(() => (btn.textContent = label), 1600); }
+  $$('.notes textarea[data-note]').forEach((ta) => {
+    const bar = document.createElement('div'); bar.className = 'notes-bar';
+    const b = document.createElement('button'); b.type = 'button'; b.className = 'btn ghost small'; b.textContent = 'Copiar em markdown';
+    b.addEventListener('click', () => { if (!ta.value.trim()) { b.textContent = 'Caderno vazio'; setTimeout(() => (b.textContent = 'Copiar em markdown'), 1600); return; } copyText(b, noteMD(ta), 'Copiar em markdown'); });
+    bar.appendChild(b); const saved = ta.parentElement.querySelector('.saved'); if (saved) bar.appendChild(saved); ta.parentElement.appendChild(bar);
+  });
+  const notesOnPage = $$('.notes textarea[data-note]');
+  if (notesOnPage.length && pageInfo.title) {
+    const box = document.createElement('section'); box.className = 'export'; box.setAttribute('aria-label', 'Exportar caderno desta página');
+    const issue = pageInfo.issue; const url = issue ? `https://linear.app/vinicius-costa/issue/${issue}` : '';
+    box.innerHTML = `<h2 id="exportar">Exportar o caderno desta página</h2>
+      <p>Tudo o que você escreveu nos cadernos desta página, em markdown, com o título de cada capítulo. O fluxo é: copiar aqui, abrir o card${issue ? ` <strong>${esc(issue)}</strong>` : ''} no Linear, colar num comentário. Fica registrado no exercício o que você entendeu, com as suas palavras.</p>
+      <div class="row"><div class="fixed"><button class="btn" id="exp-copy" type="button">Copiar tudo em markdown</button></div>${url ? `<div class="fixed"><a class="btn ghost" href="${url}" target="_blank" rel="noopener">Abrir ${esc(issue)} no Linear ↗</a></div>` : ''}<div class="fixed"><button class="btn ghost" id="exp-show" type="button" aria-expanded="false">Ver o texto</button></div></div>
+      <div class="status" id="exp-status"></div>
+      <pre id="exp-pre" hidden><code></code></pre>`;
+    const pager = $('.pager'); (pager || $('.page-in')).insertAdjacentElement(pager ? 'beforebegin' : 'beforeend', box);
+    const build = () => { const filled = notesOnPage.filter((t) => t.value.trim()); if (!filled.length) return ''; return `## Anotações · Página ${pageInfo.num} · ${pageInfo.title}\n_${new Date().toLocaleDateString('pt-BR')} · ${filled.length} de ${notesOnPage.length} cadernos preenchidos_\n\n` + filled.map(noteMD).join('\n'); };
+    $('#exp-copy').addEventListener('click', () => { const md = build(); const b = $('#exp-copy'); if (!md) { setStatus($('#exp-status'), 'Nenhum caderno preenchido nesta página ainda.', 'err'); return; } copyText(b, md, 'Copiar tudo em markdown'); setStatus($('#exp-status'), `${md.length} caracteres copiados. Agora abra o card e cole no comentário.`, 'ok'); });
+    $('#exp-show').addEventListener('click', () => { const pre = $('#exp-pre'), b = $('#exp-show'); const md = build(); pre.hidden = !pre.hidden; b.setAttribute('aria-expanded', String(!pre.hidden)); b.textContent = pre.hidden ? 'Ver o texto' : 'Esconder'; $('code', pre).textContent = md || '(nenhum caderno preenchido)'; });
+  }
+
   /* autoavaliação */
   $$('.quiz').forEach((q) => {
     const btn = $('button.grade', q); if (!btn) return;
@@ -91,15 +117,38 @@
       if (![...kModel.options].some((o) => o.value === gemini.model)) kModel.add(new Option(gemini.model, gemini.model, true, true));
       if (![...kEmbed.options].some((o) => o.value === gemini.embedModel)) kEmbed.add(new Option(gemini.embedModel, gemini.embedModel, true, true));
       setStatus(kStatus, gemini.ready() ? `Chave configurada. Geração: ${gemini.model} · embeddings: ${gemini.embedModel}.` : 'Sem chave configurada. Os experimentos ao vivo ficam desativados; os de brinquedo funcionam normalmente.', gemini.ready() ? 'ok' : '');
-      keyBanner();
+      keyBanner(); calls();
     }
-    $('#k-save').addEventListener('click', () => guard(kStatus, async () => { gemini.key = kKey.value; gemini.model = kModel.value; gemini.embedModel = kEmbed.value; if (!gemini.ready()) { syncKeyUI(); return; } setStatus(kStatus, 'Testando…'); const r = await gemini.generate({ user: 'Responda apenas com a palavra OK.', json: false, maxTokens: 256 }); syncKeyUI(); setStatus(kStatus, `Funcionou (${r.ms} ms). Geração: ${gemini.model} · embeddings: ${gemini.embedModel}. Resposta: ${r.text.trim().slice(0, 40)}`, 'ok'); }));
+    const kCalls = $('#k-calls');
+    function calls() { if (kCalls) kCalls.textContent = gemini.callsSummary() + (/gemini-3/.test(gemini.model) ? ' Atenção: os modelos 3.x têm cota gratuita de poucas dezenas de chamadas por dia.' : ''); }
+    window.addEventListener('focus', calls); document.addEventListener('visibilitychange', calls);
+    const _req = gemini.req.bind(gemini); gemini.req = async (...a) => { try { return await _req(...a); } finally { calls(); } };
+    const pickModel = (gen, wanted) => {
+      const ok = (m) => !/image|tts|live|audio|robotics|computer|research|antigravity|omni|translate|transcribe/.test(m.id);
+      const vnum = (id) => parseFloat((id.match(/gemini-(\d+(?:\.\d+)?)/) || [0, 0])[1]) || 0;
+      if (gen.some((m) => m.id === wanted)) return wanted;
+      const lite = gen.filter((m) => ok(m) && /flash-lite/.test(m.id) && !/preview/.test(m.id)).sort((a, b) => vnum(b.id) - vnum(a.id));
+      const flash = gen.filter((m) => ok(m) && /flash/.test(m.id) && !/preview/.test(m.id)).sort((a, b) => vnum(b.id) - vnum(a.id));
+      return (lite[0] || flash[0] || gen[0] || {}).id || wanted;
+    };
+    $('#k-save').addEventListener('click', () => guard(kStatus, async () => {
+      gemini.key = kKey.value; gemini.model = kModel.value; gemini.embedModel = kEmbed.value; if (!gemini.ready()) { syncKeyUI(); return; }
+      setStatus(kStatus, 'Consultando os modelos da sua conta…');
+      let aviso = '';
+      try {
+        const ms = await gemini.listModels(); const gen = ms.filter((m) => m.methods.includes('generateContent'));
+        if (gen.length) { const chosen = pickModel(gen, gemini.model); if (chosen !== gemini.model) { aviso = `O modelo ${gemini.model} não existe para a sua chave; troquei para ${chosen}. `; gemini.model = chosen; } }
+      } catch (e) { /* segue com o modelo escolhido; o teste abaixo dirá se ele existe */ }
+      setStatus(kStatus, (aviso || '') + 'Testando…');
+      const r = await gemini.generate({ user: 'Responda apenas com a palavra OK.', json: false, maxTokens: 256 }); syncKeyUI();
+      setStatus(kStatus, `${aviso}Funcionou (${r.ms} ms). Geração: ${gemini.model} · embeddings: ${gemini.embedModel}. Resposta: ${r.text.trim().slice(0, 40)}`, aviso ? 'warn' : 'ok');
+    }));
     $('#k-clear').addEventListener('click', () => { gemini.key = ''; syncKeyUI(); });
     $('#k-list').addEventListener('click', () => guard(kStatus, async () => {
       gemini.key = kKey.value; if (!gemini.ready()) throw new Error('Cole a chave primeiro.'); setStatus(kStatus, 'Consultando modelos…');
       const ms = await gemini.listModels(); const gen = ms.filter((m) => m.methods.includes('generateContent')); const emb = ms.filter((m) => m.methods.includes('embedContent'));
       kModel.innerHTML = ''; gen.forEach((m) => kModel.add(new Option(m.id, m.id))); kEmbed.innerHTML = ''; emb.forEach((m) => kEmbed.add(new Option(m.id, m.id)));
-      const pref = gen.find((m) => m.id === 'gemini-2.5-flash') || gen.find((m) => /flash-lite/.test(m.id) && !/image|tts|live|audio/.test(m.id)) || gen.find((m) => /flash/.test(m.id) && !/image|tts|live|audio/.test(m.id)) || gen[0]; if (pref) kModel.value = pref.id;
+      const pref = pickModel(gen, gemini.model); if (pref) kModel.value = pref;
       const epref = emb.find((m) => m.id === gemini.embedModel) || emb[0]; if (epref) kEmbed.value = epref.id;
       setStatus(kStatus, `${gen.length} modelos de geração e ${emb.length} de embeddings disponíveis. Escolha e clique em "Salvar e testar".`, 'ok');
     }));

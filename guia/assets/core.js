@@ -17,15 +17,24 @@ const gemini = {
   base: 'https://generativelanguage.googleapis.com/v1beta',
   get key() { return store.get('key', ''); },
   set key(v) { store.set('key', v.trim()); },
-  get model() { return store.get('model', 'gemini-2.5-flash'); },
+  get model() { return store.get('model', 'gemini-3.5-flash-lite'); },
   set model(v) { store.set('model', v); },
   get embedModel() { return store.get('embedModel', 'gemini-embedding-001'); },
   set embedModel(v) { store.set('embedModel', v); },
   dims: 768,
   ready() { return !!this.key; },
   timeoutMs: 90000,
+  /* contador de chamadas do dia, por modelo e tipo (a cota gratuita é diária e por modelo) */
+  today() { return new Date().toISOString().slice(0, 10); },
+  get calls() { const c = store.get('calls', {}); return c.day === this.today() ? c : { day: this.today(), by: {} }; },
+  count(model, kind) { const c = this.calls; const k = `${model}|${kind}`; c.by[k] = (c.by[k] || 0) + 1; store.set('calls', c); },
+  callsSummary() {
+    const c = this.calls; const ks = Object.keys(c.by); if (!ks.length) return 'Nenhuma chamada hoje neste navegador.';
+    return 'Hoje: ' + ks.map((k) => { const [m, kind] = k.split('|'); return `${c.by[k]} ${kind} (${m})`; }).join(' · ') + '.';
+  },
   async req(path, body, method = 'POST') {
-    if (!this.key) throw new Error('Sem chave da API. Configure na seção 1.');
+    if (!this.key) throw new Error('Sem chave da API. Configure na página inicial.');
+    const mm = path.match(/^models\/([^:?]+):(\w+)/); if (mm) this.count(mm[1], mm[2] === 'generateContent' ? 'gerações' : /[Ee]mbed/.test(mm[2]) ? 'lotes de embeddings' : mm[2]);
     const url = `${this.base}/${path}${path.includes('?') ? '&' : '?'}key=${encodeURIComponent(this.key)}`;
     const ctl = new AbortController(); const timer = setTimeout(() => ctl.abort(), this.timeoutMs);
     let r;
@@ -36,7 +45,16 @@ const gemini = {
     let j; try { j = JSON.parse(txt); } catch { j = { raw: txt }; }
     if (!r.ok) {
       const msg = j?.error?.message || txt.slice(0, 300);
-      const e = new Error(`HTTP ${r.status}: ${msg}`); e.status = r.status; throw e;
+      let friendly = '';
+      if (r.status === 429) {
+        const lim = msg.match(/limit:\s*(\d+)/); const model = (mm && mm[1]) || this.model;
+        friendly = /free_tier/i.test(msg)
+          ? `Cota gratuita esgotada para o modelo ${model}${lim ? ` (limite ${lim[1]} chamadas por dia para este modelo)` : ''}. A cota é por modelo: troque o modelo na página inicial (os flash-lite têm cota diária muito maior; confira a sua em aistudio.google.com/rate-limit) ou espere o dia virar (fuso do Pacífico). ${this.callsSummary()} `
+          : 'Muitas chamadas em pouco tempo (limite por minuto). Espere um minuto e tente de novo. ';
+      }
+      if (r.status === 400 && /API key not valid/i.test(msg)) friendly = 'A chave não foi aceita pela API. Confira se copiou inteira e se ela está ativa no AI Studio. ';
+      if (r.status === 403) friendly = 'Acesso negado: a chave pode estar restrita a outro domínio ou o modelo não está liberado para a conta. ';
+      const e = new Error(`${friendly}HTTP ${r.status}: ${msg}`); e.status = r.status; throw e;
     }
     return j;
   },
@@ -46,7 +64,7 @@ const gemini = {
   },
   thinkingFor(model) {
     // modelos com "pensamento" gastam o orçamento de saída raciocinando; pedimos o mínimo.
-    if (/gemini-3/.test(model)) return { thinkingLevel: 'LOW' };
+    if (/gemini-3/.test(model)) return { thinkingLevel: 'LOW' }; // inclui os flash-lite 3.x; se o modelo recusar o campo, generate() repete sem ele
     if (/gemini-2\.5/.test(model)) return { thinkingBudget: 0 };
     return null;
   },
@@ -74,7 +92,7 @@ const gemini = {
     const usage = j.usageMetadata || {};
     if (!text) {
       const why = cand?.finishReason === 'MAX_TOKENS' ? `o modelo esgotou maxOutputTokens (${maxTokens}) — ${usage.thoughtsTokenCount ? usage.thoughtsTokenCount + ' tokens foram gastos "pensando"' : 'aumente o limite'}` : j.promptFeedback?.blockReason ? 'bloqueado por segurança: ' + j.promptFeedback.blockReason : `finishReason=${cand?.finishReason || '?'}`;
-      throw new Error('Resposta vazia: ' + why + '. Experimente outro modelo em "Listar modelos" (gemini-2.5-flash é o mais previsível para os exercícios).');
+      throw new Error('Resposta vazia: ' + why + '. Experimente outro modelo em "Listar modelos" (um flash-lite é o mais previsível e o de maior cota para os exercícios).');
     }
     return { text, usage, finish: cand?.finishReason, ms: Math.round(performance.now() - t0), raw: j };
   },
@@ -93,6 +111,18 @@ const gemini = {
       onProgress && onProgress(Math.min(texts.length, i + size), texts.length);
     }
     if (out.length !== texts.length) throw new Error(`A API devolveu ${out.length} vetores para ${texts.length} textos.`);
+    return out;
+  },
+  /* lote heterogêneo: cada item com o próprio taskType; dims opcional (padrão this.dims). Uma chamada por 16 itens. */
+  async embedItems(items, dims = null) {
+    const d = dims || this.dims; const out = [];
+    for (let i = 0; i < items.length; i += 16) {
+      const batch = items.slice(i, i + 16);
+      const mk = (it) => ({ model: `models/${this.embedModel}`, content: { parts: [{ text: it.text }] }, taskType: it.taskType || 'SEMANTIC_SIMILARITY', outputDimensionality: d });
+      const j = await this.req(`models/${this.embedModel}:batchEmbedContents`, { requests: batch.map(mk) });
+      for (const e of j.embeddings || []) out.push(normalize(e.values));
+    }
+    if (out.length !== items.length) throw new Error(`A API devolveu ${out.length} vetores para ${items.length} textos.`);
     return out;
   },
   async countTokens(text, model = null) {

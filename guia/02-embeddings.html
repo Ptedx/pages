@@ -1,0 +1,890 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Embeddings · Guia RAG aplicado</title>
+<meta name="description" content="O que o vetor captura, métricas, dimensões, tipos de tarefa e limites.">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/guia.css">
+</head>
+<body data-page="p2">
+<a class="skip" href="#main">Pular para o conteúdo</a>
+<header class="topbar">
+  <button class="iconbtn" id="menu" aria-expanded="false" aria-controls="sidenav" aria-label="Abrir navegação">☰ Páginas</button>
+  <a class="brand" href="index.html">Guia de estudo · RAG aplicado<small>Plataforma de Conformidade e Risco · trilha dos exercícios VIN-5 a VIN-12</small></a>
+  <button class="iconbtn" id="theme" aria-pressed="false">Tema escuro</button>
+</header>
+<div class="scrim"></div>
+<div class="shell">
+  <nav class="side" id="sidenav" aria-label="Páginas do guia">
+    <div class="progress"><span id="prog-text">0 capítulos concluídos</span><div class="bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" aria-label="Progresso do estudo"><i id="prog-bar"></i></div></div>
+    <div class="group">Trilha</div><ol><li><a href="index.html" data-page="p0"><span class="num">0</span><span>Início</span><span class="done-mark" aria-hidden="true"></span></a></li><li><a href="01-modelos.html" data-page="p1"><span class="num">1</span><span>Modelos de linguagem</span><span class="done-mark" aria-hidden="true"></span></a></li><li><a href="02-embeddings.html" data-page="p2" aria-current="page"><span class="num">2</span><span>Embeddings</span><span class="done-mark" aria-hidden="true"></span></a></li><li><span class="soon" title="Exato versus aproximado, HNSW por dentro, pgvector."><span class="num">3</span><span>Busca vetorial e índices</span><span class="tag">em breve</span></span></li><li><span class="soon" title="tsvector, BM25, RRF e rerankers."><span class="num">4</span><span>Busca lexical e híbrida</span><span class="tag">em breve</span></span></li><li><span class="soon" title="Padrões de arquitetura, segmentação, identificadores, vigência."><span class="num">5</span><span>RAG e ingestão</span><span class="tag">em breve</span></span></li><li><span class="soon" title="Anatomia, delimitação, esquema, decomposição, versionamento e a biblioteca do projeto."><span class="num">6</span><span>Prompt engineering</span><span class="tag">em breve</span></span></li><li><span class="soon" title="Taxonomia das falhas, camadas de mitigação, juiz de aderência."><span class="num">7</span><span>Validação e guardrails</span><span class="tag">em breve</span></span></li><li><span class="soon" title="Conjuntos de avaliação, métricas de busca e de resposta, protocolo."><span class="num">8</span><span>Avaliação</span><span class="tag">em breve</span></span></li><li><span class="soon" title="PDF, limpeza, regex, JSONL, pandas, Pydantic, psycopg."><span class="num">9</span><span>Dados e Python</span><span class="tag">em breve</span></span></li><li><span class="soon" title="Tokens, cache, limites de taxa, retentativa, observabilidade, escolha de modelo."><span class="num">10</span><span>Custo e operação</span><span class="tag">em breve</span></span></li></ol><div class="group">Referência rápida</div><ol><li><a href="glossario.html" data-page="glossario"><span class="num">•</span><span>Glossário</span><span class="done-mark" aria-hidden="true"></span></a></li><li><span class="soon" title="Os oito exercícios com roteiro completo."><span class="num">•</span><span>Exercícios</span><span class="tag">em breve</span></span></li><li><span class="soon" title="Os prompts do projeto, versionados, para copiar."><span class="num">•</span><span>Biblioteca de prompts</span><span class="tag">em breve</span></span></li></ol>
+  </nav>
+  <main id="main" tabindex="-1"><div class="page-in">
+    <div class="toc-inline" ><label for="toc-select">Nesta página</label><select id="toc-select"><option value="">ir para o capítulo…</option></select></div>
+    <div id="keybanner" hidden><div class="callout warn"><span class="t">Sem chave do Gemini configurada</span><p>Os experimentos ao vivo desta página ficam desativados. Configure a chave na <a href="index.html#chave">página inicial</a>; os experimentos de brinquedo funcionam sem ela.</p></div></div>
+    <div class="page-head">
+  <div class="kicker">Página 2 · Representação</div>
+  <h1>Embeddings</h1>
+  <p class="lead">Um embedding é um texto convertido em uma lista de números de tal jeito que textos com significado parecido viram listas parecidas. Toda a busca vetorial, e portanto metade do RAG, é comparar essas listas. Esta página mostra o que o vetor captura, o que ele não captura, como medir "parecido" e as decisões que você vai tomar no Ex. 3: dimensões, métrica, tipo de tarefa e versionamento.</p>
+  <div class="meta"><a class="exlink" href="https://linear.app/vinicius-costa/issue/VIN-7" target="_blank" rel="noopener">VIN-7 · Ex. 3</a><span>·</span><span>10 capítulos · leitura ativa de 50 a 70 minutos · 11 experimentos</span></div>
+</div>
+
+<div class="goals">
+  <h3>Ao terminar esta página você consegue</h3>
+  <ul>
+    <li>Explicar o que um vetor de embedding representa e por que "próximo no espaço" significa "parecido em significado", sem recorrer a "é mágica da IA".</li>
+    <li>Calcular e interpretar cosseno, produto escalar e distância euclidiana, e dizer quando os três dão o mesmo ranking.</li>
+    <li>Escolher dimensões (768, 1536, 3072), tipo de tarefa (consulta versus documento) e métrica para o pgvector, com o porquê de cada escolha.</li>
+    <li>Prever onde o embedding falha: negação, números, identificadores, trechos longos com várias ideias.</li>
+    <li>Montar o pipeline de indexação do Ex. 3: texto por dispositivo, prefixo, embedding com tipo de tarefa, coluna com modelo e dimensão, política de reindexação.</li>
+  </ul>
+</div>
+
+<!-- ============================================================ 1 -->
+<section class="chapter" id="c1" data-ch="p2-c1">
+  <div class="ch-head"><span class="n">Capítulo 1</span><h2>O que é um embedding</h2><label class="donebox"><input type="checkbox" data-done> Capítulo concluído</label></div>
+
+  <p>Na página 1 você viu que o modelo de linguagem só trabalha com números: os tokens viram vetores, os vetores passam por atenção e o que sai é uma distribuição. Um <strong>modelo de embedding</strong> é um parente desse modelo que para no meio do caminho. Em vez de prever o próximo token, ele lê o texto inteiro e devolve um único vetor, uma lista de, por exemplo, 768 números, que resume o texto. Esse vetor é o embedding.</p>
+  <p>A propriedade que torna isso útil é uma só: o modelo foi treinado para que <strong>textos com significado parecido produzam vetores parecidos</strong>, e textos diferentes produzam vetores distantes. "Parecido" e "distante" aqui são geometria: cada vetor é um ponto (ou uma seta a partir da origem) em um espaço de 768 dimensões, e a proximidade se mede com uma conta simples, que você vai fazer no capítulo 4. Não dá para enxergar 768 dimensões, mas dá para enxergar duas, e a intuição que vale em duas vale nas 768.</p>
+  <p>Os números individuais não significam nada isoladamente. Não existe "a dimensão 37 é sobre prazos". O significado está nas relações entre vetores: onde cada um está em relação aos outros. Por isso um vetor de um modelo não pode ser comparado com um vetor de outro modelo, nem com um vetor do mesmo modelo em outra versão: os espaços são diferentes, como mapas com escalas e orientações diferentes. Guarde essa frase; ela volta no capítulo 9 como a regra de versionamento.</p>
+
+  <figure class="diagram" data-caps='["O texto de entrada, do tamanho de um dispositivo legal: uma ideia.","Tokenização, igual à da página 1: o texto vira pedaços.","Um transformer lê todos os tokens de uma vez (aqui a atenção olha para os dois lados, não só para trás). Cada token sai com um vetor influenciado pelos outros.","Pooling: os vetores dos tokens são combinados em um só, em geral pela média ou por um token especial de resumo.","Normalização: o vetor é dividido pelo próprio comprimento, e passa a ter comprimento 1. Sobra só a direção.","O resultado: uma lista de 768 números que representa o texto inteiro. É o que vai para o banco."]' aria-label="Pipeline de um modelo de embedding: texto, tokens, encoder, pooling, normalização, vetor">
+    <div class="dtools"><button class="btn small" data-stepper="em">Passo a passo</button><button class="btn small ghost" data-stepper-reset="em">Reiniciar</button><span class="mini" id="em-cap"></span></div>
+    <svg viewBox="0 0 760 210" role="img" aria-labelledby="emt"><title id="emt">Do texto ao vetor</title>
+      <defs><marker id="ar2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="var(--muted)"/></marker></defs>
+      <g class="node stage" data-stage="em-0"><rect x="10" y="30" width="120" height="60" rx="8"/><text x="70" y="54" text-anchor="middle" class="t">Texto</text><text x="70" y="72" text-anchor="middle">"Art. 75, inc. I…"</text></g>
+      <g class="node stage" data-stage="em-1"><rect x="160" y="30" width="120" height="60" rx="8"/><text x="220" y="54" text-anchor="middle" class="t">Tokens</text><text x="220" y="72" text-anchor="middle">n pedaços</text></g>
+      <g class="node ia stage" data-stage="em-2"><rect x="310" y="30" width="140" height="60" rx="8"/><text x="380" y="54" text-anchor="middle" class="t">Encoder</text><text x="380" y="72" text-anchor="middle">atenção bidirecional</text></g>
+      <g class="node ia stage" data-stage="em-3"><rect x="480" y="30" width="120" height="60" rx="8"/><text x="540" y="54" text-anchor="middle" class="t">Pooling</text><text x="540" y="72" text-anchor="middle">n vetores → 1</text></g>
+      <g class="node gate stage" data-stage="em-4"><rect x="630" y="30" width="120" height="60" rx="8"/><text x="690" y="54" text-anchor="middle" class="t">Normalizar</text><text x="690" y="72" text-anchor="middle">comprimento = 1</text></g>
+      <g class="node ok stage" data-stage="em-5"><rect x="280" y="140" width="200" height="56" rx="8"/><text x="380" y="162" text-anchor="middle" class="t">Vetor de 768 números</text><text x="380" y="182" text-anchor="middle">[0.021, −0.113, 0.064, …]</text></g>
+      <path class="edge" d="M130 60 H156" marker-end="url(#ar2)"/><path class="edge" d="M280 60 H306" marker-end="url(#ar2)"/><path class="edge" d="M450 60 H476" marker-end="url(#ar2)"/><path class="edge" d="M600 60 H626" marker-end="url(#ar2)"/>
+      <path class="edge" d="M690 90 V168 H484" marker-end="url(#ar2)"/>
+    </svg>
+    <figcaption>O encoder de um modelo de embedding é o mesmo tipo de rede da página 1, mas o treinamento e a saída são outros: um vetor por texto, não um token por vez.</figcaption>
+  </figure>
+
+  <p>Três ideias para levar deste capítulo. <strong>O embedding representa o texto inteiro que você mandou</strong>, então o que você manda define o que ele representa: um dispositivo legal vira um ponto sobre aquele dispositivo; um capítulo inteiro vira um ponto sobre "um pouco de tudo", que fica perto de tudo e de nada. <strong>Proximidade é a única informação</strong>: o vetor não "sabe" o que o texto diz, só onde ele fica em relação aos outros. E <strong>o espaço é do modelo</strong>: mudou o modelo, mudou o mapa, e todos os pontos precisam ser recalculados.</p>
+
+  <div class="lab">
+    <header><h4>Experimento · Duas setas em um plano</h4><span class="badge toy">brinquedo</span></header>
+    <div class="body">
+      <p>Dois vetores em duas dimensões, para ganhar a intuição que vale em 768. Arraste as pontas das setas (ou use os controles) e observe as três medidas mudando. Repare que o <em>ângulo</em> entre as setas é o que o cosseno mede: o comprimento delas não entra. Você vai voltar a este painel no capítulo 4.</p>
+      <div class="grid2">
+        <figure class="diagram" style="margin:0"><svg id="v2-svg" viewBox="0 0 360 360" role="img" aria-label="Plano com dois vetores arrastáveis" style="touch-action:none"></svg><figcaption id="v2-cap">Arraste as pontas A e B.</figcaption></figure>
+        <div>
+          <div class="row"><div><label class="f" for="v2-ax">A · x = <span id="v2-axv">3</span></label><input type="range" id="v2-ax" min="-5" max="5" step="0.1" value="3"></div><div><label class="f" for="v2-ay">A · y = <span id="v2-ayv">1</span></label><input type="range" id="v2-ay" min="-5" max="5" step="0.1" value="1"></div></div>
+          <div class="row"><div><label class="f" for="v2-bx">B · x = <span id="v2-bxv">1.5</span></label><input type="range" id="v2-bx" min="-5" max="5" step="0.1" value="1.5"></div><div><label class="f" for="v2-by">B · y = <span id="v2-byv">2.5</span></label><input type="range" id="v2-by" min="-5" max="5" step="0.1" value="2.5"></div></div>
+          <div class="bars" id="v2-out" aria-live="polite"></div>
+          <p class="mini" id="v2-note" style="margin-top:10px"></p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="doit"><span class="ic">faça agora</span><p>Coloque A em (3, 1) e B em (1,5, 0,5): mesma direção, comprimentos diferentes. O cosseno vai a 1,000 e a distância euclidiana não vai a zero. Depois gire B até apontar para o lado oposto de A e veja o cosseno chegar a −1. Isso é tudo o que "similaridade de cosseno" significa: só o ângulo.</p></div>
+
+  <div class="faq">
+    <h3>Perguntas que aparecem aqui</h3>
+    <details><summary>Embedding é a mesma coisa que o vetor de um token dentro do modelo de linguagem?</summary><p>É parente, não é a mesma coisa. Dentro de um modelo de linguagem cada token tem um vetor, e esses vetores existem para servir à previsão do próximo token. Um modelo de embedding é treinado para outra tarefa: produzir <em>um</em> vetor por texto que seja bom para comparar textos. Usar os vetores internos de um modelo generativo como embedding funciona mal, porque eles não foram otimizados para isso.</p><p class="why">Mesma arquitetura, treinamento e objetivo diferentes.</p></details>
+    <details><summary>Por que 768 números? Poderia ser 10?</summary><p>Poderia, e ficaria pior. Cada dimensão é um grau de liberdade para separar significados; com poucas, textos diferentes são forçados a ficar perto. Com muitas, o custo de armazenar e comparar cresce e o ganho diminui. O capítulo 3 mostra a curva: 768 guarda quase toda a qualidade de 3072 para busca de texto, por um quarto do custo.</p><p class="why">Dimensão é capacidade de distinguir; tem retorno decrescente.</p></details>
+    <details><summary>Dá para "ler" um embedding e saber sobre o que o texto fala?</summary><p>Não diretamente. As dimensões não têm rótulo. O que dá para fazer é comparar com vetores de textos conhecidos: se o vetor está perto de "dispensa por valor" e longe de "penalidades", você inferiu o assunto por vizinhança. É exatamente o que a busca faz.</p><p class="why">O significado está nas relações, não nas coordenadas.</p></details>
+    <details><summary>Embeddings de imagens e de texto podem ficar no mesmo espaço?</summary><p>Podem, quando o modelo é treinado para isso (modelos multimodais, como o <code>gemini-embedding-2</code>, em prévia, que embute texto, imagem, áudio, vídeo e PDF no mesmo espaço). No projeto o conteúdo é texto; os PDFs passam por extração de texto antes de tudo, então o espaço é só de texto.</p><p class="why">Mesmo espaço exige treinamento conjunto; não é automático.</p></details>
+  </div>
+
+  <div class="notes"><label for="n-p2-c1">Caderno · com as suas palavras</label><p class="hint">Explique para um colega o que "textos parecidos viram vetores parecidos" quer dizer, usando as duas setas. Inclua por que o comprimento da seta não importa.</p><textarea class="prose" id="n-p2-c1" data-note="p2-c1"></textarea><div class="saved"></div></div>
+</section>
+
+<!-- ============================================================ 2 -->
+<section class="chapter" id="c2" data-ch="p2-c2">
+  <div class="ch-head"><span class="n">Capítulo 2</span><h2>De onde vem a geometria: o treinamento</h2><label class="donebox"><input type="checkbox" data-done> Capítulo concluído</label></div>
+
+  <p>Nada na rede "sabe" que dispensa e inexigibilidade são assuntos vizinhos. A geometria é aprendida com um objetivo simples chamado <strong>aprendizado contrastivo</strong>: o modelo recebe milhões de pares de textos que <em>deveriam</em> ficar perto (uma pergunta e a passagem que a responde; duas frases que dizem a mesma coisa; um título e o seu artigo) e, para cada par, textos que deveriam ficar longe. A cada passo do treinamento, os pesos são ajustados para puxar os pares positivos um para o outro e empurrar os negativos para longe. Repetido bilhões de vezes, isso organiza o espaço.</p>
+  <p>Os <strong>negativos difíceis</strong> são a parte que importa para você. Um negativo fácil é "art. 75 sobre dispensa" contra "receita de bolo": qualquer modelo separa. Um negativo difícil é "art. 75 sobre dispensa" contra "art. 74 sobre inexigibilidade": textos com as mesmas palavras, mesmo domínio, significado diferente. Modelos bons foram treinados com muitos negativos difíceis, e é por isso que conseguem separar assuntos próximos. Mas nenhum modelo viu negativos difíceis para <em>tudo</em>: onde o treinamento foi pobre, o espaço fica confuso. Negação e números, no capítulo 6, são exemplos.</p>
+  <p>Um detalhe que explica um comportamento que você vai ver: nos dados de treinamento, perguntas e passagens têm formas diferentes (uma curta e interrogativa, a outra longa e afirmativa). Modelos modernos aprendem a tratá-las de modos ligeiramente diferentes, e é daí que vêm os <strong>tipos de tarefa</strong> do capítulo 5: dizer ao modelo "isto é uma consulta" ou "isto é um documento" ativa o jeito certo de embutir.</p>
+
+  <div class="lab">
+    <header><h4>Experimento · Um passo de treino contrastivo</h4><span class="badge toy">brinquedo</span></header>
+    <div class="body">
+      <p>Uma âncora (a pergunta), dois positivos (passagens que a respondem) e quatro negativos, espalhados ao acaso em um plano. Cada clique é um passo de treinamento simulado: positivos são puxados para a âncora, negativos são empurrados. Repare que o negativo difícil (o que começa perto) demora mais para sair, e que o modelo de verdade faz isso ajustando pesos, não movendo pontos, mas o efeito no espaço é este.</p>
+      <div class="row">
+        <div class="fixed"><button class="btn" id="ct-step">Passo de treino</button></div>
+        <div class="fixed"><button class="btn ghost" id="ct-auto">Rodar 10 passos</button></div>
+        <div class="fixed"><button class="btn ghost" id="ct-reset">Embaralhar</button></div>
+        <div><span class="mini" id="ct-info"></span></div>
+      </div>
+      <div class="legend"><span><i style="background:var(--navy)"></i>âncora</span><span><i style="background:var(--green)"></i>positivos</span><span><i style="background:var(--red)"></i>negativos</span><span><i style="background:var(--amber)"></i>negativo difícil</span></div>
+      <figure class="diagram" style="margin:0"><svg id="ct-svg" viewBox="0 0 760 300" role="img" aria-label="Pontos sendo puxados e empurrados em relação à âncora"></svg><figcaption id="ct-cap">Antes do treino: posições aleatórias.</figcaption></figure>
+    </div>
+  </div>
+
+  <div class="doit"><span class="ic">faça agora</span><p>Embaralhe até que um negativo (vermelho ou âmbar) comece mais perto da âncora do que os positivos. Rode um passo por vez e conte quantos passos até o ranking ficar correto. Depois pense: se o modelo nunca tivesse visto um par assim no treinamento, quem corrigiria o ranking?</p></div>
+
+  <div class="faq">
+    <h3>Perguntas que aparecem aqui</h3>
+    <details><summary>Preciso treinar ou ajustar um modelo de embedding para o domínio jurídico?</summary><p>Para começar, não. Os modelos atuais foram treinados com muito texto jurídico, em português inclusive, e o vocabulário da Lei 14.133 é bem representado. Ajuste fino (fine-tuning) é uma decisão de otimização tardia, tomada só quando um conjunto de avaliação (página 8) mostra que a busca falha em casos que o modelo genérico não separa. No projeto, a aposta é busca híbrida e bons trechos antes de qualquer ajuste de modelo.</p><p class="why">Meça antes; ajuste fino é a última alavanca, não a primeira.</p></details>
+    <details><summary>O que é o pooling e por que ele importa?</summary><p>É a operação que junta os vetores de todos os tokens em um só. A média dá peso igual a cada token; um token especial de resumo deixa a rede decidir o que pesa. Para você, a consequência prática é que tokens irrelevantes dentro do texto (cabeçalhos, números de página, ruído do PDF) entram na média e deslocam o vetor. Limpar o trecho antes de embutir é parte do trabalho, e a página 9 trata disso.</p><p class="why">Tudo o que está no texto entra no vetor, inclusive o lixo.</p></details>
+    <details><summary>Vetores de palavras (word2vec) e "rei − homem + mulher = rainha" são a mesma coisa?</summary><p>São o antepassado. Word2vec dava um vetor por palavra, fixo, sem contexto, e permitia aquela aritmética. Os embeddings de hoje são por texto, sensíveis ao contexto, e não foram treinados para aritmética: "art. 75 − dispensa + inexigibilidade" não dá "art. 74". O que sobrevive da ideia antiga é a geometria: proximidade é semelhança.</p><p class="why">Mesma intuição geométrica, objeto diferente (texto, não palavra).</p></details>
+  </div>
+
+  <div class="notes"><label for="n-p2-c2">Caderno</label><p class="hint">Descreva o que é um "negativo difícil" com um exemplo da Lei 14.133 e explique por que ele é a razão de o modelo separar bem (ou mal) dois artigos vizinhos.</p><textarea class="prose" id="n-p2-c2" data-note="p2-c2"></textarea><div class="saved"></div></div>
+</section>
+
+<!-- ============================================================ 3 -->
+<section class="chapter" id="c3" data-ch="p2-c3">
+  <div class="ch-head"><span class="n">Capítulo 3</span><h2>Dimensões e truncamento</h2><label class="donebox"><input type="checkbox" data-done> Capítulo concluído</label></div>
+
+  <p>O <code>gemini-embedding-001</code> devolve, por padrão, 3072 números. O guia pede 768. Os dois vetores vêm do mesmo modelo e são compatíveis entre si? Não: um vetor de 768 só se compara com outro de 768. O que permite escolher é uma técnica de treinamento chamada <strong>representação Matryoshka</strong> (as bonecas russas): o modelo é treinado para que os primeiros 256 números já sejam um embedding razoável, os primeiros 768 um embedding bom, os primeiros 1536 um pouco melhor, e os 3072 completos o melhor. Truncar é cortar a lista e ficar com o começo. Por isso a API aceita <code>outputDimensionality</code> de 128 a 3072, e os valores recomendados são 768, 1536 ou 3072.</p>
+  <p>Há um detalhe obrigatório: <strong>no <code>gemini-embedding-001</code>, o vetor completo sai normalizado; o truncado, não.</strong> Cortar uma lista de comprimento 1 deixa uma lista de comprimento menor que 1. Se você for usar produto escalar ou cosseno com vetores normalizados (capítulo 4), precisa normalizar de novo depois de truncar (a documentação diz isso explicitamente; o <code>gemini-embedding-2</code> já renormaliza sozinho). O <code>core.js</code> do guia faz isso em toda chamada; no Ex. 3, você faz em Python com <code>numpy</code>, e esquecer é um erro clássico que não dá erro: só piora os rankings em silêncio.</p>
+  <p>Por que não usar sempre 3072? Três razões. Custo de armazenamento e memória: o índice do pgvector cresce proporcionalmente, e o índice precisa caber em memória para ser rápido. Velocidade: cada comparação é um produto de 3072 números em vez de 768. E um limite concreto: o <strong>pgvector só indexa (HNSW ou IVFFlat) vetores de até 2000 dimensões</strong> no tipo <code>vector</code>; para 3072 você precisaria do tipo <code>halfvec</code> (metade da precisão) ou abriria mão de índice. Com 768 você fica dentro do limite, com folga, e com qualidade quase igual para busca de textos curtos como dispositivos legais.</p>
+
+  <figure class="diagram" aria-label="Bonecas: 256 dentro de 768 dentro de 1536 dentro de 3072">
+    <svg viewBox="0 0 760 150" role="img" aria-labelledby="mrt"><title id="mrt">Dimensões aninhadas</title>
+      <g class="node ext"><rect x="10" y="15" width="740" height="120" rx="10"/><text x="740" y="35" text-anchor="end">3072 · completo (normalizado pela API)</text></g>
+      <g class="node"><rect x="10" y="40" width="370" height="95" rx="10"/><text x="370" y="60" text-anchor="end">1536</text></g>
+      <g class="node ia"><rect x="10" y="65" width="185" height="70" rx="10"/><text x="185" y="85" text-anchor="end" class="t">768 · o guia usa</text></g>
+      <g class="node gate"><rect x="10" y="90" width="62" height="45" rx="10"/><text x="41" y="118" text-anchor="middle">256</text></g>
+      <text class="lbl" x="200" y="125">os primeiros números carregam mais informação; os últimos refinam</text>
+    </svg>
+    <figcaption>Truncar é ficar com o prefixo. Funciona porque o modelo foi treinado para concentrar a informação no começo da lista; num modelo sem essa propriedade, cortar destruiria o vetor.</figcaption>
+  </figure>
+
+  <div class="lab">
+    <header><h4>Experimento · Cortar o vetor</h4><span class="badge toy">brinquedo</span></header>
+    <div class="body">
+      <p>Dois vetores de brinquedo com 32 dimensões, construídos com a propriedade Matryoshka (as primeiras dimensões variam mais). Mova o corte e veja o cosseno entre eles com e sem renormalização. Com poucas dimensões o cosseno oscila; a partir de um ponto, estabiliza. Esse "ponto" é o que se mede para escolher 768 em vez de 3072.</p>
+      <div class="row"><div><label class="f" for="mr-k">Manter as primeiras <span id="mr-kv">16</span> dimensões</label><input type="range" id="mr-k" min="2" max="32" step="1" value="16"></div></div>
+      <figure class="diagram" style="margin:0"><svg id="mr-svg" viewBox="0 0 760 150" role="img" aria-label="Barras dos dois vetores com a região cortada esmaecida"></svg></figure>
+      <div class="bars" id="mr-out" aria-live="polite"></div>
+    </div>
+  </div>
+
+  <div class="lab">
+    <header><h4>Experimento · 768 contra 3072 no modelo real</h4><span class="badge live">ao vivo · 2 lotes de embeddings</span></header>
+    <div class="body">
+      <p>Uma consulta e oito frases são embutidas duas vezes: com 768 e com 3072 dimensões. Compare o ranking das frases em cada caso. Na maioria das consultas o ranking é o mesmo ou troca posições vizinhas; quando isso acontece, 768 está pagando o suficiente. Edite as frases se quiser testar um caso seu.</p>
+      <div class="row top">
+        <div><label class="f" for="dm-q">Consulta</label><input type="text" id="dm-q" value="limite de valor para dispensa de licitação em obras"></div>
+        <div class="fixed"><button class="btn" id="dm-run">Comparar</button></div>
+      </div>
+      <div class="row top"><div><label class="f" for="dm-docs">Frases (uma por linha)</label><textarea id="dm-docs" rows="8">É dispensável a licitação para obras e serviços de engenharia de valor inferior ao limite fixado na lei.
+É dispensável a licitação para compras e outros serviços de pequeno valor.
+É inexigível a licitação quando inviável a competição, como no caso de fornecedor exclusivo.
+O pregão é a modalidade obrigatória para bens e serviços comuns.
+A garantia contratual poderá ser exigida em até cinco por cento do valor do contrato.
+O contratado que atrasar a execução ficará sujeito a multa.
+A licitação será processada e julgada em fases sucessivas.
+Os valores previstos nesta lei serão atualizados anualmente pelo índice oficial.</textarea></div></div>
+      <div class="cmp"><div class="col"><h5>768 dimensões</h5><div id="dm-a"></div></div><div class="col"><h5>3072 dimensões</h5><div id="dm-b"></div></div></div>
+      <div class="status" id="dm-status"></div>
+    </div>
+  </div>
+
+  <div class="doit"><span class="ic">faça agora</span><p>No brinquedo, arraste o corte para 4 e depois para 24 e anote os dois cossenos "renormalizados". No experimento ao vivo, rode a consulta padrão e depois troque por "multa por atraso na execução". Veja se o primeiro lugar muda entre 768 e 3072. Se não mudar, você acabou de justificar a escolha do projeto com dados, não com opinião.</p></div>
+
+  <div class="faq">
+    <h3>Perguntas que aparecem aqui</h3>
+    <details><summary>Posso guardar 3072 e truncar depois, na consulta?</summary><p>Pode, se guardar o vetor completo e truncar (e renormalizar) os dois lados na hora de comparar. Mas o índice do pgvector é construído sobre a coluna inteira, então você pagaria o índice de 3072 (que nem cabe no tipo <code>vector</code> indexado) sem usar. O caminho prático é decidir a dimensão na indexação e guardar só ela.</p><p class="why">A dimensão é uma decisão do índice, não da consulta.</p></details>
+    <details><summary>E os modelos locais, como o bge-m3 do Ollama?</summary><p>O bge-m3 devolve 1024 dimensões, sem truncamento Matryoshka: use as 1024. Ele também é multilíngue e bom em português. A diferença prática é que ele roda na sua máquina, sem cota, e é uma boa escolha para os exercícios quando a API estiver limitada. Só não misture: um índice é de um modelo só.</p><p class="why">Cada modelo, o seu espaço, a sua dimensão, o seu índice.</p></details>
+    <details><summary>O que acontece se eu mandar um texto maior que o limite do modelo?</summary><p>O <code>gemini-embedding-001</code> aceita até 2048 tokens de entrada e trunca o excedente sem avisar. Um trecho de 5 mil tokens vira o embedding dos primeiros 2048: o fim do texto some do vetor. É mais um motivo para trechos curtos, um por dispositivo, e para contar tokens antes de indexar (página 1, capítulo 2).</p><p class="why">Truncamento silencioso na entrada: o vetor representa só o que coube.</p></details>
+  </div>
+
+  <div class="notes"><label for="n-p2-c3">Caderno</label><p class="hint">Justifique, em três frases, a escolha de 768 dimensões para o projeto: qualidade, custo e um limite técnico do pgvector.</p><textarea class="prose" id="n-p2-c3" data-note="p2-c3"></textarea><div class="saved"></div></div>
+</section>
+<!-- ============================================================ 4 -->
+<section class="chapter" id="c4" data-ch="p2-c4">
+  <div class="ch-head"><span class="n">Capítulo 4</span><h2>Normalização e as três métricas</h2><label class="donebox"><input type="checkbox" data-done> Capítulo concluído</label></div>
+
+  <p>"Parecido" precisa virar um número. Há três jeitos de medir a relação entre dois vetores, e o pgvector implementa os três como operadores. Entender as três contas (são curtas) evita a confusão mais comum do Ex. 3: usar o operador errado para o índice errado e ter um ranking que "parece" certo.</p>
+  <p><strong>Produto escalar</strong> (<code>&lt;#&gt;</code> no pgvector, que devolve o <em>negativo</em> do produto para poder ordenar de forma crescente): multiplica coordenada a coordenada e soma. Cresce quando os vetores apontam para o mesmo lado <em>e</em> quando são longos. <strong>Similaridade de cosseno</strong> (<code>&lt;=&gt;</code> devolve a <em>distância</em> de cosseno, que é 1 − cosseno): é o produto escalar dividido pelos comprimentos, ou seja, o cosseno do ângulo. Vai de −1 a 1 e ignora o comprimento. <strong>Distância euclidiana</strong> (<code>&lt;-&gt;</code>): a distância em linha reta entre as pontas das setas. Quanto menor, mais parecido.</p>
+  <p>Agora o fato que simplifica tudo: <strong>quando os vetores estão normalizados</strong> (comprimento 1), as três medidas produzem <em>o mesmo ranking</em>. O produto escalar vira igual ao cosseno, porque dividir por 1 × 1 não muda nada. E a distância euclidiana ao quadrado vira 2 − 2·cosseno: ordenar por menor distância é ordenar por maior cosseno. Por isso o guia normaliza tudo e por isso a API devolve o vetor de 3072 já normalizado: com vetores normalizados, você pode usar o operador mais barato (produto escalar) e obter o resultado do cosseno.</p>
+
+  <div class="tbl-wrap"><table>
+    <thead><tr><th>Medida</th><th>Conta</th><th>pgvector</th><th>Melhor é</th><th>Sensível ao comprimento?</th></tr></thead>
+    <tbody>
+      <tr><td>Produto escalar</td><td>Σ aᵢ·bᵢ</td><td><code>a &lt;#&gt; b</code> (= −produto)</td><td>maior produto (menor valor do operador)</td><td>sim</td></tr>
+      <tr><td>Cosseno</td><td>Σ aᵢ·bᵢ ÷ (|a|·|b|)</td><td><code>a &lt;=&gt; b</code> (= 1 − cos)</td><td>maior cosseno (menor distância)</td><td>não</td></tr>
+      <tr><td>Euclidiana (L2)</td><td>√Σ (aᵢ − bᵢ)²</td><td><code>a &lt;-&gt; b</code></td><td>menor</td><td>sim</td></tr>
+    </tbody>
+  </table></div>
+  <p>A convenção do pgvector merece uma frase: todos os operadores devolvem uma <strong>distância</strong> (menor é melhor), para que <code>ORDER BY … LIMIT k</code> funcione igual nos três. O operador que você escolhe precisa combinar com a classe do índice (<code>vector_cosine_ops</code>, <code>vector_ip_ops</code> ou <code>vector_l2_ops</code>); se não combinar, o índice não é usado e a busca vira varredura completa. A página 3 volta a isso com o SQL.</p>
+
+  <div class="lab">
+    <header><h4>Experimento · Três métricas, um ranking?</h4><span class="badge toy">brinquedo</span></header>
+    <div class="body">
+      <p>Uma consulta e seis vetores de brinquedo em duas dimensões, com comprimentos diferentes de propósito. Veja o ranking sob cada métrica. Depois ligue a normalização: os comprimentos viram 1 e os três rankings convergem. É a demonstração de por que o guia normaliza.</p>
+      <div class="row"><div class="fixed"><label class="f" style="display:flex;gap:8px;align-items:center"><input type="checkbox" id="mt-norm"> Normalizar os vetores</label></div><div class="fixed"><button class="btn ghost" id="mt-shuffle">Novos vetores</button></div></div>
+      <div class="grid2">
+        <figure class="diagram" style="margin:0"><svg id="mt-svg" viewBox="0 0 360 300" role="img" aria-label="Consulta e seis vetores no plano"></svg></figure>
+        <div class="tbl-wrap"><table id="mt-tbl"><thead><tr><th>#</th><th>produto escalar</th><th>cosseno</th><th>euclidiana</th></tr></thead><tbody></tbody></table></div>
+      </div>
+      <p class="mini" id="mt-note"></p>
+    </div>
+  </div>
+
+  <div class="doit"><span class="ic">faça agora</span><p>Sem normalizar, ache um caso em que o primeiro lugar por produto escalar é diferente do primeiro por cosseno (clique em "Novos vetores" até aparecer). Explique para si mesmo por quê: um vetor longo "vence" no produto escalar mesmo apontando para um lado um pouco errado. Ligue a normalização e veja a diferença sumir.</p></div>
+
+  <div class="faq">
+    <h3>Perguntas que aparecem aqui</h3>
+    <details><summary>Se as três dão o mesmo ranking com vetores normalizados, qual escolher no pgvector?</summary><p>Cosseno (<code>vector_cosine_ops</code> e <code>&lt;=&gt;</code>) é a escolha segura: funciona mesmo que algum vetor entre sem normalizar, e o número devolvido é interpretável (0 é idêntico, 1 é ortogonal). Produto interno é um pouco mais rápido e é a escolha de quem garante a normalização no código. O projeto usa cosseno por robustez; a diferença de velocidade é irrelevante nessa escala.</p><p class="why">Cosseno tolera esquecimentos; produto interno exige disciplina.</p></details>
+    <details><summary>Cosseno 0,82 é "muito parecido"?</summary><p>Depende do modelo. Cada modelo distribui os cossenos numa faixa própria: em alguns, textos sem relação ficam em 0,3; em outros, em 0,6. O número só faz sentido comparado com outros números do mesmo modelo, no mesmo corpus. O capítulo 7 mostra a distribuição real do <code>gemini-embedding-001</code> no corpus do guia, e a página 8 ensina a calibrar um limiar com um conjunto de avaliação.</p><p class="why">Score é relativo ao modelo; limiar se mede, não se adivinha.</p></details>
+    <details><summary>Cosseno negativo acontece?</summary><p>Em teoria vai até −1. Na prática, com modelos de texto, quase nunca fica abaixo de zero, porque todos os textos compartilham muita estrutura (são textos) e ficam num "cone" do espaço. Um valor negativo entre dois textos reais é raro e não significa "opostos"; significa "muito diferentes".</p><p class="why">A geometria real ocupa um cone; o extremo negativo não aparece.</p></details>
+    <details><summary>Por que o pgvector devolve o produto escalar negativo?</summary><p>Para que "menor é melhor" valha em todos os operadores e o planejador do banco use o índice com <code>ORDER BY … ASC LIMIT k</code>. Se você quiser o produto escalar de verdade, é só trocar o sinal na consulta: <code>-(a &lt;#&gt; b)</code>.</p><p class="why">Uniformidade de ordenação, não uma propriedade matemática.</p></details>
+  </div>
+
+  <div class="notes"><label for="n-p2-c4">Caderno</label><p class="hint">Escreva a frase que explica por que produto escalar e cosseno dão o mesmo ranking com vetores normalizados, e o que acontece se um lado esquecer de normalizar.</p><textarea class="prose" id="n-p2-c4" data-note="p2-c4"></textarea><div class="saved"></div></div>
+</section>
+
+<!-- ============================================================ 5 -->
+<section class="chapter" id="c5" data-ch="p2-c5">
+  <div class="ch-head"><span class="n">Capítulo 5</span><h2>Tipos de tarefa: consulta não é documento</h2><label class="donebox"><input type="checkbox" data-done> Capítulo concluído</label></div>
+
+  <p>Uma pergunta e a passagem que a responde não se parecem como textos: "qual o limite para dispensa em obras?" é curta, interrogativa e usa palavras diferentes de "é dispensável a licitação para obras de valor inferior a…". Um modelo que tratasse os dois do mesmo jeito deixaria perguntas perto de outras perguntas, e não das respostas. O <code>gemini-embedding-001</code> resolve isso com o parâmetro <strong><code>taskType</code></strong>: você declara o que o texto é, e o modelo ajusta a forma de embutir.</p>
+  <p>Os tipos que importam para o projeto são dois: <code>RETRIEVAL_DOCUMENT</code> na indexação (cada dispositivo da lei entra como documento) e <code>RETRIEVAL_QUERY</code> na busca (a pergunta do analista, ou o critério de auditoria, entra como consulta). Esse par é <strong>assimétrico</strong> de propósito: o modelo aprendeu que consulta e documento têm papéis diferentes. Os outros tipos servem a outras tarefas: <code>SEMANTIC_SIMILARITY</code> compara dois textos do mesmo tipo (duas frases, dois trechos), <code>CLASSIFICATION</code> e <code>CLUSTERING</code> otimizam para agrupar, <code>QUESTION_ANSWERING</code> e <code>FACT_VERIFICATION</code> são variantes de consulta, e <code>CODE_RETRIEVAL_QUERY</code> é para código.</p>
+  <p>O erro típico é indexar com um tipo e buscar com outro incompatível, ou indexar e buscar com <code>SEMANTIC_SIMILARITY</code> por parecer "neutro". Funciona, mas pior; e "pior" aqui é o tipo de degradação que só aparece no conjunto de avaliação. A regra: documentos com <code>RETRIEVAL_DOCUMENT</code>, consultas com <code>RETRIEVAL_QUERY</code>, e o mesmo modelo dos dois lados.</p>
+
+  <div class="lab" id="idx">
+    <header><h4>Índice do corpus neste navegador</h4><span class="badge live">ao vivo · 3 lotes de embeddings, uma vez</span></header>
+    <div class="body">
+      <p>Os experimentos a partir daqui buscam nos 48 dispositivos do corpus do guia. Os vetores são calculados uma vez (<code>RETRIEVAL_DOCUMENT</code>, 768 dimensões, texto = dispositivo + conteúdo) e ficam guardados neste navegador; as outras páginas reaproveitam. Se você trocar o modelo de embeddings na página inicial, o índice é recalculado.</p>
+      <div class="row"><div class="fixed"><button class="btn" id="idx-run">Indexar corpus</button></div><div class="fixed"><button class="btn ghost" id="idx-clear">Apagar índice</button></div><div><span class="mini" id="idx-info"></span></div></div>
+      <div class="status" id="idx-status"></div>
+    </div>
+  </div>
+
+  <div class="lab">
+    <header><h4>Experimento · A mesma pergunta, três tipos de tarefa</h4><span class="badge live">ao vivo · 1 lote</span></header>
+    <div class="body">
+      <p>A consulta é embutida três vezes, uma por tipo de tarefa, e cada vetor é comparado com o índice (que foi feito com <code>RETRIEVAL_DOCUMENT</code>). Compare os cinco primeiros de cada coluna e os scores. O par certo (consulta ↔ documento) costuma colocar o dispositivo esperado mais alto e com mais folga.</p>
+      <div class="row top">
+        <div><label class="f" for="tt-q">Consulta</label><input type="text" id="tt-q" value="qual o limite de valor para dispensa de licitação em obras e serviços de engenharia?"></div>
+        <div class="fixed"><button class="btn" id="tt-run">Comparar tipos</button></div>
+      </div>
+      <div class="cmp"><div class="col"><h5>RETRIEVAL_QUERY</h5><div id="tt-a"></div></div><div class="col"><h5>SEMANTIC_SIMILARITY</h5><div id="tt-b"></div></div><div class="col"><h5>RETRIEVAL_DOCUMENT</h5><div id="tt-c"></div></div></div>
+      <div class="status" id="tt-status"></div>
+    </div>
+  </div>
+
+  <div class="doit"><span class="ic">faça agora</span><p>Indexe o corpus. Rode a consulta padrão e marque em qual posição aparece o <code>L14133-art75-incI</code> em cada coluna. Depois troque a consulta por uma afirmação, no estilo de documento ("é dispensável a licitação para obras de pequeno valor"), e veja se a coluna <code>RETRIEVAL_DOCUMENT</code> melhora: quando o texto de busca já parece um documento, a assimetria ajuda menos.</p></div>
+
+  <div class="faq">
+    <h3>Perguntas que aparecem aqui</h3>
+    <details><summary>O critério de auditoria da Camada 5 é "consulta" ou "documento"?</summary><p>Consulta. Ele é o texto que procura dispositivos que o embasem: "o edital exige garantia acima do limite legal?" busca os artigos sobre garantia. Entra com <code>RETRIEVAL_QUERY</code>. O trecho do edital, quando for usado para buscar a norma correspondente, também entra como consulta, porque o papel dele naquele momento é "procurar".</p><p class="why">O tipo descreve o papel na busca, não a natureza do texto.</p></details>
+    <details><summary>Modelos locais têm tipo de tarefa?</summary><p>Alguns esperam um <em>prefixo</em> no texto em vez de um parâmetro (por exemplo, "query: " e "passage: " nos modelos da família e5). O bge-m3 não exige prefixo. Leia a ficha do modelo: ignorar a convenção dele custa qualidade do mesmo jeito que ignorar o <code>taskType</code>.</p><p class="why">Mesma ideia, mecanismo diferente por modelo.</p></details>
+    <details><summary>Posso usar SEMANTIC_SIMILARITY para deduplicar trechos?</summary><p>Sim, é o uso certo dele: comparar dois textos do mesmo tipo. Na ingestão (página 5), detectar dispositivos repetidos entre versões da lei ou entre atos diferentes é um caso de <code>SEMANTIC_SIMILARITY</code> com um limiar alto, e o resultado precisa de revisão humana porque "quase igual" em texto legal pode ser uma mudança de prazo.</p><p class="why">Simetria para comparar iguais; assimetria para achar respostas.</p></details>
+  </div>
+
+  <div class="notes"><label for="n-p2-c5">Caderno</label><p class="hint">Explique a assimetria consulta/documento com um exemplo do projeto e diga que par de tipos vai no índice e na busca do Ex. 3.</p><textarea class="prose" id="n-p2-c5" data-note="p2-c5"></textarea><div class="saved"></div></div>
+</section>
+
+<!-- ============================================================ 6 -->
+<section class="chapter" id="c6" data-ch="p2-c6">
+  <div class="ch-head"><span class="n">Capítulo 6</span><h2>O que o vetor captura, e o que ele não captura</h2><label class="donebox"><input type="checkbox" data-done> Capítulo concluído</label></div>
+
+  <p>Este é o capítulo que decide se você vai confiar demais na busca vetorial. O embedding captura <strong>assunto e sentido geral</strong> muito bem: paráfrases ficam perto, sinônimos ficam perto, uma pergunta fica perto da passagem que a responde mesmo sem uma palavra em comum. É o que a busca lexical (página 4) não consegue, e é a razão de existir a busca vetorial.</p>
+  <p>O que ele captura mal, e você precisa saber de cor:</p>
+  <p><strong>Negação.</strong> "É dispensável a licitação" e "não é dispensável a licitação" compartilham assunto, vocabulário e estrutura; diferem numa palavra que inverte o sentido. Para o vetor, são quase o mesmo ponto. Um sistema que decide conformidade com base só em proximidade vetorial vai tratar os dois como equivalentes. Por isso a decisão final é do modelo de linguagem lendo o texto (páginas 6 e 7), nunca da busca.</p>
+  <p><strong>Números, valores e identificadores.</strong> "Art. 75" e "art. 74", "R$ 100.000" e "R$ 50.000", "inciso I" e "inciso II" ficam muito próximos. O modelo aprendeu que números são detalhes de superfície, e para a maioria dos textos isso está certo; para texto legal, o número é o assunto. É a razão técnica número um para a <strong>busca híbrida</strong>: a parte lexical acerta exatamente esses casos.</p>
+  <p><strong>Trechos longos com várias ideias.</strong> Um vetor é uma média ponderada do texto. Um trecho que fala de prazo, garantia e multa fica no meio dos três assuntos: perto de todos, campeão de nenhum. Um por dispositivo, uma ideia por trecho, é a política do projeto por causa disso. O capítulo 9 mede a diluição ao vivo.</p>
+  <p><strong>Ordem e estrutura fina.</strong> "A multa substitui a rescisão" e "a rescisão substitui a multa" são próximos. Quem depende de quem, o que é exceção do quê, tende a se perder na média.</p>
+
+  <div class="lab">
+    <header><h4>Experimento · Mapa de calor de similaridade</h4><span class="badge live">ao vivo · 1 lote</span></header>
+    <div class="body">
+      <p>Até seis frases, embutidas com <code>SEMANTIC_SIMILARITY</code>, e o cosseno de cada par numa grade. Comece pelos conjuntos prontos: cada um isola um dos comportamentos acima. Passe o mouse (ou toque) numa célula para ver o par e o valor.</p>
+      <div class="chips" id="hm-presets" style="margin-bottom:10px">
+        <button class="chip" type="button" data-set="parafrase">Paráfrases</button>
+        <button class="chip" type="button" data-set="negacao">Negação</button>
+        <button class="chip" type="button" data-set="numeros">Números e identificadores</button>
+        <button class="chip" type="button" data-set="assunto">Assuntos diferentes</button>
+        <button class="chip" type="button" data-set="idioma">Português e inglês</button>
+      </div>
+      <div class="row top"><div><label class="f" for="hm-docs">Frases (uma por linha, até 6)</label><textarea id="hm-docs" rows="6"></textarea></div><div class="fixed"><button class="btn" id="hm-run">Calcular</button></div></div>
+      <figure class="diagram" style="margin:0"><svg id="hm-svg" viewBox="0 0 760 300" role="img" aria-label="Grade de similaridade entre as frases"></svg><figcaption id="hm-cap">Cada célula é o cosseno entre duas frases. Mais escuro, mais parecido.</figcaption></figure>
+      <div class="status" id="hm-status"></div>
+    </div>
+  </div>
+
+  <div class="doit"><span class="ic">faça agora</span><p>Rode "Negação" e anote o cosseno entre a frase afirmativa e a negativa. Rode "Números" e anote o cosseno entre "art. 75" e "art. 74". Depois rode "Assuntos diferentes" e compare: os pares que <em>deveriam</em> ser diferentes (negação, número) ficam mais perto do que os pares que <em>são</em> diferentes de assunto? Essa é a evidência para a busca híbrida do Ex. 4.</p></div>
+
+  <div class="faq">
+    <h3>Perguntas que aparecem aqui</h3>
+    <details><summary>Se a negação é invisível para o vetor, como o RAG evita responder errado?</summary><p>A busca só escolhe <em>candidatos</em>. Quem lê os candidatos e decide é o modelo de linguagem, que enxerga a negação perfeitamente. O risco real é a busca não trazer o trecho certo, não a busca "decidir" errado. É por isso que recall@k (página 8) é a métrica da busca: o trecho certo precisa estar entre os k, e o resto é trabalho do prompt.</p><p class="why">Busca recupera; modelo decide. Cada camada com a sua falha.</p></details>
+    <details><summary>Colocar "Art. 75, inc. I" no começo do texto embutido ajuda a achar por número?</summary><p>Ajuda um pouco no vetor e muito na busca lexical. O guia embute "dispositivo + conteúdo" justamente para que o identificador exista no texto; mas quem garante "art. 75" exato é a parte lexical da busca híbrida, com o campo de dispositivo indexado à parte (página 4).</p><p class="why">Prefixo ajuda; exatidão é da busca lexical.</p></details>
+    <details><summary>Embeddings entendem siglas e jargão (ETP, TR, SRP)?</summary><p>As comuns em texto público, sim; as raras ou internas, mal. Uma prática barata é expandir siglas no texto antes de embutir ("ETP (estudo técnico preliminar)"), o que ajuda o vetor e a busca lexical ao mesmo tempo. A página 5 trata disso na segmentação.</p><p class="why">O modelo só sabe o que viu; expanda o que ele pode não ter visto.</p></details>
+    <details><summary>Dois textos idênticos dão cosseno 1?</summary><p>Sim, ou 0,99999 por arredondamento. E o mesmo texto embutido duas vezes dá o mesmo vetor, salvo diferenças mínimas de ponto flutuante. Por isso vale guardar o hash do texto ao lado do vetor: se o texto não mudou, não reembute.</p><p class="why">Determinístico o bastante para cachear por hash.</p></details>
+  </div>
+
+  <div class="notes"><label for="n-p2-c6">Caderno</label><p class="hint">Liste as quatro fraquezas do vetor com um exemplo da Lei 14.133 para cada e diga qual parte do sistema (busca lexical, prompt, validação) compensa cada uma.</p><textarea class="prose" id="n-p2-c6" data-note="p2-c6"></textarea><div class="saved"></div></div>
+</section>
+<!-- ============================================================ 7 -->
+<section class="chapter" id="c7" data-ch="p2-c7">
+  <div class="ch-head"><span class="n">Capítulo 7</span><h2>Vizinhos mais próximos e a forma do espaço</h2><label class="donebox"><input type="checkbox" data-done> Capítulo concluído</label></div>
+
+  <p>Busca vetorial, no fim, é isto: embutir a consulta, calcular a similaridade com cada vetor do índice, ordenar e ficar com os k primeiros. Chama-se <strong>busca de vizinhos mais próximos</strong> (k-NN). Com 48 trechos, dá para comparar com todos, um por um, em menos de um milissegundo; com dez milhões, não, e é aí que entram os índices aproximados da página 3. Aqui o corpus é pequeno e a busca é exata, o que é bom para estudar: o que você vê é a verdade do modelo, sem o erro do índice.</p>
+  <p>Duas coisas para observar ao rodar. Primeiro, <strong>a distribuição dos scores</strong>: com o <code>gemini-embedding-001</code>, os trechos sem relação com a consulta não ficam em zero; ficam numa faixa, e os relevantes ficam um pouco acima dela. O que separa os bons dos ruins é uma diferença de décimos, não a magnitude absoluta. Segundo, <strong>a folga entre o primeiro e o resto</strong>: quando o primeiro lugar está bem separado, a busca "tem certeza"; quando os cinco primeiros estão empatados, ou a consulta é vaga ou o corpus tem vários trechos parecidos, e um reranker ou o modelo de linguagem terá que desempatar.</p>
+  <p>A projeção em duas dimensões, no segundo experimento, é uma ferramenta de diagnóstico. Ela comprime 768 dimensões em 2 preservando o máximo possível das distâncias (a técnica é a análise de componentes principais, calculada aqui no navegador). Perde-se muito, mas o que sobrevive é informativo: grupos de dispositivos sobre o mesmo assunto aparecem como aglomerados, e um trecho que caiu longe do grupo dele é candidato a texto mal segmentado ou ruído. É um jeito de olhar para o índice antes de confiar nele.</p>
+
+  <div class="lab">
+    <header><h4>Experimento · Explorador de vizinhos</h4><span class="badge live">ao vivo · 1 lote por consulta</span></header>
+    <div class="body">
+      <p>Faça uma pergunta ao corpus. A lista mostra os dez mais próximos com o cosseno; o gráfico mostra a distribuição dos scores de <em>todos</em> os 48 trechos, com os dez em destaque. Os trechos marcados em verde são os esperados para as perguntas do conjunto de avaliação do guia (quando a pergunta é uma delas).</p>
+      <div class="row top">
+        <div><label class="f" for="nn-q">Consulta</label><input type="text" id="nn-q" value="prazo para a Administração pagar o contratado"></div>
+        <div class="fixed"><label class="f" for="nn-eval">Ou escolha uma do conjunto de avaliação</label><select id="nn-eval"><option value="">—</option></select></div>
+        <div class="fixed"><button class="btn" id="nn-run">Buscar</button></div>
+      </div>
+      <div class="grid2">
+        <div id="nn-list"></div>
+        <figure class="diagram" style="margin:0"><svg id="nn-svg" viewBox="0 0 360 240" role="img" aria-label="Histograma dos scores de similaridade"></svg><figcaption id="nn-cap">Distribuição dos cossenos entre a consulta e todos os trechos.</figcaption></figure>
+      </div>
+      <div class="status" id="nn-status"></div>
+    </div>
+  </div>
+
+  <div class="lab">
+    <header><h4>Experimento · O corpus em duas dimensões</h4><span class="badge toy">usa o índice, sem chamadas</span></header>
+    <div class="body">
+      <p>Os 48 vetores do índice projetados em um plano. Cada ponto é um dispositivo; a cor é o artigo. Passe o mouse ou toque para ler o trecho. Depois de uma busca no explorador acima, a consulta aparece como um losango e os dez vizinhos ficam destacados: dá para ver se eles formam um grupo ou se a consulta caiu "entre" assuntos.</p>
+      <div class="row"><div class="fixed"><button class="btn" id="pj-run">Projetar</button></div><div><span class="mini" id="pj-info"></span></div></div>
+      <figure class="diagram" style="margin:0"><svg id="pj-svg" viewBox="0 0 760 420" role="img" aria-label="Projeção 2D dos trechos do corpus" style="touch-action:manipulation"></svg><figcaption id="pj-cap">Duas dimensões de 768: a distância no desenho é uma aproximação da distância real.</figcaption></figure>
+    </div>
+  </div>
+
+  <div class="doit"><span class="ic">faça agora</span><p>Escolha três perguntas do conjunto de avaliação. Para cada uma anote: a posição do trecho esperado, o score dele e o score do décimo colocado. Calcule a folga (score do esperado menos o do décimo). Perguntas com folga pequena são as que a busca híbrida e o reranker precisam salvar; leve essa lista para a página 4.</p></div>
+
+  <div class="faq">
+    <h3>Perguntas que aparecem aqui</h3>
+    <details><summary>Posso usar um limiar fixo de score para "não achou nada"?</summary><p>Pode, desde que calibrado com o seu modelo e o seu corpus, e revisto a cada troca de modelo. Um limiar herdado de outro sistema não vale nada. O jeito certo é olhar a distribuição (como neste experimento) para perguntas com resposta e para perguntas sem resposta no corpus, e escolher o corte que separa os dois grupos com a menor perda. A página 8 tem o protocolo.</p><p class="why">Limiar é uma medida empírica do par modelo + corpus.</p></details>
+    <details><summary>Por que o top-k do projeto é 12 e não 3?</summary><p>Porque a busca erra a ordem com frequência: o trecho certo está entre os 12 com muito mais frequência do que entre os 3. Trazer 12 e deixar o modelo de linguagem (ou um reranker) escolher custa alguns tokens e recupera muito recall. O número exato foi uma escolha de projeto para caber no orçamento de contexto da página 1, e deve ser revisto com o recall@k medido.</p><p class="why">k grande compra recall; o prompt paga em tokens.</p></details>
+    <details><summary>A projeção 2D serve para buscar?</summary><p>Não. Ela perde a maior parte da informação e existe só para o olho humano. Duas coisas próximas no desenho podem estar longe em 768 dimensões, e vice-versa (menos frequente). Use-a para achar anomalias e entender grupos, nunca para decidir vizinhança.</p><p class="why">Diagnóstico visual, não ferramenta de busca.</p></details>
+  </div>
+
+  <div class="notes"><label for="n-p2-c7">Caderno</label><p class="hint">Descreva o que a distribuição dos scores lhe disse sobre "score alto" e "score baixo" neste modelo, e como você usaria a folga entre o primeiro e o décimo para diagnosticar consultas difíceis.</p><textarea class="prose" id="n-p2-c7" data-note="p2-c7"></textarea><div class="saved"></div></div>
+</section>
+
+<!-- ============================================================ 8 -->
+<section class="chapter" id="c8" data-ch="p2-c8">
+  <div class="ch-head"><span class="n">Capítulo 8</span><h2>Idiomas, domínio e a escolha do modelo</h2><label class="donebox"><input type="checkbox" data-done> Capítulo concluído</label></div>
+
+  <p>Os modelos de embedding atuais são <strong>multilíngues</strong>: treinados com texto em dezenas de idiomas e com pares alinhados entre eles, colocam "prazo de pagamento" e "payment deadline" perto um do outro. Para o projeto isso tem uma consequência agradável: o vocabulário jurídico brasileiro é bem coberto (o <code>gemini-embedding-001</code> lista mais de cem idiomas, e o português está entre os mais representados) e uma consulta em inglês encontra dispositivos em português. Tem também um cuidado: a qualidade não é idêntica entre idiomas, e uma consulta em português contra documentos em português é sempre o caso melhor.</p>
+  <p>Sobre <strong>domínio</strong>: "inexigibilidade", "ETP", "matriz de riscos", "sobrepreço" aparecem em milhões de páginas públicas (diários oficiais, acórdãos do TCU, editais), e os modelos gerais os conhecem. O que eles conhecem menos é a linguagem interna de cada órgão: siglas próprias, nomes de sistemas, jargão de setor. A regra do capítulo 6 vale aqui: expanda o que é interno antes de embutir.</p>
+  <p>E sobre a <strong>escolha do modelo</strong>, que é uma decisão do Ex. 3 e de operação (página 10). Quatro critérios, nesta ordem: qualidade em português medida no seu conjunto de avaliação (não no benchmark do fornecedor); custo e cota por milhão de tokens; dimensão e limite de entrada; e onde ele roda (API externa ou local). A tabela resume o que você tem à mão hoje.</p>
+
+  <div class="tbl-wrap"><table>
+    <thead><tr><th>Modelo</th><th>Onde roda</th><th>Dimensões</th><th>Entrada máx.</th><th>Idiomas</th><th>Quando usar</th></tr></thead>
+    <tbody>
+      <tr><td><code>gemini-embedding-001</code></td><td>API do Google</td><td>3072, truncável (768 / 1536)</td><td>2048 tokens</td><td>100+</td><td>padrão do projeto e do guia; tem tipos de tarefa; cota gratuita própria</td></tr>
+      <tr><td><code>gemini-embedding-2</code> (prévia)</td><td>API do Google</td><td>3072, truncável (renormaliza sozinho)</td><td>8192 tokens</td><td>100+; texto, imagem, áudio, vídeo, PDF</td><td>quando imagem e texto precisarem do mesmo espaço, ou trechos maiores; ainda em prévia, não para o Ex. 3</td></tr>
+      <tr><td><code>bge-m3</code> (Ollama)</td><td>local</td><td>1024</td><td>8192 tokens</td><td>100+</td><td>exercícios sem cota, ambientes sem internet, comparação de qualidade</td></tr>
+      <tr><td><code>nomic-embed-text</code> (Ollama)</td><td>local</td><td>768</td><td>8192 tokens</td><td>principalmente inglês</td><td>leve e rápido; pior em português; útil para testar o pipeline</td></tr>
+    </tbody>
+  </table></div>
+  <p class="mini">Os números de dimensão e entrada são da documentação de cada modelo; confira a ficha antes de fixar em código, porque limites mudam entre versões.</p>
+
+  <div class="lab">
+    <header><h4>Experimento · A mesma pergunta em três idiomas</h4><span class="badge live">ao vivo · 1 lote</span></header>
+    <div class="body">
+      <p>Três versões da mesma consulta, embutidas como <code>RETRIEVAL_QUERY</code> e comparadas com o índice em português. Veja se os cinco primeiros coincidem e o quanto o score cai fora do português.</p>
+      <div class="row top"><div><label class="f" for="ml-pt">Português</label><input type="text" id="ml-pt" value="garantia contratual e seu limite em relação ao valor do contrato"></div></div>
+      <div class="row top"><div><label class="f" for="ml-en">Inglês</label><input type="text" id="ml-en" value="contract performance guarantee and its cap relative to the contract value"></div><div><label class="f" for="ml-es">Espanhol</label><input type="text" id="ml-es" value="garantía contractual y su límite en relación con el valor del contrato"></div><div class="fixed"><button class="btn" id="ml-run">Comparar</button></div></div>
+      <div class="cmp"><div class="col"><h5>pt</h5><div id="ml-a"></div></div><div class="col"><h5>en</h5><div id="ml-b"></div></div><div class="col"><h5>es</h5><div id="ml-c"></div></div></div>
+      <div class="status" id="ml-status"></div>
+    </div>
+  </div>
+
+  <div class="doit"><span class="ic">faça agora</span><p>Troque a consulta em inglês por uma tradução ruim, literal ("guarantee of contract and limit of value"), e veja o que acontece com o ranking. Depois escreva a consulta em português usando uma sigla interna inventada ("limite da GC no contrato") e observe a queda. A segunda queda é a que você vai encontrar no projeto.</p></div>
+
+  <div class="faq">
+    <h3>Perguntas que aparecem aqui</h3>
+    <details><summary>Devo traduzir tudo para inglês antes de embutir, já que os modelos são "melhores em inglês"?</summary><p>Não. Traduzir introduz erro, custa uma chamada de modelo por trecho e joga fora a precisão terminológica do texto legal. Os modelos multilíngues atuais lidam bem com português; se a avaliação mostrar fraqueza, a resposta é trocar de modelo, não traduzir o corpus.</p><p class="why">Tradução é uma fonte de erro a mais, sem ganho comprovado.</p></details>
+    <details><summary>Como comparar dois modelos de embedding de forma justa?</summary><p>Mesmo corpus, mesma segmentação, mesmo conjunto de perguntas com respostas esperadas, e a mesma métrica (recall@k, MRR). Rode os dois, compare os números. Benchmarks públicos (como o MTEB) servem para uma triagem inicial, mas o seu domínio pode inverter o resultado. A página 8 monta esse protocolo, e o Ex. 7 o executa.</p><p class="why">A única comparação que vale é no seu conjunto de avaliação.</p></details>
+    <details><summary>Rodar embeddings localmente é mais lento?</summary><p>Numa máquina sem GPU, o bge-m3 embute alguns trechos por segundo: indexar a Lei 14.133 inteira leva minutos, não segundos. Para consulta (um vetor por pergunta) é rápido o bastante. Para produção com muitos documentos, a API ou uma GPU dedicada faz diferença; para os exercícios, o local é suficiente e não tem cota.</p><p class="why">Local é lento para indexar em massa; ótimo para estudar.</p></details>
+  </div>
+
+  <div class="notes"><label for="n-p2-c8">Caderno</label><p class="hint">Escreva os quatro critérios de escolha de modelo de embedding, na ordem, e diga qual modelo você usaria no Ex. 3 e por quê.</p><textarea class="prose" id="n-p2-c8" data-note="p2-c8"></textarea><div class="saved"></div></div>
+</section>
+
+<!-- ============================================================ 9 -->
+<section class="chapter" id="c9" data-ch="p2-c9">
+  <div class="ch-head"><span class="n">Capítulo 9</span><h2>Limites, diluição e versionamento</h2><label class="donebox"><input type="checkbox" data-done> Capítulo concluído</label></div>
+
+  <p>Este capítulo junta as regras operacionais que decorrem de tudo o que veio antes. São poucas, e cada uma evita um erro que não dá erro (o sistema continua rodando, só pior).</p>
+  <p><strong>Um trecho, uma ideia.</strong> O vetor é uma média; quanto mais assuntos no trecho, mais ele fica no meio de tudo. O experimento abaixo mede o efeito: o mesmo dispositivo, sozinho e cercado por três outros, contra a mesma consulta. A queda de score é a diluição. No projeto, a unidade é o dispositivo (artigo, parágrafo, inciso), com o cabeçalho do artigo como prefixo para não perder o contexto.</p>
+  <p><strong>O que entra no texto entra no vetor.</strong> Cabeçalhos de página, números de linha, "Este texto não substitui o publicado no DOU", quebras no meio de palavras: tudo isso desloca o vetor. Limpar antes de embutir (página 9) não é estética; é qualidade de busca.</p>
+  <p><strong>Modelo e dimensão são parte do dado.</strong> Cada vetor no banco precisa estar acompanhado do nome e versão do modelo e da dimensão com que foi gerado. A tabela do projeto tem colunas para isso. Se o modelo mudar (uma versão nova, ou a troca por um local), <em>todos</em> os vetores precisam ser recalculados, porque os espaços são incompatíveis, e a consulta precisa usar o mesmo modelo do índice. Uma verificação no código ("o modelo da consulta é o modelo do índice?") evita a falha mais silenciosa de todas: rankings sem sentido, sem nenhuma mensagem de erro.</p>
+  <p><strong>Cache por hash do texto.</strong> Embutir é determinístico o bastante: mesmo texto, mesmo modelo, mesmo vetor. Guardar um hash do texto normalizado ao lado do vetor permite reindexar só o que mudou, o que importa quando a lei recebe uma alteração pontual e você não quer pagar de novo pelos outros mil dispositivos.</p>
+  <p><strong>Lotes e cota.</strong> A API aceita lotes (o guia manda 16 por chamada), e a cota é contada por chamada, não por texto. Indexar em lotes é mais rápido e gasta menos cota. Para a Lei 14.133 inteira (perto de mil dispositivos), são cerca de sessenta chamadas.</p>
+
+  <div class="lab">
+    <header><h4>Experimento · Diluição</h4><span class="badge live">ao vivo · 1 lote</span></header>
+    <div class="body">
+      <p>Escolha um dispositivo e uma consulta que ele responde. O guia embute três coisas: a consulta, o dispositivo sozinho e o dispositivo concatenado com três vizinhos do corpus. Compare os dois cossenos.</p>
+      <div class="row top">
+        <div><label class="f" for="dl-t">Dispositivo</label><select id="dl-t"></select></div>
+        <div><label class="f" for="dl-q">Consulta</label><input type="text" id="dl-q" value="limite de valor para dispensa de licitação em obras"></div>
+        <div class="fixed"><button class="btn" id="dl-run">Medir</button></div>
+      </div>
+      <div class="bars" id="dl-out" aria-live="polite"></div>
+      <div class="status" id="dl-status"></div>
+    </div>
+  </div>
+
+  <div class="doit"><span class="ic">faça agora</span><p>Meça a diluição para dois dispositivos diferentes. Depois abra o painel do índice (capítulo 5), clique em "Apagar índice" e imagine que trocou o modelo: quantas chamadas seriam necessárias para reindexar? Que coluna da tabela do projeto avisaria que o índice está desatualizado?</p></div>
+
+  <div class="faq">
+    <h3>Perguntas que aparecem aqui</h3>
+    <details><summary>Se um artigo tem caput e dez incisos, embuto tudo junto ou separado?</summary><p>Separado, com o caput como prefixo de cada inciso ("Art. 75. É dispensável a licitação: I – para obras…"). Cada inciso vira um trecho com uma ideia e com o contexto que o torna legível. É o padrão da ingestão da página 5 e o que o Ex. 2 constrói.</p><p class="why">Inciso sozinho é ambíguo; inciso com caput é uma ideia completa.</p></details>
+    <details><summary>Preciso reindexar quando o Google atualiza o modelo com o mesmo nome?</summary><p>Modelos com nome fixo (como <code>gemini-embedding-001</code>) são estáveis; uma versão nova vem com nome novo. Guarde o nome completo no banco e, quando migrar, reindexe tudo e mantenha os dois índices até validar. Nunca misture vetores de nomes diferentes na mesma coluna.</p><p class="why">Nome do modelo é a chave de compatibilidade do índice.</p></details>
+    <details><summary>Embeddings de dados sensíveis: o texto sai da minha máquina?</summary><p>Com a API, sim: o texto vai para o Google para ser embutido. Para a lei e para editais públicos não há problema; para documentos internos, a política do projeto decide se o embedding roda local (Ollama) ou na API, e é uma decisão de arquitetura, não de conveniência. O vetor em si não é reversível ao texto de forma prática, mas o texto foi enviado para gerá-lo.</p><p class="why">O vetor fica com você; o texto passou por lá.</p></details>
+  </div>
+
+  <div class="notes"><label for="n-p2-c9">Caderno</label><p class="hint">Escreva as cinco regras operacionais deste capítulo em uma linha cada e, para cada uma, o sintoma que aparece quando ela é violada.</p><textarea class="prose" id="n-p2-c9" data-note="p2-c9"></textarea><div class="saved"></div></div>
+</section>
+<!-- ============================================================ 10 -->
+<section class="chapter" id="c10" data-ch="p2-c10">
+  <div class="ch-head"><span class="n">Capítulo 10</span><h2>No projeto, checklist e autoavaliação</h2><label class="donebox"><input type="checkbox" data-done> Capítulo concluído</label></div>
+
+  <h3>No projeto</h3>
+  <p>O ia-worker indexa a base normativa curada (Lei 14.133, decretos, instruções normativas, enunciados e acórdãos do TCU selecionados) um dispositivo por linha na tabela <code>rag.trecho_normativo</code>. Cada linha guarda o texto limpo, o identificador do dispositivo, a vigência (página 5), o vetor de 768 dimensões, e as colunas que tornam o vetor auditável: <code>modelo_embedding</code>, <code>dimensoes</code> e <code>hash_texto</code>. O embedding é gerado com <code>RETRIEVAL_DOCUMENT</code>; toda consulta (pergunta do analista ou critério da auditoria) é embutida com <code>RETRIEVAL_QUERY</code> pelo mesmo modelo, e o código recusa consultar um índice cujo <code>modelo_embedding</code> seja diferente do configurado. O índice é HNSW com <code>vector_cosine_ops</code> (página 3), e a busca é sempre híbrida (página 4), porque o capítulo 6 mostrou o que o vetor sozinho não vê.</p>
+  <p>O Ex. 3 (VIN-7) constrói exatamente isso em escala pequena: os trechos em JSONL do Ex. 2 entram em uma tabela com pgvector, são embutidos em lotes com tipo de tarefa e dimensão fixos, normalizados, e consultados com os três operadores para você ver, no SQL, o que este capítulo mostrou no navegador.</p>
+
+  <h3>Código de referência</h3>
+  <p>Embutir com o SDK do Google, em lote, com tipo de tarefa e dimensão explícitos, renormalizando o resultado:</p>
+<pre><code class="language-python">from google import genai
+from google.genai import types
+import numpy as np, hashlib
+
+client = genai.Client()  # lê GEMINI_API_KEY do ambiente (.env)
+MODELO, DIMS = "gemini-embedding-001", 768
+
+def embutir(textos: list[str], tipo: str) -> list[list[float]]:
+    """tipo: RETRIEVAL_DOCUMENT na indexação, RETRIEVAL_QUERY na busca."""
+    saida = []
+    for i in range(0, len(textos), 16):                       # lotes de 16: menos chamadas, menos cota
+        lote = textos[i:i + 16]
+        r = client.models.embed_content(
+            model=MODELO, contents=lote,
+            config=types.EmbedContentConfig(task_type=tipo, output_dimensionality=DIMS),
+        )
+        for e in r.embeddings:
+            v = np.asarray(e.values, dtype=np.float32)
+            v = v / (np.linalg.norm(v) or 1.0)                 # truncado não vem normalizado: normalize
+            saida.append(v.round(6).tolist())
+    return saida
+
+def hash_texto(t: str) -> str:
+    return hashlib.sha256(t.strip().encode("utf-8")).hexdigest()[:16]</code></pre>
+  <p>A mesma função com o Ollama, para os exercícios sem cota (repare que a dimensão vem do modelo, 1024 no bge-m3, e que não há tipo de tarefa):</p>
+<pre><code class="language-python">import requests, numpy as np
+
+def embutir_local(textos: list[str], modelo: str = "bge-m3") -> list[list[float]]:
+    r = requests.post("http://localhost:11434/api/embed", json={"model": modelo, "input": textos}, timeout=120)
+    r.raise_for_status()
+    vs = np.asarray(r.json()["embeddings"], dtype=np.float32)
+    vs = vs / np.linalg.norm(vs, axis=1, keepdims=True)
+    return vs.round(6).tolist()</code></pre>
+  <p>A tabela e a inserção, já com as colunas de versionamento (a página 3 cria o índice):</p>
+<pre><code class="language-sql">CREATE EXTENSION IF NOT EXISTS vector;
+CREATE TABLE rag.trecho_normativo (
+  id               text PRIMARY KEY,          -- L14133-art75-incI
+  dispositivo      text NOT NULL,             -- "Art. 75, inc. I"
+  conteudo         text NOT NULL,
+  embedding        vector(768) NOT NULL,
+  modelo_embedding text NOT NULL,             -- gemini-embedding-001
+  dimensoes        int  NOT NULL DEFAULT 768,
+  hash_texto       text NOT NULL,
+  indexado_em      timestamptz NOT NULL DEFAULT now()
+);
+-- consulta pelos três operadores (mesmo ranking com vetores normalizados):
+SELECT id, dispositivo,
+       1 - (embedding &lt;=&gt; %s::vector) AS cosseno,
+       -(embedding &lt;#&gt; %s::vector)    AS produto_escalar,
+       embedding &lt;-&gt; %s::vector       AS euclidiana
+FROM rag.trecho_normativo
+WHERE modelo_embedding = %s
+ORDER BY embedding &lt;=&gt; %s::vector
+LIMIT 12;</code></pre>
+  <p class="mini">Em Python com psycopg, passe o vetor como texto (<code>str(v)</code>) e converta com <code>%s::vector</code>, como na página 1; o filtro por <code>modelo_embedding</code> é a trava contra índices misturados.</p>
+
+  <h3>Checklist de domínio</h3>
+  <p>Marque só o que você faria sem consultar a página.</p>
+  <ul class="checklist">
+    <li><input type="checkbox" id="ck2-1"><label for="ck2-1">Explico o que um embedding representa e por que os números individuais não têm significado.</label></li>
+    <li><input type="checkbox" id="ck2-2"><label for="ck2-2">Sei o que o treinamento contrastivo faz e o que é um negativo difícil.</label></li>
+    <li><input type="checkbox" id="ck2-3"><label for="ck2-3">Justifico 768 dimensões e sei que o vetor truncado precisa ser renormalizado no <code>embedding-001</code>.</label></li>
+    <li><input type="checkbox" id="ck2-4"><label for="ck2-4">Escrevo as três métricas, os três operadores do pgvector e digo quando dão o mesmo ranking.</label></li>
+    <li><input type="checkbox" id="ck2-5"><label for="ck2-5">Uso <code>RETRIEVAL_DOCUMENT</code> no índice e <code>RETRIEVAL_QUERY</code> na busca, e sei por quê.</label></li>
+    <li><input type="checkbox" id="ck2-6"><label for="ck2-6">Listo as quatro fraquezas do vetor e o que compensa cada uma.</label></li>
+    <li><input type="checkbox" id="ck2-7"><label for="ck2-7">Leio uma distribuição de scores e explico por que um limiar não se copia de outro sistema.</label></li>
+    <li><input type="checkbox" id="ck2-8"><label for="ck2-8">Desenho a tabela do Ex. 3 com as colunas de versionamento e a trava de modelo.</label></li>
+  </ul>
+
+  <h3>Autoavaliação</h3>
+  <div class="quiz" id="quiz-p2">
+    <fieldset><legend>1. O que a similaridade de cosseno mede entre dois vetores?</legend>
+      <label class="opt"><input type="radio" name="q1" data-correct="1"> O ângulo entre eles, ignorando o comprimento.</label><div class="why">Correto. Cosseno é produto escalar dividido pelos comprimentos: só a direção sobra.</div>
+      <label class="opt"><input type="radio" name="q1"> A distância em linha reta entre as pontas.</label><div class="why">Essa é a distância euclidiana.</div>
+      <label class="opt"><input type="radio" name="q1"> Quantas coordenadas os dois vetores têm iguais.</label><div class="why">Coordenadas individuais não têm significado; a medida é geométrica, sobre o vetor inteiro.</div>
+    </fieldset>
+    <fieldset><legend>2. Com vetores normalizados, o que acontece com os rankings por produto escalar, cosseno e euclidiana?</legend>
+      <label class="opt"><input type="radio" name="q2"> Cosseno e euclidiana coincidem; produto escalar diverge.</label><div class="why">Com comprimento 1, produto escalar é igual ao cosseno.</div>
+      <label class="opt"><input type="radio" name="q2" data-correct="1"> Os três produzem o mesmo ranking.</label><div class="why">Correto. Produto escalar = cosseno, e euclidiana² = 2 − 2·cosseno: ordenar por um é ordenar por todos.</div>
+      <label class="opt"><input type="radio" name="q2"> Continuam diferentes; normalizar só muda a escala dos scores.</label><div class="why">Normalizar remove a única fonte de diferença entre eles, o comprimento.</div>
+    </fieldset>
+    <fieldset><legend>3. Você truncou o <code>gemini-embedding-001</code> para 768 dimensões. O que precisa fazer antes de usar produto escalar?</legend>
+      <label class="opt"><input type="radio" name="q3" data-correct="1"> Renormalizar o vetor, porque o truncado não tem comprimento 1.</label><div class="why">Correto. Só o vetor completo sai normalizado; cortar reduz o comprimento.</div>
+      <label class="opt"><input type="radio" name="q3"> Nada; a API já devolve normalizado em qualquer dimensão.</label><div class="why">Isso vale para o embedding-2, não para o 001, que exige normalização manual fora de 3072.</div>
+      <label class="opt"><input type="radio" name="q3"> Multiplicar por 4 para compensar as dimensões perdidas.</label><div class="why">Não existe compensação por escala; a informação perdida não volta, e o que se corrige é o comprimento.</div>
+    </fieldset>
+    <fieldset><legend>4. Por que o pgvector com o tipo <code>vector</code> é mais um motivo para não usar 3072 dimensões?</legend>
+      <label class="opt"><input type="radio" name="q4"> Porque o pgvector não aceita mais de 1024 dimensões.</label><div class="why">O tipo aceita bem mais; o limite é do índice.</div>
+      <label class="opt"><input type="radio" name="q4" data-correct="1"> Porque os índices HNSW e IVFFlat sobre <code>vector</code> só aceitam até 2000 dimensões.</label><div class="why">Correto. Com 3072 você precisaria de <code>halfvec</code> ou de busca sem índice.</div>
+      <label class="opt"><input type="radio" name="q4"> Porque vetores maiores que 2000 dimensões não podem ser normalizados.</label><div class="why">Normalização funciona em qualquer dimensão; a restrição é do índice, não da matemática.</div>
+    </fieldset>
+    <fieldset><legend>5. Que par de tipos de tarefa o projeto usa na indexação e na busca?</legend>
+      <label class="opt"><input type="radio" name="q5"> <code>SEMANTIC_SIMILARITY</code> nos dois lados, por ser neutro.</label><div class="why">Funciona pior: ignora a assimetria entre pergunta e passagem.</div>
+      <label class="opt"><input type="radio" name="q5" data-correct="1"> <code>RETRIEVAL_DOCUMENT</code> nos trechos e <code>RETRIEVAL_QUERY</code> nas consultas.</label><div class="why">Correto. O par assimétrico foi treinado para colocar perguntas perto das respostas.</div>
+      <label class="opt"><input type="radio" name="q5"> <code>RETRIEVAL_QUERY</code> nos trechos e <code>RETRIEVAL_DOCUMENT</code> nas consultas.</label><div class="why">Invertido: o tipo descreve o papel de cada texto na busca.</div>
+    </fieldset>
+    <fieldset><legend>6. "É dispensável a licitação" e "não é dispensável a licitação" ficam muito próximos no espaço. Qual é a consequência correta para o sistema?</legend>
+      <label class="opt"><input type="radio" name="q6"> A busca vetorial não serve para texto legal.</label><div class="why">Serve, e muito: acha o assunto. A decisão sobre o sentido é de outra camada.</div>
+      <label class="opt"><input type="radio" name="q6" data-correct="1"> A busca escolhe candidatos; quem decide o sentido é o modelo de linguagem lendo o texto, e a validação confere.</label><div class="why">Correto. Cada camada com a sua função: recuperar, decidir, validar.</div>
+      <label class="opt"><input type="radio" name="q6"> Basta aumentar as dimensões para o vetor capturar a negação.</label><div class="why">Dimensão não resolve o que o treinamento não separou.</div>
+    </fieldset>
+    <fieldset><legend>7. Um trecho que junta prazo, garantia e multa tem um score mais baixo para "prazo de pagamento" do que o dispositivo sobre prazo sozinho. O nome disso é:</legend>
+      <label class="opt"><input type="radio" name="q7"> Truncamento de entrada.</label><div class="why">Truncamento é quando o texto excede o limite de tokens e o fim some. Aqui o texto coube inteiro.</div>
+      <label class="opt"><input type="radio" name="q7" data-correct="1"> Diluição: o vetor é uma média e ficou no meio de três assuntos.</label><div class="why">Correto. Por isso a unidade do projeto é o dispositivo: uma ideia por trecho.</div>
+      <label class="opt"><input type="radio" name="q7"> Anisotropia do espaço.</label><div class="why">Anisotropia explica por que os scores ficam numa faixa estreita, não a queda de um trecho específico.</div>
+    </fieldset>
+    <fieldset><legend>8. Você trocou o modelo de embedding. O que precisa acontecer com o índice?</legend>
+      <label class="opt"><input type="radio" name="q8" data-correct="1"> Recalcular todos os vetores com o modelo novo e travar a consulta ao mesmo modelo.</label><div class="why">Correto. Espaços de modelos diferentes são incompatíveis; a trava evita o erro silencioso.</div>
+      <label class="opt"><input type="radio" name="q8"> Reindexar só os trechos novos; os antigos continuam válidos.</label><div class="why">Os antigos estão em outro espaço; comparar com eles produz rankings sem sentido.</div>
+      <label class="opt"><input type="radio" name="q8"> Nada, desde que a dimensão seja a mesma.</label><div class="why">Mesma dimensão não significa mesmo espaço.</div>
+    </fieldset>
+    <fieldset><legend>9. O cosseno entre uma consulta e um trecho deu 0,71. O que dá para concluir?</legend>
+      <label class="opt"><input type="radio" name="q9"> Que é relevante, porque está acima de 0,7.</label><div class="why">Não há limiar universal; 0,7 pode ser irrelevante num modelo e ótimo em outro.</div>
+      <label class="opt"><input type="radio" name="q9" data-correct="1"> Nada sozinho; o valor só faz sentido comparado com a distribuição dos outros trechos no mesmo modelo.</label><div class="why">Correto. Score é relativo; limiar se calibra com um conjunto de avaliação.</div>
+      <label class="opt"><input type="radio" name="q9"> Que 71% das palavras coincidem.</label><div class="why">Cosseno não conta palavras; é uma medida geométrica sobre o vetor.</div>
+    </fieldset>
+    <fieldset><legend>10. Para que servem <code>hash_texto</code>, <code>modelo_embedding</code> e <code>dimensoes</code> na tabela do projeto?</legend>
+      <label class="opt"><input type="radio" name="q10" data-correct="1"> Reindexar só o que mudou e impedir consultas com modelo ou dimensão diferentes do índice.</label><div class="why">Correto. São as colunas que tornam o vetor auditável e a busca segura.</div>
+      <label class="opt"><input type="radio" name="q10"> Acelerar a busca vetorial.</label><div class="why">Quem acelera é o índice HNSW; essas colunas são de controle.</div>
+      <label class="opt"><input type="radio" name="q10"> Permitir misturar vetores de modelos diferentes na mesma coluna.</label><div class="why">É o contrário: elas existem para impedir a mistura.</div>
+    </fieldset>
+    <button class="btn grade">Corrigir</button>
+    <div class="score"></div>
+  </div>
+
+  <div class="callout"><span class="t">Próxima página</span><p>A página 3, Busca vetorial e índices, pega o índice que você montou aqui e mostra o que muda quando o corpus não cabe numa varredura: busca exata versus aproximada, o HNSW por dentro, os parâmetros do pgvector e como medir o recall que o índice perde.</p></div>
+</section>
+
+    <div class="pager"><a class="prev" href="01-modelos.html"><small>anterior</small>Como um modelo de linguagem funciona</a><a class="next disabled" href="#"><small>próxima</small>em construção</a></div>
+    <p class="foot">Guia de estudo pessoal. Corpus com redação adaptada da Lei 14.133/2021 para fins didáticos; confira o texto oficial antes de qualquer uso real. A chave da API fica apenas neste navegador; experimentos ao vivo chamam a API do Google diretamente e consomem a sua cota.</p>
+  </div></main>
+  <aside class="toc" aria-label="Nesta página" ><div class="t">Nesta página</div><ol id="toc-list"></ol></aside>
+</div>
+<script>window.GUIA_MANIFEST = {pages: [{"id": "p0", "file": "index.html", "num": "0", "title": "Início", "chapters": [], "issue": null}, {"id": "p1", "file": "01-modelos.html", "num": "1", "title": "Como um modelo de linguagem funciona", "chapters": ["p1-c1", "p1-c2", "p1-c3", "p1-c4", "p1-c5", "p1-c6", "p1-c7", "p1-c8", "p1-c9", "p1-c10"], "issue": "VIN-5"}, {"id": "p2", "file": "02-embeddings.html", "num": "2", "title": "Embeddings", "chapters": ["p2-c1", "p2-c2", "p2-c3", "p2-c4", "p2-c5", "p2-c6", "p2-c7", "p2-c8", "p2-c9", "p2-c10"], "issue": "VIN-7"}, {"id": "p3", "file": "03-busca-vetorial.html", "num": "3", "title": "Busca vetorial e índices", "chapters": [], "issue": "VIN-7"}, {"id": "p4", "file": "04-busca-lexical-hibrida.html", "num": "4", "title": "Busca lexical e híbrida", "chapters": [], "issue": "VIN-8"}, {"id": "p5", "file": "05-rag.html", "num": "5", "title": "RAG de ponta a ponta e ingestão", "chapters": [], "issue": "VIN-6"}, {"id": "p6", "file": "06-prompt.html", "num": "6", "title": "Prompt engineering", "chapters": [], "issue": "VIN-9"}, {"id": "p7", "file": "07-validacao.html", "num": "7", "title": "Alucinação, validação e guardrails", "chapters": [], "issue": "VIN-10"}, {"id": "p8", "file": "08-avaliacao.html", "num": "8", "title": "Avaliação", "chapters": [], "issue": "VIN-11"}, {"id": "p9", "file": "09-dados-python.html", "num": "9", "title": "Dados e Python para RAG", "chapters": [], "issue": "VIN-6"}, {"id": "p10", "file": "10-custo-operacao.html", "num": "10", "title": "Custo, modelos e operação", "chapters": [], "issue": "VIN-12"}, {"id": "glossario", "file": "glossario.html", "num": "•", "title": "Glossário", "chapters": [], "issue": null}, {"id": "exercicios", "file": "exercicios.html", "num": "•", "title": "Exercícios", "chapters": [], "issue": null}, {"id": "prompts", "file": "prompts.html", "num": "•", "title": "Biblioteca de prompts", "chapters": [], "issue": null}]};</script>
+<script src="assets/corpus.js"></script>
+<script src="assets/core.js"></script>
+<script src="assets/site.js"></script>
+<script>
+(function () {
+  const reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const needKey = () => { if (!gemini.ready()) throw new Error('Precisa de chave (configure na página inicial).'); };
+  const l2 = (a, b) => Math.sqrt(a.reduce((s, x, i) => s + (x - b[i]) ** 2, 0));
+  const norm2 = (v) => { const n = Math.hypot(...v) || 1; return v.map((x) => x / n); };
+  const bar = (label, val, max = 1, cls = '') => `<div class="b"><span>${esc(label)}</span><i class="${cls}" style="width:${Math.max(0, Math.min(100, ((val / max) * 100)))}%"></i><span class="v">${fmt(val, 3)}</span></div>`;
+  const rank = (list, hits = []) => rankHTML(list, hits);
+  const SVGNS = 'http://www.w3.org/2000/svg';
+
+  /* ---------- c1 · duas setas (brinquedo) ---------- */
+  (function () {
+    const svg = $('#v2-svg'); if (!svg) return;
+    const S = 360, C = S / 2, U = 30; // unidades → px
+    const ids = ['ax', 'ay', 'bx', 'by'];
+    const get = () => ids.map((k) => +$('#v2-' + k).value);
+    const px = (x) => C + x * U, py = (y) => C - y * U;
+    function render() {
+      const [ax, ay, bx, by] = get(); ids.forEach((k) => ($('#v2-' + k + 'v').textContent = $('#v2-' + k).value));
+      const A = [ax, ay], B = [bx, by];
+      const cos = cosine(A, B), d = dot(A, B), e = l2(A, B), ang = Math.acos(Math.max(-1, Math.min(1, cos))) * 180 / Math.PI;
+      let grid = '';
+      for (let i = -5; i <= 5; i++) grid += `<line x1="${px(i)}" y1="0" x2="${px(i)}" y2="${S}" stroke="var(--line)" stroke-width="${i ? 0.6 : 1.4}"/><line x1="0" y1="${py(i)}" x2="${S}" y2="${py(i)}" stroke="var(--line)" stroke-width="${i ? 0.6 : 1.4}"/>`;
+      const arrow = (v, color, name) => `<line x1="${C}" y1="${C}" x2="${px(v[0])}" y2="${py(v[1])}" stroke="${color}" stroke-width="3" stroke-linecap="round"/><circle data-drag="${name}" cx="${px(v[0])}" cy="${py(v[1])}" r="11" fill="${color}" stroke="#fff" stroke-width="2" style="cursor:grab"/><text x="${px(v[0]) + 14}" y="${py(v[1]) - 10}" font-size="14" font-weight="600" fill="${color}">${name}</text>`;
+      // arco do ângulo
+      const a0 = Math.atan2(ay, ax), a1 = Math.atan2(by, bx); let sweep = a1 - a0; while (sweep > Math.PI) sweep -= 2 * Math.PI; while (sweep < -Math.PI) sweep += 2 * Math.PI;
+      const r = 28, p0 = [C + r * Math.cos(a0), C - r * Math.sin(a0)], p1 = [C + r * Math.cos(a1), C - r * Math.sin(a1)];
+      const arc = `<path d="M${p0[0]} ${p0[1]} A${r} ${r} 0 0 ${sweep > 0 ? 0 : 1} ${p1[0]} ${p1[1]}" fill="none" stroke="var(--amber)" stroke-width="2"/>`;
+      svg.innerHTML = grid + arc + arrow(A, 'var(--navy)', 'A') + arrow(B, 'var(--teal)', 'B');
+      $('#v2-out').innerHTML = bar('cosseno', cos, 1, 'f') + bar('produto escalar', d, 50) + bar('euclidiana', e, 14) + `<div class="b"><span>ângulo</span><i style="width:${(ang / 180) * 100}%"></i><span class="v">${ang.toFixed(1)}°</span></div>`;
+      $('#v2-note').textContent = Math.abs(cos - 1) < 0.01 ? 'Mesma direção: cosseno 1, mesmo com comprimentos diferentes.' : cos < -0.99 ? 'Direções opostas: cosseno −1.' : Math.abs(cos) < 0.02 ? 'Perpendiculares: cosseno 0, "sem relação".' : `|A| = ${Math.hypot(ax, ay).toFixed(2)} · |B| = ${Math.hypot(bx, by).toFixed(2)} · produto = |A|·|B|·cos = ${(Math.hypot(ax, ay) * Math.hypot(bx, by) * cos).toFixed(2)}`;
+    }
+    ids.forEach((k) => $('#v2-' + k).addEventListener('input', render));
+    let drag = null;
+    const toUnits = (ev) => { const r = svg.getBoundingClientRect(); const x = ((ev.clientX - r.left) / r.width) * S, y = ((ev.clientY - r.top) / r.height) * S; return [Math.max(-5, Math.min(5, Math.round(((x - C) / U) * 10) / 10)), Math.max(-5, Math.min(5, Math.round(((C - y) / U) * 10) / 10))]; };
+    svg.addEventListener('pointerdown', (ev) => { const t = ev.target.closest('[data-drag]'); if (!t) return; drag = t.dataset.drag; svg.setPointerCapture(ev.pointerId); ev.preventDefault(); });
+    svg.addEventListener('pointermove', (ev) => { if (!drag) return; const [x, y] = toUnits(ev); $('#v2-' + drag.toLowerCase() + 'x').value = x; $('#v2-' + drag.toLowerCase() + 'y').value = y; render(); });
+    svg.addEventListener('pointerup', () => (drag = null)); svg.addEventListener('pointercancel', () => (drag = null));
+    render();
+  })();
+
+  /* ---------- c2 · treino contrastivo (brinquedo) ---------- */
+  (function () {
+    const svg = $('#ct-svg'); if (!svg) return;
+    const W = 760, H = 300; let pts, step;
+    const rnd = (a, b) => a + Math.random() * (b - a);
+    function reset() {
+      const anchor = { x: rnd(220, 540), y: rnd(90, 210), kind: 'anchor', label: 'consulta' };
+      pts = [anchor,
+        { x: rnd(40, 720), y: rnd(30, 270), kind: 'pos', label: 'passagem que responde' }, { x: rnd(40, 720), y: rnd(30, 270), kind: 'pos', label: 'paráfrase da resposta' },
+        { x: rnd(40, 720), y: rnd(30, 270), kind: 'neg', label: 'outro assunto' }, { x: rnd(40, 720), y: rnd(30, 270), kind: 'neg', label: 'outro assunto' }, { x: rnd(40, 720), y: rnd(30, 270), kind: 'neg', label: 'outro assunto' },
+        { x: anchor.x + rnd(-70, 70), y: anchor.y + rnd(-50, 50), kind: 'hard', label: 'artigo vizinho (negativo difícil)' }];
+      step = 0; draw(); $('#ct-cap').textContent = 'Antes do treino: posições aleatórias.';
+    }
+    const dist = (p, q) => Math.hypot(p.x - q.x, p.y - q.y);
+    function draw() {
+      const a = pts[0]; const color = { anchor: 'var(--navy)', pos: 'var(--green)', neg: 'var(--red)', hard: 'var(--amber)' };
+      const ranked = pts.slice(1).map((p, i) => ({ p, i, d: dist(p, a) })).sort((u, v) => u.d - v.d);
+      let s = '';
+      pts.slice(1).forEach((p) => { s += `<line x1="${a.x}" y1="${a.y}" x2="${p.x}" y2="${p.y}" stroke="${color[p.kind]}" stroke-width="1" stroke-dasharray="3 3" opacity=".6"/>`; });
+      pts.forEach((p, i) => { s += `<g style="transition:${reduce ? 'none' : 'transform .5s'}"><circle cx="${p.x}" cy="${p.y}" r="${p.kind === 'anchor' ? 11 : 8}" fill="${color[p.kind]}" stroke="#fff" stroke-width="2"><title>${esc(p.label)}</title></circle>${i ? `<text x="${p.x + 11}" y="${p.y - 9}" font-size="11" fill="var(--muted)">${ranked.findIndex((r) => r.p === p) + 1}º</text>` : ''}</g>`; });
+      svg.innerHTML = s;
+      const ok = ranked[0].p.kind === 'pos' && ranked[1].p.kind === 'pos';
+      $('#ct-info').textContent = `passo ${step} · ranking ${ok ? 'correto: os dois positivos são os mais próximos' : 'ainda errado: um negativo está entre os dois primeiros'}`;
+    }
+    function train() {
+      const a = pts[0]; step++;
+      pts.slice(1).forEach((p) => {
+        const d = dist(p, a) || 1; const ux = (a.x - p.x) / d, uy = (a.y - p.y) / d;
+        if (p.kind === 'pos') { const mv = Math.max(0, Math.min(d * 0.28, d - 26)); p.x += ux * mv; p.y += uy * mv; }
+        else { const f = p.kind === 'hard' ? 0.12 : 0.18; const push = Math.max(10, (300 - d) * f); p.x -= ux * push; p.y -= uy * push; }
+        p.x = Math.max(16, Math.min(W - 16, p.x)); p.y = Math.max(16, Math.min(H - 16, p.y));
+      });
+      draw(); $('#ct-cap').textContent = `Passo ${step}: positivos puxados, negativos empurrados. O modelo real faz isso ajustando pesos sobre milhões de pares.`;
+    }
+    $('#ct-step').addEventListener('click', train);
+    $('#ct-auto').addEventListener('click', async () => { for (let i = 0; i < 10; i++) { train(); await sleep(reduce ? 0 : 220); } });
+    $('#ct-reset').addEventListener('click', reset);
+    reset();
+  })();
+
+  /* ---------- c3 · cortar o vetor (brinquedo) ---------- */
+  (function () {
+    const svg = $('#mr-svg'); if (!svg) return;
+    // dois vetores "matryoshka": amplitude decai com o índice; B = A + ruído crescente
+    const N = 32; const A = [], B = [];
+    for (let i = 0; i < N; i++) { const amp = 1 / (1 + i * 0.25); const a = amp * Math.sin(i * 1.7 + 0.4); A.push(a); B.push(a * (0.6 + 0.4 * Math.cos(i * 0.9)) + amp * 0.35 * Math.sin(i * 2.3 + 1)); }
+    function render() {
+      const k = +$('#mr-k').value; $('#mr-kv').textContent = k;
+      const w = 760 / N; let s = '';
+      for (let i = 0; i < N; i++) { const on = i < k; s += `<rect x="${i * w + 2}" y="${75 - Math.max(0, A[i]) * 60}" width="${w / 2 - 2}" height="${Math.abs(A[i]) * 60}" fill="var(--navy)" opacity="${on ? 1 : 0.2}" transform="${A[i] < 0 ? `translate(0 ${Math.abs(A[i]) * 60})` : ''}"/><rect x="${i * w + w / 2}" y="${75 - Math.max(0, B[i]) * 60}" width="${w / 2 - 2}" height="${Math.abs(B[i]) * 60}" fill="var(--teal)" opacity="${on ? 1 : 0.2}" transform="${B[i] < 0 ? `translate(0 ${Math.abs(B[i]) * 60})` : ''}"/>`; }
+      s += `<line x1="${k * w}" y1="0" x2="${k * w}" y2="150" stroke="var(--amber)" stroke-width="2" stroke-dasharray="5 4"/><text x="${k * w + 5}" y="145" font-size="11" fill="var(--amber)">corte</text>`;
+      svg.innerHTML = s;
+      const a = A.slice(0, k), b = B.slice(0, k);
+      const full = cosine(A, B), cut = cosine(a, b), dotRaw = dot(norm2(A).slice(0, k), norm2(B).slice(0, k)), lenA = Math.hypot(...norm2(A).slice(0, k));
+      $('#mr-out').innerHTML = bar('cosseno com 32 dims (referência)', full, 1, 'f') + bar(`cosseno com ${k} dims, renormalizado`, cut, 1, 'f') + bar(`produto escalar sem renormalizar (${k} dims)`, dotRaw, 1) + bar(`comprimento do vetor cortado (era 1)`, lenA, 1);
+    }
+    $('#mr-k').addEventListener('input', render); render();
+  })();
+
+  /* ---------- c3 · 768 vs 3072 (ao vivo) ---------- */
+  $('#dm-run') && $('#dm-run').addEventListener('click', () => guard($('#dm-status'), async () => {
+    needKey(); const q = $('#dm-q').value.trim(); const docs = $('#dm-docs').value.split('\n').map((s) => s.trim()).filter(Boolean).slice(0, 12);
+    if (!q || docs.length < 2) throw new Error('Informe a consulta e pelo menos duas frases.');
+    const items = [{ text: q, taskType: 'RETRIEVAL_QUERY' }, ...docs.map((d) => ({ text: d, taskType: 'RETRIEVAL_DOCUMENT' }))];
+    const show = (vs) => { const [qv, ...dv] = vs; const r = dv.map((v, i) => ({ i, s: dot(qv, v) })).sort((a, b) => b.s - a.s); return '<ol class="rank">' + r.map((x, p) => `<li><span class="pos">${p + 1}</span><span>${esc(docs[x.i].slice(0, 80))}…</span><span class="sc">${fmt(x.s)}</span></li>`).join('') + '</ol>'; };
+    setStatus($('#dm-status'), 'Embutindo com 768…'); const v768 = await gemini.embedItems(items, 768); $('#dm-a').innerHTML = show(v768);
+    setStatus($('#dm-status'), 'Embutindo com 3072…'); const v3072 = await gemini.embedItems(items, 3072); $('#dm-b').innerHTML = show(v3072);
+    const top = (vs) => { const [qv, ...dv] = vs; return dv.map((v, i) => [i, dot(qv, v)]).sort((a, b) => b[1] - a[1]).slice(0, 3).map((x) => x[0]).join(','); };
+    setStatus($('#dm-status'), top(v768) === top(v3072) ? 'Os três primeiros são os mesmos nas duas dimensões: 768 está pagando o suficiente para esta consulta.' : 'O top-3 mudou entre 768 e 3072. Compare os scores: em geral a troca é entre vizinhos com scores quase iguais.', 'ok');
+  }));
+
+  /* ---------- c4 · três métricas (brinquedo) ---------- */
+  (function () {
+    const svg = $('#mt-svg'); if (!svg) return;
+    const S = 360, CX = 70, CY = 250, U = 46; let Q, V;
+    const rnd = (a, b) => a + Math.random() * (b - a);
+    function make() { Q = [rnd(1, 2.6), rnd(0.6, 2.4)]; V = Array.from({ length: 6 }, () => { const ang = rnd(-0.35, 1.75), len = rnd(0.6, 4.3); return [len * Math.cos(ang), len * Math.sin(ang)]; }); }
+    function render() {
+      const nrm = $('#mt-norm').checked; const q = nrm ? norm2(Q) : Q; const vs = V.map((v) => (nrm ? norm2(v) : v));
+      const px = (x) => CX + x * U, py = (y) => CY - y * U;
+      let s = '';
+      for (let i = -1; i <= 6; i++) s += `<line x1="${px(i)}" y1="0" x2="${px(i)}" y2="300" stroke="var(--line)" stroke-width="${i ? 0.5 : 1.3}"/><line x1="0" y1="${py(i)}" x2="${S}" y2="${py(i)}" stroke="var(--line)" stroke-width="${i ? 0.5 : 1.3}"/>`;
+      if (nrm) s += `<circle cx="${CX}" cy="${CY}" r="${U}" fill="none" stroke="var(--amber)" stroke-dasharray="4 3"/>`;
+      vs.forEach((v, i) => { s += `<line x1="${CX}" y1="${CY}" x2="${px(v[0])}" y2="${py(v[1])}" stroke="var(--teal)" stroke-width="2.2"/><text x="${px(v[0]) + 6}" y="${py(v[1]) - 6}" font-size="12" fill="var(--teal)" font-weight="600">${i + 1}</text>`; });
+      s += `<line x1="${CX}" y1="${CY}" x2="${px(q[0])}" y2="${py(q[1])}" stroke="var(--navy)" stroke-width="3"/><text x="${px(q[0]) + 6}" y="${py(q[1]) - 6}" font-size="13" fill="var(--navy)" font-weight="700">Q</text>`;
+      svg.innerHTML = s;
+      const byDot = vs.map((v, i) => [i, dot(q, v)]).sort((a, b) => b[1] - a[1]);
+      const byCos = vs.map((v, i) => [i, cosine(q, v)]).sort((a, b) => b[1] - a[1]);
+      const byL2 = vs.map((v, i) => [i, l2(q, v)]).sort((a, b) => a[1] - b[1]);
+      const tb = $('#mt-tbl tbody'); tb.innerHTML = '';
+      for (let r = 0; r < 6; r++) { const tr = document.createElement('tr'); tr.innerHTML = `<td>${r + 1}º</td><td><b>${byDot[r][0] + 1}</b> <span class="mini">${fmt(byDot[r][1], 2)}</span></td><td><b>${byCos[r][0] + 1}</b> <span class="mini">${fmt(byCos[r][1], 2)}</span></td><td><b>${byL2[r][0] + 1}</b> <span class="mini">${fmt(byL2[r][1], 2)}</span></td>`; tb.appendChild(tr); }
+      const same = byDot.every((x, i) => x[0] === byCos[i][0] && x[0] === byL2[i][0]);
+      $('#mt-note').textContent = same ? (nrm ? 'Normalizados: os três rankings coincidem, como previsto.' : 'Coincidiram desta vez, por sorte dos comprimentos. Clique em "Novos vetores".') : 'Os rankings divergem: o comprimento dos vetores está pesando no produto escalar e na euclidiana. Ligue a normalização.';
+    }
+    $('#mt-norm').addEventListener('change', render); $('#mt-shuffle').addEventListener('click', () => { make(); render(); });
+    make(); render();
+  })();
+
+  /* ---------- índice do corpus (compartilhado) ---------- */
+  const idxInfo = () => { const el = $('#idx-info'); if (el) el.textContent = corpus.indexed() ? `Índice pronto: ${corpus.trechos.length} vetores · ${gemini.embedModel} · ${gemini.dims} dims (guardado neste navegador).` : 'Sem índice neste navegador.'; };
+  async function ensureIndexed(statusEl) {
+    if (corpus.indexed()) return;
+    needKey(); setStatus(statusEl, 'Indexando o corpus (uma vez)…');
+    await corpus.index((i, n) => setStatus(statusEl, `Indexando ${i}/${n}…`)); idxInfo();
+  }
+  if ($('#idx-run')) {
+    idxInfo();
+    $('#idx-run').addEventListener('click', () => guard($('#idx-status'), async () => { needKey(); if (corpus.indexed()) { setStatus($('#idx-status'), 'Já indexado. Para refazer, apague o índice primeiro.', 'ok'); return; } const t0 = performance.now(); await ensureIndexed($('#idx-status')); setStatus($('#idx-status'), `Pronto em ${Math.round(performance.now() - t0)} ms: ${corpus.trechos.length} vetores de ${gemini.dims} dimensões, ${Math.ceil(corpus.trechos.length / 16)} chamadas.`, 'ok'); }));
+    $('#idx-clear').addEventListener('click', () => { corpus.emb = null; store.del('emb.' + gemini.embedModel + '.' + gemini.dims); idxInfo(); setStatus($('#idx-status'), 'Índice apagado.'); });
+  }
+  const topK = (qv, k = 10) => corpus.trechos.map((t) => ({ id: t.id, score: dot(qv, corpus.emb[t.id]) })).sort((a, b) => b.score - a.score).slice(0, k);
+  const expectedFor = (q) => { const e = corpus.avaliacao.find((a) => a.pergunta === q); return e ? e.esperado : []; };
+
+  /* ---------- c5 · tipos de tarefa (ao vivo) ---------- */
+  $('#tt-run') && $('#tt-run').addEventListener('click', () => guard($('#tt-status'), async () => {
+    await ensureIndexed($('#tt-status')); const q = $('#tt-q').value.trim(); if (!q) throw new Error('Escreva a consulta.');
+    setStatus($('#tt-status'), 'Embutindo a consulta três vezes (um lote)…');
+    const vs = await gemini.embedItems([{ text: q, taskType: 'RETRIEVAL_QUERY' }, { text: q, taskType: 'SEMANTIC_SIMILARITY' }, { text: q, taskType: 'RETRIEVAL_DOCUMENT' }]);
+    const hits = expectedFor(q); const lists = vs.map((v) => topK(v, 5));
+    ['#tt-a', '#tt-b', '#tt-c'].forEach((sel, i) => ($(sel).innerHTML = rank(lists[i], hits)));
+    setStatus($('#tt-status'), 'Compare posições e scores. O par consulta↔documento é o que o índice foi feito para receber.', 'ok');
+  }));
+
+  /* ---------- c6 · mapa de calor (ao vivo) ---------- */
+  (function () {
+    const ta = $('#hm-docs'); if (!ta) return;
+    const SETS = {
+      parafrase: ['É dispensável a licitação para obras de valor inferior ao limite legal.', 'Obras abaixo do valor fixado em lei podem ser contratadas sem licitação.', 'A Administração pode contratar diretamente obras de pequeno valor.', 'O contratado que atrasar a entrega ficará sujeito a multa.'],
+      negacao: ['É dispensável a licitação para obras de pequeno valor.', 'Não é dispensável a licitação para obras de pequeno valor.', 'É obrigatória a licitação para obras de pequeno valor.', 'A garantia poderá ser exigida em até cinco por cento do contrato.'],
+      numeros: ['O art. 75 trata da dispensa de licitação.', 'O art. 74 trata da inexigibilidade de licitação.', 'O limite para dispensa em obras é de R$ 100.000,00.', 'O limite para dispensa em obras é de R$ 50.000,00.', 'O inciso I do art. 75 cuida de obras e serviços de engenharia.', 'O inciso II do art. 75 cuida de compras e outros serviços.'],
+      assunto: ['É dispensável a licitação para obras de pequeno valor.', 'O contratado que atrasar a execução ficará sujeito a multa.', 'A garantia poderá ser exigida em até cinco por cento do contrato.', 'O pregão é obrigatório para bens e serviços comuns.', 'A Administração pagará o contratado no prazo previsto no edital.'],
+      idioma: ['Prazo para a Administração pagar o contratado.', 'Deadline for the public administration to pay the contractor.', 'Plazo para que la Administración pague al contratista.', 'Multa por atraso na execução do contrato.', 'Fine for delay in contract performance.'],
+    };
+    ta.value = SETS.parafrase.join('\n');
+    $$('#hm-presets .chip').forEach((c) => c.addEventListener('click', () => { $$('#hm-presets .chip').forEach((x) => x.setAttribute('aria-pressed', 'false')); c.setAttribute('aria-pressed', 'true'); ta.value = SETS[c.dataset.set].join('\n'); }));
+    $('#hm-run').addEventListener('click', () => guard($('#hm-status'), async () => {
+      needKey(); const docs = ta.value.split('\n').map((s) => s.trim()).filter(Boolean).slice(0, 6); if (docs.length < 2) throw new Error('Pelo menos duas frases.');
+      setStatus($('#hm-status'), 'Embutindo (um lote)…');
+      const vs = await gemini.embedItems(docs.map((d) => ({ text: d, taskType: 'SEMANTIC_SIMILARITY' })));
+      const n = docs.length, cell = Math.min(60, 560 / n), x0 = 190, y0 = 10; let s = '';
+      let lo = 1, hi = -1; for (let i = 0; i < n; i++) for (let j = 0; j < n; j++) if (i !== j) { const c = dot(vs[i], vs[j]); lo = Math.min(lo, c); hi = Math.max(hi, c); }
+      for (let i = 0; i < n; i++) {
+        s += `<text x="${x0 - 6}" y="${y0 + i * cell + cell / 2 + 4}" text-anchor="end" font-size="11" fill="var(--ink)">${esc(docs[i].slice(0, 30))}${docs[i].length > 30 ? '…' : ''}</text>`;
+        for (let j = 0; j < n; j++) { const c = dot(vs[i], vs[j]); const t = i === j ? 1 : (c - lo) / ((hi - lo) || 1); s += `<g><rect x="${x0 + j * cell}" y="${y0 + i * cell}" width="${cell - 2}" height="${cell - 2}" rx="4" fill="var(--teal)" opacity="${0.12 + 0.88 * t}"><title>${esc(docs[i])}\n×\n${esc(docs[j])}\ncosseno ${c.toFixed(3)}</title></rect><text x="${x0 + j * cell + (cell - 2) / 2}" y="${y0 + i * cell + cell / 2 + 4}" text-anchor="middle" font-size="${cell > 40 ? 12 : 10}" fill="${t > 0.55 ? '#fff' : 'var(--ink)'}" pointer-events="none">${c.toFixed(2)}</text></g>`; }
+        s += `<text x="${x0 + i * cell + (cell - 2) / 2}" y="${y0 + n * cell + 12}" text-anchor="middle" font-size="11" fill="var(--muted)">${i + 1}</text>`;
+      }
+      $('#hm-svg').setAttribute('viewBox', `0 0 760 ${y0 + n * cell + 24}`); $('#hm-svg').innerHTML = s;
+      $('#hm-cap').textContent = `Cosseno entre pares (fora da diagonal: mínimo ${lo.toFixed(3)}, máximo ${hi.toFixed(3)}). A cor é relativa a essa faixa.`;
+      setStatus($('#hm-status'), 'Passe o mouse ou toque numa célula para ver o par completo.', 'ok');
+    }));
+  })();
+
+  /* ---------- c7 · explorador de vizinhos + histograma ---------- */
+  let lastQuery = null; // {text, vec, top}
+  (function () {
+    const sel = $('#nn-eval'); if (!sel) return;
+    corpus.avaliacao.forEach((a) => sel.add(new Option(a.pergunta.slice(0, 70) + (a.pergunta.length > 70 ? '…' : ''), a.pergunta)));
+    sel.addEventListener('change', () => { if (sel.value) $('#nn-q').value = sel.value; });
+    $('#nn-run').addEventListener('click', () => guard($('#nn-status'), async () => {
+      await ensureIndexed($('#nn-status')); const q = $('#nn-q').value.trim(); if (!q) throw new Error('Escreva a consulta.');
+      setStatus($('#nn-status'), 'Embutindo a consulta…');
+      const [qv] = await gemini.embedItems([{ text: q, taskType: 'RETRIEVAL_QUERY' }]);
+      const all = corpus.trechos.map((t) => ({ id: t.id, score: dot(qv, corpus.emb[t.id]) })).sort((a, b) => b.score - a.score);
+      const top = all.slice(0, 10); const hits = expectedFor(q); lastQuery = { text: q, vec: qv, top: top.map((x) => x.id) };
+      $('#nn-list').innerHTML = rank(top, hits);
+      // histograma
+      const scores = all.map((x) => x.score); const lo = Math.min(...scores), hi = Math.max(...scores); const B = 14; const bins = new Array(B).fill(0); const binOf = (s) => Math.min(B - 1, Math.floor(((s - lo) / ((hi - lo) || 1)) * B));
+      scores.forEach((s) => bins[binOf(s)]++); const topBins = new Set(top.map((x) => binOf(x.score))); const mx = Math.max(...bins);
+      const w = 340 / B; let s = '';
+      bins.forEach((c, i) => { const h = (c / mx) * 170; s += `<rect x="${10 + i * w}" y="${190 - h}" width="${w - 3}" height="${h}" rx="3" fill="${topBins.has(i) ? 'var(--navy)' : 'var(--teal)'}" opacity="${topBins.has(i) ? 1 : 0.55}"><title>${c} trechos entre ${(lo + (i / B) * (hi - lo)).toFixed(3)} e ${(lo + ((i + 1) / B) * (hi - lo)).toFixed(3)}</title></rect>`; });
+      s += `<text x="10" y="215" font-size="11" fill="var(--muted)">${lo.toFixed(3)}</text><text x="350" y="215" text-anchor="end" font-size="11" fill="var(--muted)">${hi.toFixed(3)}</text><text x="180" y="232" text-anchor="middle" font-size="11" fill="var(--muted)">cosseno · escuro = os dez primeiros</text>`;
+      $('#nn-svg').innerHTML = s;
+      const gap = top[0].score - top[9].score; const median = scores[Math.floor(scores.length / 2)];
+      $('#nn-cap').textContent = `Mediana ${median.toFixed(3)} · primeiro ${top[0].score.toFixed(3)} · décimo ${top[9].score.toFixed(3)} · folga 1º–10º ${gap.toFixed(3)}.`;
+      const pos = hits.length ? hits.map((h) => { const i = all.findIndex((x) => x.id === h); return `${h} em ${i + 1}º (${all[i].score.toFixed(3)})`; }).join(', ') : '';
+      setStatus($('#nn-status'), pos ? `Esperado: ${pos}.` : 'Repare na faixa: os "sem relação" não ficam em zero.', 'ok');
+      if ($('#pj-svg').childElementCount) project();
+    }));
+  })();
+
+  /* ---------- c7 · projeção 2D (PCA por decomposição da matriz de Gram) ---------- */
+  function pca2(vecs) {
+    const n = vecs.length, d = vecs[0].length; const mean = new Array(d).fill(0);
+    vecs.forEach((v) => v.forEach((x, i) => (mean[i] += x / n)));
+    const X = vecs.map((v) => v.map((x, i) => x - mean[i]));
+    const G = X.map((a) => X.map((b) => dot(a, b))); // n×n
+    const power = (M, deflate = []) => {
+      let v = Array.from({ length: n }, (_, i) => Math.sin(i + 1)); let lam = 0;
+      for (let it = 0; it < 200; it++) {
+        let w = M.map((row) => dot(row, v));
+        deflate.forEach(([u, l]) => { const c = dot(u, w); w = w.map((x, i) => x - c * u[i]); });
+        lam = Math.hypot(...w) || 1; const nv = w.map((x) => x / lam); if (l2(nv, v) < 1e-7) { v = nv; break; } v = nv;
+      }
+      return [v, lam];
+    };
+    const [u1, l1] = power(G); const [u2, l2v] = power(G, [[u1, l1]]);
+    const tot = G.reduce((s, row, i) => s + row[i], 0);
+    return { pts: vecs.map((_, i) => [u1[i] * Math.sqrt(l1), u2[i] * Math.sqrt(l2v)]), explained: (l1 + l2v) / (tot || 1), axes: [u1, u2], mean, X, l: [l1, l2v] };
+  }
+  function project() {
+    const svg = $('#pj-svg'); const ids = corpus.trechos.map((t) => t.id); const vecs = ids.map((id) => corpus.emb[id]);
+    const P = pca2(vecs); const xs = P.pts.map((p) => p[0]), ys = P.pts.map((p) => p[1]);
+    let qp = null;
+    if (lastQuery) { // projeta a consulta nos mesmos eixos: coordenada = (q−mean)·(Xᵀu/√λ)
+      const qc = lastQuery.vec.map((x, i) => x - P.mean[i]);
+      qp = P.axes.map((u, k) => { let s = 0; for (let i = 0; i < P.X.length; i++) s += u[i] * dot(P.X[i], qc); return s / Math.sqrt(P.l[k] || 1); });
+      xs.push(qp[0]); ys.push(qp[1]);
+    }
+    const lo = [Math.min(...xs), Math.min(...ys)], hi = [Math.max(...xs), Math.max(...ys)];
+    const px = (x) => 30 + ((x - lo[0]) / ((hi[0] - lo[0]) || 1)) * 700, py = (y) => 400 - ((y - lo[1]) / ((hi[1] - lo[1]) || 1)) * 320;
+    const art = (id) => (id.match(/art(\d+)/) || [])[1] || '?'; const arts = [...new Set(ids.map(art))];
+    const palette = ['#0E7C7B', '#0B2A4A', '#9A5F0A', '#B3261E', '#2A7A4B', '#6D4C9F', '#C2185B', '#00838F', '#5D4037', '#546E7A', '#7B1FA2', '#EF6C00', '#1565C0', '#2E7D32', '#AD1457', '#4E342E', '#00695C', '#283593', '#F9A825', '#37474F'];
+    const color = (id) => palette[arts.indexOf(art(id)) % palette.length];
+    const top = new Set(lastQuery ? lastQuery.top : []);
+    let s = '';
+    P.pts.forEach((p, i) => { const id = ids[i], t = corpus.byId[id]; const hot = top.has(id); s += `<g><circle cx="${px(p[0])}" cy="${py(p[1])}" r="${hot ? 8 : 5.5}" fill="${color(id)}" stroke="${hot ? 'var(--amber)' : '#fff'}" stroke-width="${hot ? 3 : 1.2}" opacity="${top.size && !hot ? 0.45 : 0.95}"><title>${esc(t.dispositivo)}\n${esc(t.conteudo.slice(0, 220))}…</title></circle>${hot ? `<text x="${px(p[0]) + 9}" y="${py(p[1]) - 7}" font-size="10" fill="var(--ink)">${esc(t.dispositivo)}</text>` : ''}</g>`; });
+    if (qp) s += `<g><rect x="${px(qp[0]) - 8}" y="${py(qp[1]) - 8}" width="16" height="16" fill="var(--amber)" stroke="#fff" stroke-width="2" transform="rotate(45 ${px(qp[0])} ${py(qp[1])})"><title>consulta: ${esc(lastQuery.text)}</title></rect></g>`;
+    // legenda compacta por artigo
+    arts.forEach((a, i) => { s += `<g><rect x="${10 + (i % 10) * 72}" y="${8 + Math.floor(i / 10) * 16}" width="10" height="10" rx="2" fill="${palette[i % palette.length]}"/><text x="${24 + (i % 10) * 72}" y="${17 + Math.floor(i / 10) * 16}" font-size="10" fill="var(--muted)">art. ${a}</text></g>`; });
+    svg.innerHTML = s;
+    $('#pj-info').textContent = `${ids.length} pontos · as duas dimensões explicam ${(P.explained * 100).toFixed(0)}% da variância (o resto está nas outras ${gemini.dims - 2}).`;
+    $('#pj-cap').textContent = qp ? 'Losango: a consulta. Contorno âmbar: os dez vizinhos da última busca.' : 'Cada ponto é um dispositivo; a cor é o artigo. Faça uma busca acima para ver a consulta aqui.';
+  }
+  $('#pj-run') && $('#pj-run').addEventListener('click', () => guard($('#nn-status'), async () => { await ensureIndexed($('#nn-status')); project(); setStatus($('#nn-status'), '', ''); }));
+
+  /* ---------- c8 · três idiomas (ao vivo) ---------- */
+  $('#ml-run') && $('#ml-run').addEventListener('click', () => guard($('#ml-status'), async () => {
+    await ensureIndexed($('#ml-status')); const qs = ['#ml-pt', '#ml-en', '#ml-es'].map((s) => $(s).value.trim()); if (qs.some((q) => !q)) throw new Error('Preencha as três consultas.');
+    setStatus($('#ml-status'), 'Embutindo as três consultas (um lote)…');
+    const vs = await gemini.embedItems(qs.map((q) => ({ text: q, taskType: 'RETRIEVAL_QUERY' })));
+    const lists = vs.map((v) => topK(v, 5)); ['#ml-a', '#ml-b', '#ml-c'].forEach((sel, i) => ($(sel).innerHTML = rank(lists[i], lists[0].slice(0, 1).map((x) => x.id))));
+    const same = lists.every((l) => l[0].id === lists[0][0].id);
+    setStatus($('#ml-status'), (same ? 'O primeiro lugar é o mesmo nos três idiomas. ' : 'O primeiro lugar mudou entre idiomas. ') + `Scores do 1º: pt ${fmt(lists[0][0].score)} · en ${fmt(lists[1][0].score)} · es ${fmt(lists[2][0].score)}.`, 'ok');
+  }));
+
+  /* ---------- c9 · diluição (ao vivo) ---------- */
+  (function () {
+    const sel = $('#dl-t'); if (!sel) return;
+    corpus.trechos.forEach((t) => sel.add(new Option(`${t.dispositivo} · ${t.conteudo.slice(0, 50)}…`, t.id)));
+    sel.value = corpus.byId['L14133-art75-incI'] ? 'L14133-art75-incI' : corpus.trechos[0].id;
+    $('#dl-run').addEventListener('click', () => guard($('#dl-status'), async () => {
+      needKey(); const t = corpus.byId[sel.value]; const q = $('#dl-q').value.trim(); if (!q) throw new Error('Escreva a consulta.');
+      const i = corpus.trechos.indexOf(t); const others = [1, 2, 3].map((k) => corpus.trechos[(i + k * 7) % corpus.trechos.length]).filter((o) => o.id !== t.id).slice(0, 3);
+      const alone = `${t.dispositivo}. ${t.conteudo}`; const mixed = [alone, ...others.map((o) => `${o.dispositivo}. ${o.conteudo}`)].join(' ');
+      setStatus($('#dl-status'), 'Embutindo consulta, trecho sozinho e trecho diluído (um lote)…');
+      const [qv, a, m] = await gemini.embedItems([{ text: q, taskType: 'RETRIEVAL_QUERY' }, { text: alone, taskType: 'RETRIEVAL_DOCUMENT' }, { text: mixed, taskType: 'RETRIEVAL_DOCUMENT' }]);
+      const sa = dot(qv, a), sm = dot(qv, m);
+      $('#dl-out').innerHTML = bar(`sozinho (${alone.length} caracteres)`, sa, 1, 'f') + bar(`com 3 vizinhos (${mixed.length} caracteres)`, sm, 1);
+      setStatus($('#dl-status'), `Diluição: ${(sa - sm).toFixed(3)} de cosseno. Vizinhos usados: ${others.map((o) => o.dispositivo).join('; ')}. ${sa - sm > 0.02 ? 'O trecho longo ficou mais longe da consulta: a média puxou o vetor para os outros assuntos.' : 'Pouca diluição aqui: os vizinhos são do mesmo assunto ou o dispositivo domina o texto. Tente outro.'}`, 'ok');
+    }));
+  })();
+})();
+
+</script>
+</body>
+</html>
