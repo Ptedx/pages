@@ -29,13 +29,13 @@
   <div class="kicker">Página 7 · Confiabilidade</div>
   <h1>Alucinação, validação e guardrails</h1>
   <p class="lead">O modelo continua texto provável, e provável não é verdadeiro (página 1). Num sistema de auditoria isso não pode chegar ao analista sem passar por barreiras. Esta página nomeia os tipos de falha, mostra qual camada pega cada um, constrói a validação em código do Ex. 6 (com o contador de descartes por motivo), coloca um juiz para reler a resposta, mede a recusa numa matriz 2×2 e fecha com os guardrails de entrada e saída e a operação da validação.</p>
-  <div class="meta"><a class="exlink" href="https://linear.app/vinicius-costa/issue/VIN-10" target="_blank" rel="noopener">VIN-10 · Ex. 6</a><span>·</span><span>10 capítulos · leitura ativa de 60 a 80 minutos · 9 experimentos, 6 sem chave</span></div>
+  <div class="meta"><a class="exlink" href="https://linear.app/vinicius-costa/issue/VIN-10" target="_blank" rel="noopener">VIN-10 · Ex. 6</a><span>·</span><span>10 capítulos · leitura ativa de 60 a 80 minutos · 11 experimentos, 8 sem chave</span></div>
 </div>
 
 <div class="goals">
   <h3>Ao terminar esta página você consegue</h3>
   <ul>
-    <li>Classificar uma resposta errada em um dos oito tipos de falha e dizer qual camada a pega.</li>
+    <li>Classificar uma resposta errada em um dos oito tipos de falha, apontar o campo do JSON que a denuncia e dizer qual camada a pega.</li>
     <li>Implementar a validação em código (esquema, ids, contexto, coerência, números, tamanho) e ler o contador de descartes por motivo.</li>
     <li>Explicar o que o juiz de aderência vê que a validação não vê, e quando ele roda no projeto.</li>
     <li>Medir recusa correta e recusa indevida numa matriz 2×2 e dizer por que as duas importam.</li>
@@ -48,35 +48,103 @@
 <section class="chapter" id="c1" data-ch="p7-c1">
   <div class="ch-head"><span class="n">Capítulo 1</span><h2>Os oito jeitos de errar</h2><label class="donebox"><input type="checkbox" data-done> Capítulo concluído</label></div>
 
-  <p>"Alucinação" é um nome só para falhas de natureza diferente, e tratá-las como uma coisa só é o primeiro erro. Num RAG com citações, uma resposta errada cabe em um destes tipos. <strong>Fabricação sem fonte</strong>: o modelo responde do próprio treinamento, sem citar (o valor da Lei 8.666, por exemplo). <strong>Citação inexistente</strong>: cita um id que não existe na base. <strong>Citação fora do contexto</strong>: cita um id que existe, mas não estava entre os trechos enviados naquela chamada; ele "lembrou" de outra chamada, ou inventou um id plausível. <strong>Distorção</strong>: cita o trecho certo e troca o número, o prazo, o percentual. <strong>Afirmação não sustentada</strong>: a citação é boa para uma parte da resposta, e outra parte não tem trecho nenhum. <strong>Recusa indevida</strong>: o trecho certo estava lá e o modelo disse "sem evidência". <strong>Incoerência</strong>: responde e ao mesmo tempo marca <code>sem_evidencia</code>. <strong>Formato inválido</strong>: texto solto, JSON quebrado, enum fora da lista.</p>
-  <p>A distinção importa porque cada tipo tem uma <em>camada</em> que o pega, e camadas diferentes custam diferente: cinco dos oito são pegos por código puro, sem chamada nenhuma; dois exigem que alguém (ou o juiz) leia o texto; um só aparece na medição contra o conjunto de avaliação. A galeria abaixo treina o olho: oito saídas para a mesma pergunta, com os mesmos quatro trechos no contexto.</p>
+  <p>"Alucinação" é um nome só para falhas de natureza diferente, e tratá-las como uma coisa só é o primeiro erro. Num RAG com citações, uma resposta errada cabe em um de oito tipos. O que muda entre eles é <em>onde</em> o erro aparece (num campo do JSON ou no sentido do texto) e <em>quem</em> consegue pegá-lo: código puro, uma leitura (do juiz ou de uma pessoa), ou só a medição contra o conjunto de avaliação. A taxonomia abaixo é para ser explorada, não lida de uma vez: cada cartão abre com o exemplo, o sinal que o denuncia e a camada que o pega.</p>
+
+  <div class="lab">
+    <header><h4>Experimento · A taxonomia, cartão por cartão</h4><span class="badge toy">roda no navegador</span></header>
+    <div class="body">
+      <p>Clique num cartão para abrir. Os filtros destacam os tipos por quem os pega: <b>estrutura</b> (código, custo zero), <b>leitura</b> (juiz ou pessoa, uma chamada) ou <b>medição</b> (só o conjunto de avaliação mostra).</p>
+      <div class="chips" id="tx-filter" style="margin-bottom:12px">
+        <button class="chip" type="button" data-f="all" aria-pressed="true">todos os oito</button>
+        <button class="chip" type="button" data-f="estrutura">pegos pela estrutura do JSON</button>
+        <button class="chip" type="button" data-f="leitura">exigem leitura</button>
+        <button class="chip" type="button" data-f="medicao">só a medição mostra</button>
+      </div>
+      <div class="fail-grid" id="tx-grid"></div>
+      <p class="mini" id="tx-note"></p>
+    </div>
+  </div>
+
+  <h3>Onde cada falha mora no JSON</h3>
+  <p>A resposta do modelo tem três campos, e cada tipo de falha deixa marca num deles, ou em nenhum. É isso que separa o que o código pega do que exige leitura: se a marca está num campo, uma regra a encontra; se está só no sentido do texto, não.</p>
+
+  <div class="lab">
+    <header><h4>Experimento · Anatomia da resposta</h4><span class="badge toy">roda no navegador</span></header>
+    <div class="body">
+      <p>Passe o mouse ou toque em cada parte do JSON para ver quais falhas se denunciam ali e qual regra do validador olha para ela.</p>
+      <div class="grid2">
+        <pre class="anat" id="an-json"><code>{
+  <span class="an" data-k="resposta">"resposta": "O limite em obras é de R$ 100.000,00."</span>,
+  <span class="an" data-k="citacoes">"citacoes": [
+    { <span class="an" data-k="id">"id": "L14133-art75-incI"</span>, "dispositivo": "Art. 75, I" }
+  ]</span>,
+  <span class="an" data-k="sem">"sem_evidencia": false</span>
+}</code></pre>
+        <div class="callout" id="an-info"><span class="t">Passe o mouse sobre um campo</span><p>Cada campo tem as suas falhas e a sua regra.</p></div>
+      </div>
+    </div>
+  </div>
+
+  <h3>Treine o olho</h3>
+  <p>Oito saídas para a mesma pergunta ("qual é o limite de valor para dispensa de licitação em obras?"), com os mesmos quatro trechos no contexto: art. 75, I e II, art. 98 e art. 55, II. Uma de cada tipo, embaralhadas. Classifique; ao fim, a revisão mostra o que você acertou e a regra de cada caso.</p>
 
   <div class="lab">
     <header><h4>Experimento · Galeria de falhas</h4><span class="badge toy">roda no navegador</span></header>
     <div class="body">
-      <p>Para cada saída, escolha o tipo. A resposta certa vem com a dica e a camada que pega.</p>
+      <div class="progress-line"><span id="ga-prog-text">0 de 8</span><div class="bar" role="progressbar" aria-valuemin="0" aria-valuemax="8" aria-valuenow="0"><i id="ga-prog"></i></div></div>
       <div id="ga-list"></div>
     </div>
   </div>
 
-  <div class="doit"><span class="ic">faça agora</span><p>Passe pela galeria inteira sem consultar o texto acima. Nos casos em que errar, releia a dica e pergunte: o que, no JSON, denuncia o tipo? Para cinco dos oito, a resposta está na estrutura (citações vazias, id inexistente, id fora da lista, flag e citação juntas, formato); para os outros três é preciso ler o conteúdo.</p></div>
+  <div class="doit"><span class="ic">faça agora</span><p>Passe pela galeria inteira sem voltar aos cartões. Nos casos em que errar, olhe a anatomia: a marca estava num campo (citações vazias, id que não existe, id fora da lista, flag e citação juntas, formato) ou só no sentido? Se estava no campo, o validador do capítulo 3 pega; se não, é trabalho do juiz ou da medição.</p></div>
 
   <div class="faq">
     <h3>Perguntas que aparecem aqui</h3>
     <details><summary>Por que citação fora do contexto é diferente de inexistente?</summary><p>Porque o id existe na base, então uma verificação ingênua ("o id existe?") passa. A verificação certa é "o id estava entre os trechos <em>desta</em> chamada?". Um modelo que cita algo que não recebeu está usando memória ou inventando um id plausível, e as duas coisas quebram a rastreabilidade: o analista abriria um trecho que o modelo nunca leu.</p><p class="why">A pergunta certa é "estava no contexto", não "existe".</p></details>
     <details><summary>Distorção é o mais perigoso?</summary><p>Para texto legal, sim. A citação está certa, o trecho está certo, e o número está errado: quem confere a fonte por alto confirma a resposta. Por isso o projeto tem uma verificação específica de números contra o trecho citado (capítulo 7), além do juiz.</p><p class="why">Erro pequeno com fonte certa engana melhor.</p></details>
     <details><summary>Recusa indevida é "alucinação"?</summary><p>Não no sentido comum, mas é uma falha com o mesmo custo prático: o analista não recebe uma resposta que a base tinha. Aparece quando a instrução de recusa é forte demais, quando o trecho certo ficou em posição ruim no contexto, ou quando o modelo não reconheceu a resposta na redação legal. Só se mede com o conjunto de avaliação, e é por isso que a taxa de recusa se mede nas duas direções (capítulo 5).</p><p class="why">Recusar o que a base responde é erro; meça as duas direções.</p></details>
+    <details><summary>Um erro pode ser de dois tipos ao mesmo tempo?</summary><p>Pode: uma resposta com número errado e citação fora do contexto acumula dois motivos, e o contador do capítulo 3 conta os dois. A taxonomia serve para nomear cada marca, não para forçar uma etiqueta única por resposta.</p><p class="why">Motivos se acumulam; cada um tem a sua regra.</p></details>
   </div>
 
-  <div class="notes"><label for="n-p7-c1">Caderno · com as suas palavras</label><p class="hint">Escreva os oito tipos, com um exemplo de cada, e marque quais se detectam pela estrutura do JSON e quais exigem ler o texto.</p><textarea class="prose" id="n-p7-c1" data-note="p7-c1"></textarea><div class="saved"></div></div>
+  <div class="notes"><label for="n-p7-c1">Caderno · com as suas palavras</label><p class="hint">Escreva os oito tipos em três grupos (estrutura, leitura, medição), com um exemplo de cada e o campo do JSON onde a marca aparece, quando aparece.</p><textarea class="prose" id="n-p7-c1" data-note="p7-c1"></textarea><div class="saved"></div></div>
 </section>
 
 <!-- ============================================================ 2 -->
 <section class="chapter" id="c2" data-ch="p7-c2">
   <div class="ch-head"><span class="n">Capítulo 2</span><h2>Camadas: nenhuma segura tudo, juntas seguram quase tudo</h2><label class="donebox"><input type="checkbox" data-done> Capítulo concluído</label></div>
 
-  <p>A resposta do modelo passa por uma sequência de barreiras, cada uma barata de um jeito e cega de outro. <strong>Busca boa</strong> (páginas 2 a 4): se o trecho certo não chega ao contexto, nenhuma camada posterior conserta; recall alto é a primeira defesa contra fabricação e recusa indevida. <strong>Esquema de saída</strong>: elimina o formato inválido antes de o JSON ser lido. <strong>Validação em código</strong>: confere ids, contexto, coerência, tamanho; determinística, custo zero, pega cinco dos oito tipos. <strong>Verificação numérica</strong>: todo número, percentual ou valor da resposta precisa aparecer no trecho citado. <strong>Juiz de aderência</strong>: um modelo relê resposta e trechos e diz, afirmação por afirmação, o que é sustentado; custa uma chamada, pega o que só se vê lendo. <strong>Conjunto de avaliação em rotina</strong> (página 8): a única forma de ver recusa indevida e degradação silenciosa. <strong>Parecer humano</strong>: no projeto, a IA não decide; o auditor lê classificação, evidência e base legal e dá o parecer.</p>
-  <p>A ordem também é custo: as camadas baratas vêm antes, e uma resposta rejeitada pela validação não gasta o juiz. A matriz abaixo mostra o que passa quando você desliga uma camada. Repare que o parecer humano pega tudo <em>em tese</em>; na prática, um auditor com quarenta critérios por documento confia no que o sistema lhe entrega, e é por isso que as camadas automáticas existem.</p>
+  <p>A resposta do modelo passa por uma sequência de barreiras, das mais baratas às mais caras. A ordem importa duas vezes: uma resposta rejeitada cedo não gasta as camadas seguintes, e cada camada é cega para o que só a próxima enxerga. O diagrama percorre a sequência; a tabela diz o que cada camada custa e o que só ela pega.</p>
+
+  <figure class="diagram" data-caps='["Busca boa (páginas 2 a 4): se o trecho certo não chega ao contexto, nenhuma camada posterior conserta. Recall alto é a primeira defesa contra fabricação e recusa indevida.","Esquema de saída: elimina o formato inválido antes de o JSON ser lido. Custo zero.","Validação em código: ids existem? estão no contexto? coerência, tamanho. Determinística, custo zero, pega cinco dos oito tipos.","Verificação numérica: todo valor, percentual ou prazo da resposta precisa aparecer no trecho citado. Pega a distorção.","Juiz de aderência: um modelo relê resposta e trechos e diz, afirmação por afirmação, o que é sustentado. Uma chamada; roda por amostragem.","Conjunto de avaliação em rotina (página 8): a única forma de ver recusa indevida e degradação silenciosa.","Parecer humano: no projeto a IA não decide. O auditor lê classificação, evidência e base legal e dá o parecer."]' aria-label="As sete camadas em sequência, das baratas às caras">
+    <div class="dtools"><button class="btn small" data-stepper="ly">Passo a passo</button><button class="btn small ghost" data-stepper-reset="ly">Reiniciar</button><span class="mini" id="ly-cap"></span></div>
+    <svg viewBox="0 0 760 200" role="img" aria-labelledby="lyt"><title id="lyt">Sete camadas</title>
+      <defs><marker id="ar7" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="var(--muted)"/></marker></defs>
+      <g class="node ia stage" data-stage="ly-0"><rect x="10" y="30" width="100" height="56" rx="8"/><text x="60" y="53" text-anchor="middle" class="t">Busca</text><text x="60" y="71" text-anchor="middle">recall alto</text></g>
+      <g class="node stage" data-stage="ly-1"><rect x="120" y="30" width="100" height="56" rx="8"/><text x="170" y="53" text-anchor="middle" class="t">Esquema</text><text x="170" y="71" text-anchor="middle">formato</text></g>
+      <g class="node gate stage" data-stage="ly-2"><rect x="230" y="30" width="110" height="56" rx="8"/><text x="285" y="53" text-anchor="middle" class="t">Validação</text><text x="285" y="71" text-anchor="middle">ids · contexto</text></g>
+      <g class="node gate stage" data-stage="ly-3"><rect x="350" y="30" width="100" height="56" rx="8"/><text x="400" y="53" text-anchor="middle" class="t">Números</text><text x="400" y="71" text-anchor="middle">contra a fonte</text></g>
+      <g class="node ext stage" data-stage="ly-4"><rect x="460" y="30" width="90" height="56" rx="8"/><text x="505" y="53" text-anchor="middle" class="t">Juiz</text><text x="505" y="71" text-anchor="middle">1 chamada</text></g>
+      <g class="node stage" data-stage="ly-5"><rect x="560" y="30" width="100" height="56" rx="8"/><text x="610" y="53" text-anchor="middle" class="t">Avaliação</text><text x="610" y="71" text-anchor="middle">em rotina</text></g>
+      <g class="node ok stage" data-stage="ly-6"><rect x="670" y="30" width="80" height="56" rx="8"/><text x="710" y="53" text-anchor="middle" class="t">Auditor</text><text x="710" y="71" text-anchor="middle">parecer</text></g>
+      <path class="edge" d="M110 58 H116" marker-end="url(#ar7)"/><path class="edge" d="M220 58 H226" marker-end="url(#ar7)"/><path class="edge" d="M340 58 H346" marker-end="url(#ar7)"/><path class="edge" d="M450 58 H456" marker-end="url(#ar7)"/><path class="edge" d="M550 58 H556" marker-end="url(#ar7)"/><path class="edge" d="M660 58 H666" marker-end="url(#ar7)"/>
+      <text class="lbl" x="10" y="130">custo zero: código</text><text class="lbl" x="460" y="130">custa chamada</text><text class="lbl" x="560" y="150">custa rotina</text><text class="lbl" x="670" y="130">custa gente</text>
+      <text class="lbl" x="10" y="180">uma resposta rejeitada à esquerda não gasta o que está à direita</text>
+    </svg>
+    <figcaption>Barreira não é garantia: cada camada tem a sua taxa de erro. O que uma deixa passar, a seguinte pode pegar; o que todas deixam passar chega ao auditor.</figcaption>
+  </figure>
+
+  <div class="tbl-wrap"><table>
+    <thead><tr><th>Camada</th><th>Custo</th><th>O que só ela pega</th><th>Cega para</th></tr></thead>
+    <tbody>
+      <tr><td>Busca boa</td><td>já pago (índice)</td><td>fabricação por falta do trecho; recusa por falta do trecho</td><td>o que o modelo faz com o trecho</td></tr>
+      <tr><td>Esquema</td><td>zero</td><td>formato inválido, enum fora da lista</td><td>conteúdo dos campos</td></tr>
+      <tr><td>Validação em código</td><td>zero</td><td>citação inexistente, fora do contexto, sem citação, incoerência</td><td>sentido do texto, número certo no lugar errado</td></tr>
+      <tr><td>Verificação numérica</td><td>zero</td><td>distorção de valor, percentual, prazo</td><td>número certo atribuído ao contexto errado</td></tr>
+      <tr><td>Juiz</td><td>1 chamada</td><td>afirmação não sustentada; número certo no lugar errado</td><td>o que não está no contexto (não busca)</td></tr>
+      <tr><td>Conjunto de avaliação</td><td>rotina</td><td>recusa indevida; degradação silenciosa do modelo</td><td>o caso individual em produção</td></tr>
+      <tr><td>Parecer humano</td><td>tempo de auditor</td><td>tudo, em tese</td><td>40 critérios por documento: confia no que recebe</td></tr>
+    </tbody>
+  </table></div>
 
   <div class="lab">
     <header><h4>Experimento · Matriz camadas × falhas</h4><span class="badge toy">roda no navegador</span></header>
@@ -112,14 +180,47 @@
 <section class="chapter" id="c3" data-ch="p7-c3">
   <div class="ch-head"><span class="n">Capítulo 3</span><h2>Validação em código e o contador de descartes</h2><label class="donebox"><input type="checkbox" data-done> Capítulo concluído</label></div>
 
-  <p>A validação é uma função pura: recebe o JSON do modelo e a lista de ids que foram enviados no contexto, devolve aceita ou rejeitada e um dicionário de motivos. As regras do projeto, na ordem em que rodam: <strong>malformado</strong> (não é o objeto do esquema); <strong>fonte_inexistente</strong> (id que não está na base); <strong>fora_do_contexto</strong> (id que não estava nesta chamada); <strong>sem_citacao</strong> (responde sem nenhuma citação válida e sem <code>sem_evidencia</code>); <strong>incoerente</strong> (<code>sem_evidencia</code> com citações e texto que responde); <strong>numero_sem_fonte</strong> (valor, percentual ou prazo da resposta que não aparece no texto dos trechos citados); <strong>muito_longa</strong>. Uma resposta aceita é a que tem pelo menos uma citação válida e nenhum motivo bloqueante, ou uma recusa coerente.</p>
-  <p>O <strong>contador de descartes por motivo</strong> é o entregável do Ex. 6 e o painel mais útil da operação: um motivo que sobe é um sintoma com nome. <code>fora_do_contexto</code> subindo depois de uma troca de modelo diz que o modelo novo "lembra" ids; <code>numero_sem_fonte</code> alto num critério diz que o prompt daquele critério induz arredondamento; <code>sem_citacao</code> crescendo diz que a busca piorou ou o prompt afrouxou. Sem o contador, tudo isso é "a qualidade caiu".</p>
+  <p>A validação é uma função pura: recebe o JSON do modelo e a lista de ids que foram enviados no contexto, e devolve <em>aceita</em> ou <em>rejeitada</em> mais um dicionário de motivos. Sete regras, na ordem em que rodam; cada uma com o que confere e um exemplo do que rejeita.</p>
+
+  <div class="tbl-wrap"><table class="rules">
+    <thead><tr><th>#</th><th>Motivo</th><th>O que confere</th><th>Exemplo rejeitado</th><th>Bloqueia?</th></tr></thead>
+    <tbody>
+      <tr><td>1</td><td><code>malformado</code></td><td>é um objeto com <code>resposta</code> (texto) e <code>citacoes</code> (lista)?</td><td>texto solto; JSON sem o campo <code>citacoes</code></td><td>sim</td></tr>
+      <tr><td>2</td><td><code>fonte_inexistente</code></td><td>cada id citado existe na base?</td><td><code>L14133-art24-incI</code> (lei antiga)</td><td>descarta a citação</td></tr>
+      <tr><td>3</td><td><code>fora_do_contexto</code></td><td>cada id citado estava nos trechos desta chamada?</td><td><code>L14133-art125</code> existe, mas não foi enviado</td><td>descarta a citação</td></tr>
+      <tr><td>4</td><td><code>sem_citacao</code></td><td>responde (não recusa) e não sobrou nenhuma citação válida?</td><td>"o limite é R$ 330.000,00", citações vazias</td><td>sim</td></tr>
+      <tr><td>5</td><td><code>incoerente</code></td><td><code>sem_evidencia = true</code> com citações válidas e texto que responde?</td><td>"o limite é 100 mil" + <code>sem_evidencia: true</code></td><td>sim</td></tr>
+      <tr><td>6</td><td><code>numero_sem_fonte</code></td><td>cada valor, percentual ou prazo da resposta aparece no texto dos trechos citados?</td><td>"R$ 150.000,00" citando o art. 75, I (que diz 100.000)</td><td>sim</td></tr>
+      <tr><td>7</td><td><code>muito_longa</code></td><td>resposta abaixo do limite de caracteres?</td><td>oito parágrafos para uma pergunta de uma linha</td><td>sim</td></tr>
+    </tbody>
+  </table></div>
+  <p><b>Aceita</b> é: pelo menos uma citação válida e nenhum motivo bloqueante; ou uma recusa (<code>sem_evidencia</code>) coerente. Tudo o mais é rejeitada, com os motivos gravados. Uma resposta pode acumular vários motivos; todos contam.</p>
+  <p>O <strong>contador de descartes por motivo</strong> é o entregável do Ex. 6 e o painel mais útil da operação: um motivo que sobe é um sintoma com nome.</p>
+  <div class="tbl-wrap"><table>
+    <thead><tr><th>Motivo subindo</th><th>O que costuma significar</th><th>Onde mexer</th></tr></thead>
+    <tbody>
+      <tr><td><code>fora_do_contexto</code></td><td>modelo novo "lembra" ids ou inventa ids plausíveis</td><td>prompt (regra de citar só os ids fornecidos); medir no conjunto</td></tr>
+      <tr><td><code>numero_sem_fonte</code> num critério</td><td>o prompt daquele critério induz arredondamento ou extenso</td><td>prompt do critério ("copie os valores como estão")</td></tr>
+      <tr><td><code>sem_citacao</code></td><td>a busca piorou (trecho certo não chega) ou o prompt afrouxou</td><td>recall@k; instrução de citação</td></tr>
+      <tr><td><code>malformado</code></td><td>esquema não aplicado, ou modelo trocado sem suporte a esquema</td><td>chamada (responseSchema); versão do modelo</td></tr>
+      <tr><td><code>incoerente</code></td><td>instrução de recusa ambígua</td><td>prompt (quando marcar sem_evidencia)</td></tr>
+    </tbody>
+  </table></div>
 
   <div class="lab">
     <header><h4>Experimento · O validador sobre a galeria</h4><span class="badge toy">roda no navegador</span></header>
     <div class="body">
       <p>Os oito casos do capítulo 1 passados pelo validador do projeto, com os motivos. Dois passam: são os que a validação estrutural não consegue ver.</p>
       <div id="va-gal"></div>
+    </div>
+  </div>
+
+  <div class="lab">
+    <header><h4>Experimento · Monte a sua resposta e valide</h4><span class="badge toy">roda no navegador</span></header>
+    <div class="body">
+      <p>Edite o JSON à vontade (troque um id, um número, a flag) e veja o validador reagir campo a campo. O contexto enviado é o dos quatro trechos da galeria.</p>
+      <div class="row top"><div><label class="f" for="vm-json">JSON da resposta</label><textarea id="vm-json" rows="7"></textarea></div><div><label class="f">Veredito</label><div id="vm-out"></div></div></div>
+      <div class="chips" id="vm-presets"><button class="chip" type="button" data-p="ok">resposta boa</button><button class="chip" type="button" data-p="id">troca o id por um inexistente</button><button class="chip" type="button" data-p="num">troca o número</button><button class="chip" type="button" data-p="flag">marca sem_evidencia</button><button class="chip" type="button" data-p="recusa">recusa coerente</button></div>
     </div>
   </div>
 
@@ -134,7 +235,7 @@
     </div>
   </div>
 
-  <div class="doit"><span class="ic">faça agora</span><p>Rode com 3 perguntas e leia a tabela. Se alguma foi rejeitada, abra o motivo e decida: é o modelo (fonte inventada), a busca (não citou o esperado) ou a regra (número arredondado)? Depois rode com 6 e veja se o padrão se mantém. O contador com poucas perguntas é ruidoso; com centenas, é o painel.</p></div>
+  <div class="doit"><span class="ic">faça agora</span><p>No editor, comece pela resposta boa e quebre uma coisa de cada vez: id, número, flag. Observe que cada quebra acende um motivo diferente, e que "troca o id" não bloqueia sozinho (a citação é descartada; se sobrar outra válida, a resposta passa). Depois rode o contador ao vivo com 3 perguntas e leia a tabela: para cada rejeição, decida se é o modelo, a busca ou a regra.</p></div>
 
   <div class="faq">
     <h3>Perguntas que aparecem aqui</h3>
@@ -143,7 +244,7 @@
     <details><summary>Validar custa tempo?</summary><p>Microssegundos: é código sobre um JSON pequeno. É a camada mais barata do sistema, e por isso roda em toda resposta, antes de qualquer outra coisa.</p><p class="why">Grátis, determinística, primeira.</p></details>
   </div>
 
-  <div class="notes"><label for="n-p7-c3">Caderno</label><p class="hint">Escreva as sete regras do validador na ordem, o que "aceita" significa, e o que cada motivo subindo no contador denuncia.</p><textarea class="prose" id="n-p7-c3" data-note="p7-c3"></textarea><div class="saved"></div></div>
+  <div class="notes"><label for="n-p7-c3">Caderno</label><p class="hint">Escreva as sete regras na ordem, o que "aceita" significa, e o que cada motivo subindo no contador denuncia.</p><textarea class="prose" id="n-p7-c3" data-note="p7-c3"></textarea><div class="saved"></div></div>
 </section>
 <!-- ============================================================ 4 -->
 <section class="chapter" id="c4" data-ch="p7-c4">
@@ -266,8 +367,22 @@
 <section class="chapter" id="c8" data-ch="p7-c8">
   <div class="ch-head"><span class="n">Capítulo 8</span><h2>Guardrails de entrada e de saída</h2><label class="donebox"><input type="checkbox" data-done> Capítulo concluído</label></div>
 
-  <p>Além de verificar se a resposta é verdadeira, o sistema verifica se ela é <em>apropriada</em>: se a pergunta cabe no escopo e se a saída respeita o papel da IA no projeto. Na <strong>entrada</strong>: a pergunta é sobre o domínio (licitações, contratos, o documento em análise)? Tem tamanho razoável? Contém dados pessoais que não deveriam ir ao provedor? Uma pergunta fora do escopo recebe uma resposta fixa, sem chamada; uma com CPF ou nome de pessoa física recebe mascaramento antes de sair da máquina, e o registro guarda que houve mascaramento. Na <strong>saída</strong>: o texto que chega ao analista não pode conter <strong>linguagem de parecer</strong>. A decisão do projeto é clara: a IA aponta indícios, classifica e cita; o auditor decide. "O edital deve ser reprovado", "recomendo a anulação", "é ilegal" são decisões, e saem da resposta antes de ela ser exibida, seja por rejeição e nova tentativa, seja por mostrar ao analista só os campos estruturados (classificação, evidência, base legal) e não a prosa.</p>
-  <p>Guardrails de saída também cobrem <strong>vazamento</strong> (a resposta não repete dados pessoais do documento além do necessário), <strong>escopo</strong> (não opina sobre o que não foi perguntado) e <strong>tamanho</strong>. São regras de código, com motivo próprio no contador (<code>parecer_final</code>, <code>fora_do_escopo</code>, <code>dado_pessoal</code>), e o detector abaixo mostra a mais importante para o projeto.</p>
+  <p>Além de verificar se a resposta é verdadeira, o sistema verifica se ela é <em>apropriada</em>: se a pergunta cabe no escopo e se a saída respeita o papel da IA no projeto. São regras de código, cada uma com o seu motivo no contador, divididas em dois grupos: as que rodam <strong>antes</strong> de a chamada sair (entrada) e as que rodam <strong>depois</strong> de a resposta voltar (saída).</p>
+
+  <div class="tbl-wrap"><table>
+    <thead><tr><th>Quando</th><th>Guardrail</th><th>O que faz</th><th>Motivo no contador</th><th>Custa chamada?</th></tr></thead>
+    <tbody>
+      <tr><td>entrada</td><td>tamanho</td><td>pergunta ou excerto acima do limite é cortado ou recusado com aviso</td><td><code>entrada_grande</code></td><td>não (evita uma)</td></tr>
+      <tr><td>entrada</td><td>dados pessoais</td><td>CPF, nome de pessoa física, e-mail viram marcadores ("[PESSOA_1]") antes de sair da máquina; o original fica na interface</td><td><code>dado_pessoal</code></td><td>não</td></tr>
+      <tr><td>entrada</td><td>escopo (frouxo)</td><td>pergunta sem nenhuma relação com o domínio ou o documento recebe resposta fixa</td><td><code>fora_do_escopo</code></td><td>não (evita uma)</td></tr>
+      <tr><td>entrada</td><td>sinal de injeção</td><td>padrões do capítulo 6 marcam o excerto; ele segue inteiro, escapado</td><td><code>injecao_sinalizada</code></td><td>não</td></tr>
+      <tr><td>saída</td><td>linguagem de parecer</td><td>"deve ser reprovado", "recomendo a anulação", "é ilegal": a IA aponta indício; o auditor decide</td><td><code>parecer_final</code></td><td>nova tentativa</td></tr>
+      <tr><td>saída</td><td>vazamento</td><td>a resposta não repete dados pessoais além do necessário</td><td><code>dado_pessoal_saida</code></td><td>nova tentativa</td></tr>
+      <tr><td>saída</td><td>escopo da resposta</td><td>não opina sobre o que não foi perguntado</td><td><code>fora_do_escopo</code></td><td>nova tentativa</td></tr>
+      <tr><td>saída</td><td>forma exibida</td><td>o analista vê os campos estruturados (classificação, evidência, base legal, sinais), não a prosa</td><td>—</td><td>não</td></tr>
+    </tbody>
+  </table></div>
+  <p>A regra mais importante para o projeto é a de <strong>linguagem de parecer</strong>, porque materializa a promessa feita ao cliente: a IA aponta indícios, classifica e cita; o auditor decide. "O edital deve ser reprovado" é uma decisão, e sai da resposta antes de ela ser exibida: por rejeição e nova tentativa, ou por mostrar só os campos estruturados. O detector abaixo é essa regra.</p>
 
   <div class="lab">
     <header><h4>Experimento · Detector de linguagem de parecer</h4><span class="badge toy">roda no navegador</span></header>
@@ -531,14 +646,74 @@ def responder_validado(pergunta: str, contexto: list[dict], base_ids: set[str]) 
   ];
   const TIPOS = { fabricacao: 'fabricação sem fonte', fonte_inexistente: 'citação inexistente', fora_do_contexto: 'citação fora do contexto', distorcao: 'distorção de número', nao_sustentada: 'afirmação não sustentada', recusa_indevida: 'recusa indevida', incoerente: 'resposta incoerente', malformado: 'formato inválido' };
   const CAMADA = { fabricacao: 'validação (sem citação)', fonte_inexistente: 'validação (id existe?)', fora_do_contexto: 'validação (id no contexto?)', distorcao: 'validação numérica / juiz', nao_sustentada: 'juiz de aderência', recusa_indevida: 'conjunto de avaliação (recall + fidelidade)', incoerente: 'validação (coerência)', malformado: 'esquema + validação' };
+  const TAXO = {
+    fabricacao: { grupo: 'estrutura', campo: 'citacoes (vazio)', regra: 'sem_citacao', custo: 'zero', porque: 'O modelo respondeu do treinamento: "provável" venceu "no contexto". Acontece quando a busca não trouxe o trecho e a instrução de recusa é fraca.', ex: '{ "resposta": "…R$ 330.000,00, conforme a Lei 8.666.", "citacoes": [], "sem_evidencia": false }' },
+    fonte_inexistente: { grupo: 'estrutura', campo: 'citacoes[].id', regra: 'fonte_inexistente', custo: 'zero', porque: 'O id parece um id do projeto, mas não está na base. O modelo "completou" um identificador plausível.', ex: '{ "citacoes": [{ "id": "L14133-art24-incI" }] }  ← não existe' },
+    fora_do_contexto: { grupo: 'estrutura', campo: 'citacoes[].id', regra: 'fora_do_contexto', custo: 'zero', porque: 'O id existe na base, mas não estava entre os trechos enviados nesta chamada: memória de outra chamada ou chute que acertou um id real.', ex: '{ "citacoes": [{ "id": "L14133-art125" }] }  ← existe, não foi enviado' },
+    distorcao: { grupo: 'estrutura', campo: 'resposta (números)', regra: 'numero_sem_fonte', custo: 'zero', porque: 'Citação certa, valor errado. Números são detalhe de superfície para o modelo (página 2); ele troca 100 por 150 sem "sentir" a diferença.', ex: '{ "resposta": "…R$ 150.000,00", "citacoes": [{ "id": "L14133-art75-incI" }] }  ← o trecho diz 100.000' },
+    nao_sustentada: { grupo: 'leitura', campo: 'sentido do texto', regra: 'juiz (afirmação por afirmação)', custo: '1 chamada', porque: 'Parte da resposta tem trecho; outra parte não tem trecho nenhum e nada no JSON denuncia. Só lendo resposta e trechos juntos.', ex: '{ "resposta": "…R$ 100.000,00 e a garantia nesses casos é dispensada." }  ← a 2ª metade não está em lugar nenhum' },
+    recusa_indevida: { grupo: 'medicao', campo: 'nenhum', regra: 'conjunto de avaliação (recall + fidelidade)', custo: 'rotina', porque: 'O trecho certo estava no contexto e o modelo disse "sem evidência". Estruturalmente é uma recusa válida; só se sabe que é erro comparando com a resposta esperada.', ex: '{ "resposta": "Os trechos não tratam do limite.", "citacoes": [], "sem_evidencia": true }  ← o art. 75, I estava lá' },
+    incoerente: { grupo: 'estrutura', campo: 'sem_evidencia + citacoes', regra: 'incoerente', custo: 'zero', porque: 'Responde e ao mesmo tempo marca que não há evidência. Dois campos que se contradizem.', ex: '{ "resposta": "O limite é R$ 100.000,00.", "citacoes": [{ "id": "L14133-art75-incI" }], "sem_evidencia": true }' },
+    malformado: { grupo: 'estrutura', campo: 'o JSON inteiro', regra: 'esquema + malformado', custo: 'zero', porque: 'Texto solto, JSON quebrado, campo faltando, enum fora da lista. Raro com esquema de saída; comum sem ele.', ex: 'O limite para dispensa em obras é de R$ 100.000,00 (art. 75, I).  ← texto, não JSON' },
+  };
+  const GRUPO = { estrutura: 'estrutura', leitura: 'leitura', medicao: 'medição' };
   (function () {
-    const el = $('#ga-list'); if (!el) return; let i = 0, acertos = 0, respondidas = 0;
+    const grid = $('#tx-grid'); if (!grid) return; let open = null, filter = 'all';
     function render() {
-      const g = GALERIA[i]; if (!g) { el.innerHTML = `<div class="callout"><span class="t">Fim da galeria</span><p>${acertos} de ${GALERIA.length} tipos identificados. Cada tipo tem uma camada que o pega; o capítulo 2 mostra a matriz.</p></div>`; return; }
-      el.innerHTML = `<p class="mini">Caso ${i + 1} de ${GALERIA.length} · pergunta: "Qual é o limite de valor para dispensa de licitação em obras?" · trechos enviados: ${CTX.join(', ')}</p><pre><code>${esc(typeof g.out === 'string' ? g.out : JSON.stringify(g.out, null, 2))}</code></pre><p>Que tipo de falha é esta?</p><div class="chips">${Object.entries(TIPOS).map(([k, v]) => `<button class="chip" type="button" data-t="${k}">${esc(v)}</button>`).join('')}</div><div id="ga-fb" style="margin-top:10px"></div>`;
-      $$('#ga-list .chip').forEach((b) => b.addEventListener('click', () => { const ok = b.dataset.t === g.tipo; if (!$('#ga-fb').dataset.done) { respondidas++; if (ok) acertos++; } $('#ga-fb').dataset.done = '1'; $('#ga-fb').innerHTML = `<div class="callout ${ok ? '' : 'warn'}"><span class="t">${ok ? 'Certo' : 'Não: é ' + TIPOS[g.tipo]}</span><p>${esc(g.dica)} Camada que pega: <b>${esc(CAMADA[g.tipo])}</b>.</p><button class="btn small" id="ga-next" type="button">Próximo caso</button></div>`; $('#ga-next').addEventListener('click', () => { i++; render(); }); }));
+      grid.innerHTML = Object.keys(TIPOS).map((k, i) => { const t = TAXO[k]; const dim = filter !== 'all' && t.grupo !== filter; const isOpen = open === k; return `<article class="fail ${isOpen ? 'open' : ''} ${dim ? 'dim' : ''} g-${t.grupo}" data-k="${k}" tabindex="0" role="button" aria-expanded="${isOpen}"><div class="head"><span class="num">${i + 1}</span><span class="name">${esc(TIPOS[k])}</span><span class="tag">${GRUPO[t.grupo]} · ${esc(t.custo)}</span></div><div class="body"><p class="mini">marca: <b>${esc(t.campo)}</b> · quem pega: <b>${esc(t.regra)}</b></p>${isOpen ? `<p>${esc(t.porque)}</p><pre><code>${esc(t.ex)}</code></pre>` : ''}</div></article>`; }).join('');
+      $$('#tx-grid .fail').forEach((a) => { const go = () => { open = open === a.dataset.k ? null : a.dataset.k; render(); }; a.addEventListener('click', go); a.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); go(); } }); });
+      const n = Object.values(TAXO).filter((t) => filter === 'all' || t.grupo === filter).length;
+      $('#tx-note').textContent = filter === 'all' ? 'Cinco dos oito deixam marca num campo do JSON e custam zero para pegar; dois exigem leitura; um só a medição mostra.' : filter === 'estrutura' ? `${n} tipos deixam marca num campo do JSON: uma regra de código os pega, sem chamada.` : filter === 'leitura' ? `${n} tipo exige ler resposta e trechos juntos: é o juiz (uma chamada) ou uma pessoa.` : `${n} tipo não deixa marca nenhuma na resposta: só aparece comparando com a resposta esperada no conjunto de avaliação.`;
     }
+    $$('#tx-filter .chip').forEach((c) => c.addEventListener('click', () => { filter = c.dataset.f; $$('#tx-filter .chip').forEach((x) => x.setAttribute('aria-pressed', String(x === c))); render(); }));
     render();
+  })();
+
+  /* ============ c1 · anatomia da resposta ============ */
+  (function () {
+    const pre = $('#an-json'); if (!pre) return;
+    const INFO = {
+      resposta: ['resposta (o texto)', 'Aqui moram a distorção (número que não está no trecho citado → numero_sem_fonte), o tamanho (muito_longa), a linguagem de parecer (parecer_final) e, sem marca nenhuma, a afirmação não sustentada, que só o juiz vê.'],
+      citacoes: ['citacoes (a lista)', 'Lista vazia numa resposta que não recusa → sem_citacao (fabricação). A lista é o que torna a resposta rastreável: cada item precisa sobreviver às regras 2 e 3.'],
+      id: ['citacoes[].id', 'Duas perguntas, nesta ordem: o id existe na base? (fonte_inexistente) Estava entre os trechos enviados nesta chamada? (fora_do_contexto). Uma citação que falha é descartada; se sobrar alguma válida, a resposta pode passar.'],
+      sem: ['sem_evidencia (a flag)', 'Verdadeira com citações válidas e texto que responde → incoerente. Verdadeira e coerente é uma recusa válida; se o trecho certo estava no contexto, é recusa indevida, e isso só a medição mostra.'],
+    };
+    const info = $('#an-info');
+    const show = (k) => { const [t, d] = INFO[k]; info.innerHTML = `<span class="t">${esc(t)}</span><p>${esc(d)}</p>`; $$('#an-json .an').forEach((e) => e.classList.toggle('lit', e.dataset.k === k)); };
+    $$('#an-json .an').forEach((e) => { e.addEventListener('mouseenter', () => show(e.dataset.k)); e.addEventListener('click', () => show(e.dataset.k)); e.addEventListener('focus', () => show(e.dataset.k)); e.setAttribute('tabindex', '0'); });
+  })();
+
+  /* ============ c1 · galeria com progresso e revisão ============ */
+  (function () {
+    const el = $('#ga-list'); if (!el) return;
+    const order = [0, 3, 6, 1, 5, 2, 7, 4].map((i) => GALERIA[i]); let i = 0; const answers = [];
+    const prog = () => { $('#ga-prog').style.width = `${(answers.length / order.length) * 100}%`; $('#ga-prog-text').textContent = `${answers.length} de ${order.length}`; $('#ga-prog').parentElement.setAttribute('aria-valuenow', String(answers.length)); };
+    function render() {
+      const g = order[i];
+      if (!g) { const ac = answers.filter((a) => a.ok).length; el.innerHTML = `<div class="callout ${ac === order.length ? 'ok' : ''}"><span class="t">Revisão: ${ac} de ${order.length}</span><p>Cada linha lembra a marca e a camada. Os que você errou merecem uma segunda leitura do cartão correspondente.</p></div><div class="tbl-wrap"><table><thead><tr><th>caso</th><th>sua resposta</th><th>tipo</th><th>marca</th><th>quem pega</th></tr></thead><tbody>${answers.map((a) => `<tr><td>${a.g.id}</td><td class="${a.ok ? 'ok' : 'bad'}">${esc(TIPOS[a.pick])}</td><td>${esc(TIPOS[a.g.tipo])}</td><td>${esc(TAXO[a.g.tipo].campo)}</td><td>${esc(CAMADA[a.g.tipo])}</td></tr>`).join('')}</tbody></table></div><button class="btn ghost small" id="ga-again" type="button">Refazer</button>`; $('#ga-again').addEventListener('click', () => { i = 0; answers.length = 0; prog(); render(); }); return; }
+      el.innerHTML = `<p class="mini">Caso ${i + 1} de ${order.length}</p><pre><code>${esc(typeof g.out === 'string' ? g.out : JSON.stringify(g.out, null, 2))}</code></pre><p>Que tipo de falha é esta?</p><div class="chips">${Object.entries(TIPOS).map(([k, v]) => `<button class="chip" type="button" data-t="${k}">${esc(v)}</button>`).join('')}</div><div id="ga-fb" style="margin-top:10px"></div>`;
+      $$('#ga-list .chip').forEach((b) => b.addEventListener('click', () => { if ($('#ga-fb').dataset.done) return; const ok = b.dataset.t === g.tipo; answers.push({ g, pick: b.dataset.t, ok }); prog(); $('#ga-fb').dataset.done = '1'; $$('#ga-list .chip').forEach((x) => { x.disabled = true; if (x.dataset.t === g.tipo) x.classList.add('right'); if (x === b && !ok) x.classList.add('wrong'); }); $('#ga-fb').innerHTML = `<div class="callout ${ok ? 'ok' : 'warn'}"><span class="t">${ok ? 'Certo: ' + TIPOS[g.tipo] : 'Não: é ' + TIPOS[g.tipo]}</span><p>${esc(g.dica)}</p><p class="mini">marca: <b>${esc(TAXO[g.tipo].campo)}</b> · quem pega: <b>${esc(CAMADA[g.tipo])}</b></p><button class="btn small" id="ga-next" type="button">${i + 1 < order.length ? 'Próximo caso' : 'Ver a revisão'}</button></div>`; $('#ga-next').addEventListener('click', () => { i++; render(); }); }));
+    }
+    prog(); render();
+  })();
+
+  /* ============ c3 · editor: monte a sua resposta e valide ============ */
+  (function () {
+    const ta = $('#vm-json'); if (!ta) return;
+    const P = {
+      ok: { resposta: 'O limite para dispensa em obras e serviços de engenharia é de R$ 100.000,00.', citacoes: [{ id: 'L14133-art75-incI', dispositivo: 'Art. 75, I' }], sem_evidencia: false },
+      id: { resposta: 'O limite para dispensa em obras e serviços de engenharia é de R$ 100.000,00.', citacoes: [{ id: 'L14133-art24-incI', dispositivo: 'Art. 24, I' }], sem_evidencia: false },
+      num: { resposta: 'O limite para dispensa em obras e serviços de engenharia é de R$ 150.000,00.', citacoes: [{ id: 'L14133-art75-incI', dispositivo: 'Art. 75, I' }], sem_evidencia: false },
+      flag: { resposta: 'O limite para dispensa em obras e serviços de engenharia é de R$ 100.000,00.', citacoes: [{ id: 'L14133-art75-incI', dispositivo: 'Art. 75, I' }], sem_evidencia: true },
+      recusa: { resposta: 'Os trechos fornecidos não tratam da alíquota do ISS; faltou a legislação tributária municipal.', citacoes: [], sem_evidencia: true },
+    };
+    function render() {
+      let obj = null; try { obj = JSON.parse(ta.value); } catch { obj = null; }
+      const v = validar(obj, CTX); const mot = Object.entries(v.motivos).filter(([, n]) => n);
+      $('#vm-out').innerHTML = `<div class="callout ${v.ok ? 'ok' : 'bad'}"><span class="t">${v.ok ? (v.sem_evidencia ? 'Aceita: recusa coerente' : 'Aceita') : 'Rejeitada'}</span><p class="mini">${mot.length ? 'motivos: ' + mot.map(([k, n]) => `<code>${k}</code>${n > 1 ? '×' + n : ''}`).join(', ') : 'nenhum motivo'} · citações válidas: ${v.citOk.length ? v.citOk.map((c) => c.id).join(', ') : 'nenhuma'}${v.nums && v.nums.length ? ' · números conferidos: ' + v.nums.join(', ') : ''}</p></div>`;
+    }
+    $$('#vm-presets .chip').forEach((c) => c.addEventListener('click', () => { ta.value = JSON.stringify(P[c.dataset.p], null, 2); render(); }));
+    ta.addEventListener('input', render); ta.value = JSON.stringify(P.ok, null, 2); render();
   })();
 
   /* ============ c2 · matriz: camadas × falhas ============ */

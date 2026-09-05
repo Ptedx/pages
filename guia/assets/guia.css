@@ -253,6 +253,31 @@ label.chip{display:inline-flex;align-items:center;gap:6px}
 .diff{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:10px 14px;margin:10px 0;font-size:.88rem}
 .diff ins{background:var(--green-soft);text-decoration:none;padding:0 2px;border-radius:3px}
 .diff del{background:var(--red-soft);padding:0 2px;border-radius:3px}
+.fail-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:10px}
+.fail{border:1px solid var(--line);border-left:4px solid var(--navy);border-radius:8px;background:var(--surface);padding:10px 12px;cursor:pointer;transition:opacity .2s,box-shadow .2s}
+.fail:hover,.fail:focus{box-shadow:0 2px 10px rgba(0,0,0,.08);outline:none}
+.fail.open{grid-column:1/-1;border-left-color:var(--teal)}
+.fail.dim{opacity:.35}
+.fail.g-leitura{border-left-color:var(--amber)}
+.fail.g-medicao{border-left-color:var(--red)}
+.fail .head{display:flex;gap:8px;align-items:baseline;flex-wrap:wrap}
+.fail .num{font-family:var(--mono);color:var(--teal);font-size:.8rem}
+.fail .name{font-weight:600;color:var(--navy)}
+.fail .tag{margin-left:auto;font-family:var(--mono);font-size:.7rem;color:var(--muted);border:1px solid var(--line);border-radius:999px;padding:1px 7px}
+.fail .body p{margin:6px 0 0;font-size:.9rem}
+.fail pre{margin:8px 0 0;font-size:.78rem}
+.fail pre code{white-space:pre-wrap;word-break:break-word}
+pre.anat{font-size:.85rem}
+pre.anat code{white-space:pre-wrap;word-break:break-word}
+pre.anat .an{border-bottom:2px dotted rgba(255,255,255,.35);cursor:pointer;border-radius:3px;padding:0 2px}
+pre.anat .an:hover,pre.anat .an.lit{background:rgba(79,193,191,.28)}
+.progress-line{display:flex;align-items:center;gap:10px;font-size:.8rem;color:var(--muted);margin-bottom:10px}
+.progress-line .bar{flex:1;height:6px;background:var(--surface-2);border-radius:3px;overflow:hidden}
+.progress-line .bar i{display:block;height:100%;background:var(--teal);width:0;transition:width .3s}
+.chip.right{border-color:var(--green);background:var(--green-soft)}
+.chip.wrong{border-color:var(--red);background:var(--red-soft)}
+.chip:disabled{cursor:default}
+.rules td:nth-child(3){min-width:220px}
 .mtx th{text-align:left}
 .mtx td{font-weight:600}
 .tokens{line-height:2;font-size:1rem}
