@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Início · Guia RAG aplicado</title>
+<meta name="description" content="Trilha, configuração da chave e progresso.">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/guia.css">
+</head>
+<body data-page="p0">
+<a class="skip" href="#main">Pular para o conteúdo</a>
+<header class="topbar">
+  <button class="iconbtn" id="menu" aria-expanded="false" aria-controls="sidenav" aria-label="Abrir navegação">☰ Páginas</button>
+  <a class="brand" href="index.html">Guia de estudo · RAG aplicado<small>Plataforma de Conformidade e Risco · trilha dos exercícios VIN-5 a VIN-12</small></a>
+  <button class="iconbtn" id="theme" aria-pressed="false">Tema escuro</button>
+</header>
+<div class="scrim"></div>
+<div class="shell">
+  <nav class="side" id="sidenav" aria-label="Páginas do guia">
+    <div class="progress"><span id="prog-text">0 capítulos concluídos</span><div class="bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" aria-label="Progresso do estudo"><i id="prog-bar"></i></div></div>
+    <div class="group">Trilha</div><ol><li><a href="index.html" data-page="p0" aria-current="page"><span class="num">0</span><span>Início</span><span class="done-mark" aria-hidden="true"></span></a></li><li><a href="01-modelos.html" data-page="p1"><span class="num">1</span><span>Modelos de linguagem</span><span class="done-mark" aria-hidden="true"></span></a></li><li><span class="soon" title="O que o vetor captura, métricas, dimensões, tipos de tarefa e limites."><span class="num">2</span><span>Embeddings</span><span class="tag">em breve</span></span></li><li><span class="soon" title="Exato versus aproximado, HNSW por dentro, pgvector."><span class="num">3</span><span>Busca vetorial e índices</span><span class="tag">em breve</span></span></li><li><span class="soon" title="tsvector, BM25, RRF e rerankers."><span class="num">4</span><span>Busca lexical e híbrida</span><span class="tag">em breve</span></span></li><li><span class="soon" title="Padrões de arquitetura, segmentação, identificadores, vigência."><span class="num">5</span><span>RAG e ingestão</span><span class="tag">em breve</span></span></li><li><span class="soon" title="Anatomia, delimitação, esquema, decomposição, versionamento e a biblioteca do projeto."><span class="num">6</span><span>Prompt engineering</span><span class="tag">em breve</span></span></li><li><span class="soon" title="Taxonomia das falhas, camadas de mitigação, juiz de aderência."><span class="num">7</span><span>Validação e guardrails</span><span class="tag">em breve</span></span></li><li><span class="soon" title="Conjuntos de avaliação, métricas de busca e de resposta, protocolo."><span class="num">8</span><span>Avaliação</span><span class="tag">em breve</span></span></li><li><span class="soon" title="PDF, limpeza, regex, JSONL, pandas, Pydantic, psycopg."><span class="num">9</span><span>Dados e Python</span><span class="tag">em breve</span></span></li><li><span class="soon" title="Tokens, cache, limites de taxa, retentativa, observabilidade, escolha de modelo."><span class="num">10</span><span>Custo e operação</span><span class="tag">em breve</span></span></li></ol><div class="group">Referência rápida</div><ol><li><a href="glossario.html" data-page="glossario"><span class="num">•</span><span>Glossário</span><span class="done-mark" aria-hidden="true"></span></a></li><li><span class="soon" title="Os oito exercícios com roteiro completo."><span class="num">•</span><span>Exercícios</span><span class="tag">em breve</span></span></li><li><span class="soon" title="Os prompts do projeto, versionados, para copiar."><span class="num">•</span><span>Biblioteca de prompts</span><span class="tag">em breve</span></span></li></ol>
+  </nav>
+  <main id="main" tabindex="-1"><div class="page-in">
+    <div class="toc-inline" hidden><label for="toc-select">Nesta página</label><select id="toc-select"><option value="">ir para o capítulo…</option></select></div>
+    <div id="keybanner" hidden><div class="callout warn"><span class="t">Sem chave do Gemini configurada</span><p>Os experimentos ao vivo desta página ficam desativados. Configure a chave na <a href="index.html#chave">página inicial</a>; os experimentos de brinquedo funcionam sem ela.</p></div></div>
+    <div class="page-head">
+  <div class="kicker">Página 0 · Início</div>
+  <h1>Guia de estudo · RAG aplicado</h1>
+  <p class="lead">Um curso para aprender, fazendo, tudo o que o componente de inteligência da Plataforma de Conformidade e Risco exige: como modelos de linguagem funcionam, embeddings, busca, RAG, prompt engineering, validação, avaliação, dados e operação.</p>
+</div>
+
+<div class="hero">
+  <div>
+    <p>Cada página é um tema completo: capítulos com a teoria a fundo, diagramas que animam passo a passo, experimentos que rodam aqui mesmo com a API do Gemini, um bloco de perguntas e respostas ao fim de cada capítulo, um caderno para escrever com as suas palavras, e uma autoavaliação corrigida na hora.</p>
+    <p>A trilha segue a ordem dos exercícios do Linear. Cada conceito aparece na página que o exercício precisa, e as páginas assumem as anteriores. As que ainda não existem aparecem no menu como "em breve", com o que vão cobrir.</p>
+    <div class="callout"><span class="t">Uma correção de vocabulário antes de tudo</span><p>RAG não se treina. Você <em>indexa</em> uma base (transforma textos em vetores e guarda) e <em>recupera</em> trechos na hora da pergunta. O modelo de linguagem continua exatamente o mesmo. Quando alguém diz "treinar o RAG", quer dizer "montar a base e ajustar a busca e o prompt". Use "indexar" e você vai ser entendido por quem já faz isso.</p></div>
+  </div>
+  <figure class="diagram" aria-label="Fluxo resumido: pergunta, busca na base, contexto, modelo, resposta com citação">
+    <svg viewBox="0 0 360 300" role="img" aria-labelledby="d0t"><title id="d0t">Visão geral do RAG em cinco caixas</title>
+      <defs><marker id="ar0" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="var(--muted)"/></marker></defs>
+      <g class="node"><rect x="20" y="16" width="130" height="44" rx="8"/><text x="85" y="36" text-anchor="middle" class="t">Pergunta</text><text x="85" y="52" text-anchor="middle">do analista</text></g>
+      <g class="node ia"><rect x="210" y="16" width="130" height="44" rx="8"/><text x="275" y="36" text-anchor="middle" class="t">Busca</text><text x="275" y="52" text-anchor="middle">vetorial + lexical</text></g>
+      <g class="node"><rect x="210" y="100" width="130" height="44" rx="8"/><text x="275" y="120" text-anchor="middle" class="t">Base normativa</text><text x="275" y="136" text-anchor="middle">trechos + vetores</text></g>
+      <g class="node ia"><rect x="20" y="184" width="130" height="44" rx="8"/><text x="85" y="204" text-anchor="middle" class="t">Prompt</text><text x="85" y="220" text-anchor="middle">pergunta + trechos</text></g>
+      <g class="node ext"><rect x="210" y="184" width="130" height="44" rx="8"/><text x="275" y="204" text-anchor="middle" class="t">Modelo</text><text x="275" y="220" text-anchor="middle">Gemini Flash</text></g>
+      <g class="node ok"><rect x="115" y="252" width="130" height="40" rx="8"/><text x="180" y="270" text-anchor="middle" class="t">Resposta</text><text x="180" y="285" text-anchor="middle">com citação conferida</text></g>
+      <path class="edge" d="M150 38 H206" marker-end="url(#ar0)"/><path class="edge" d="M275 60 V96" marker-end="url(#ar0)"/><path class="edge" d="M210 122 H85 V180" marker-end="url(#ar0)"/><path class="edge" d="M150 206 H206" marker-end="url(#ar0)"/><path class="edge" d="M275 228 V262 H249" marker-end="url(#ar0)"/>
+      <text class="lbl" x="178" y="32">consulta</text><text class="lbl" x="120" y="115">top-k trechos</text>
+    </svg>
+    <figcaption>Cada página do guia é um zoom em uma dessas caixas.</figcaption>
+  </figure>
+</div>
+
+<h2 id="chave">Configure a chave do Gemini</h2>
+<p>Os experimentos marcados como <span class="badge live">ao vivo</span> chamam a API do Google direto do seu navegador. A chave fica guardada só neste navegador (armazenamento local), é compartilhada entre as páginas do guia, nunca é enviada para outro lugar e não entra no código. Crie uma chave gratuita no <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener">Google AI Studio</a>. Se hospedar o guia em um domínio público, restrinja a chave a esse domínio nas configurações do Google.</p>
+<div class="keypanel" id="keypanel">
+  <div class="row">
+    <div><label class="f" for="k-key">Chave da API</label><input type="password" id="k-key" autocomplete="off" placeholder="AIza…"></div>
+    <div class="fixed"><button class="btn" id="k-save">Salvar e testar</button></div>
+    <div class="fixed"><button class="btn ghost" id="k-clear">Apagar</button></div>
+  </div>
+  <div class="row">
+    <div><label class="f" for="k-model">Modelo de geração</label><select id="k-model"><option value="gemini-2.5-flash">gemini-2.5-flash (recomendado para os exercícios)</option><option value="gemini-2.5-flash-lite">gemini-2.5-flash-lite</option><option value="gemini-3.8-flash">gemini-3.8-flash</option><option value="gemini-3.7-flash">gemini-3.7-flash</option><option value="gemini-2.0-flash">gemini-2.0-flash</option></select></div>
+    <div><label class="f" for="k-embed">Modelo de embeddings</label><select id="k-embed"><option value="gemini-embedding-001">gemini-embedding-001</option></select></div>
+    <div class="fixed"><button class="btn ghost" id="k-list">Listar modelos da conta</button></div>
+    <div class="fixed"><button class="btn ghost" id="k-diag">Diagnóstico rápido</button></div>
+  </div>
+  <p class="mini" style="margin:6px 0 0">Modelos da família 3.x "pensam" antes de responder: são mais lentos e gastam parte do limite de saída raciocinando. Para os exercícios, o <code>gemini-2.5-flash</code> (com pensamento desligado pelo guia) é mais rápido e previsível; troque para um 3.x depois, só para comparar. Se algum experimento ficar parado, rode o diagnóstico: ele mede cada tipo de chamada separadamente.</p>
+  <div class="status" id="k-status">Sem chave configurada.</div>
+</div>
+
+<h2>Como cada página é organizada</h2>
+<dl class="dl">
+  <dt>Objetivos</dt><dd>O que você vai conseguir fazer ao terminar, em frases verificáveis. Se ao fim não conseguir, a página falhou, não você.</dd>
+  <dt>Capítulos</dt><dd>Teoria a fundo, com um diagrama onde o desenho explica melhor que o texto. Os diagramas com "passo a passo" animam uma etapa por vez.</dd>
+  <dt>Faça agora</dt><dd>Tarefas de um minuto no meio da leitura: mexa num controle, veja o número mudar, siga lendo.</dd>
+  <dt>Experimentos</dt><dd>Painéis maiores. Os de brinquedo rodam sem chave; os ao vivo usam o Gemini e consomem a sua cota gratuita.</dd>
+  <dt>Perguntas que aparecem aqui</dt><dd>Ao fim de cada capítulo, as perguntas que surgem ao estudar o tema, com resposta curta e o porquê.</dd>
+  <dt>Caderno</dt><dd>Um campo para escrever com as suas palavras, guiado por uma pergunta. Fica salvo neste navegador. É o que você leva para o card do Linear.</dd>
+  <dt>Capítulo concluído</dt><dd>Marque quando terminar; alimenta a barra de progresso do menu e mostra onde você parou.</dd>
+  <dt>Autoavaliação</dt><dd>Perguntas de múltipla escolha corrigidas na hora, com explicação em cada alternativa. É o teste honesto de "dominei ou só li".</dd>
+</dl>
+
+<h2>Mapa da trilha</h2>
+<p>Que página você precisa dominar para fechar cada exercício do Linear.</p>
+<div class="tbl-wrap"><table class="map">
+  <thead><tr><th>Exercício</th><th>O que você constrói</th><th>Páginas</th></tr></thead>
+  <tbody>
+    <tr><td class="id"><a class="exlink" href="https://linear.app/vinicius-costa/issue/VIN-5" target="_blank" rel="noopener">VIN-5 · Ex. 1</a></td><td>Ambiente, primeira chamada com esquema de saída</td><td>1 · Modelos de linguagem</td></tr>
+    <tr><td class="id"><a class="exlink" href="https://linear.app/vinicius-costa/issue/VIN-6" target="_blank" rel="noopener">VIN-6 · Ex. 2</a></td><td>PDF → trechos por dispositivo (JSONL)</td><td>5 · RAG e ingestão, 9 · Dados e Python</td></tr>
+    <tr><td class="id"><a class="exlink" href="https://linear.app/vinicius-costa/issue/VIN-7" target="_blank" rel="noopener">VIN-7 · Ex. 3</a></td><td>Embeddings e busca vetorial no pgvector</td><td>2 · Embeddings, 3 · Busca vetorial e índices</td></tr>
+    <tr><td class="id"><a class="exlink" href="https://linear.app/vinicius-costa/issue/VIN-8" target="_blank" rel="noopener">VIN-8 · Ex. 4</a></td><td>Busca híbrida com RRF em SQL</td><td>4 · Busca lexical e híbrida</td></tr>
+    <tr><td class="id"><a class="exlink" href="https://linear.app/vinicius-costa/issue/VIN-9" target="_blank" rel="noopener">VIN-9 · Ex. 5</a></td><td>Prompt versionado, contexto como dado</td><td>6 · Prompt engineering</td></tr>
+    <tr><td class="id"><a class="exlink" href="https://linear.app/vinicius-costa/issue/VIN-10" target="_blank" rel="noopener">VIN-10 · Ex. 6</a></td><td>Validação de citações e contador de descartes</td><td>7 · Validação e guardrails</td></tr>
+    <tr><td class="id"><a class="exlink" href="https://linear.app/vinicius-costa/issue/VIN-11" target="_blank" rel="noopener">VIN-11 · Ex. 7</a></td><td>Conjunto de avaliação: recall@k e fidelidade</td><td>8 · Avaliação</td></tr>
+    <tr><td class="id"><a class="exlink" href="https://linear.app/vinicius-costa/issue/VIN-12" target="_blank" rel="noopener">VIN-12 · Ex. 8</a></td><td>Mini auditoria com score determinístico</td><td>6, 7 e 10 · Custo e operação</td></tr>
+  </tbody>
+</table></div>
+
+<h2>Ferramentas e corpus</h2>
+<p>Python com <code>uv</code>, Ollama para embeddings locais, PostgreSQL 16 com pgvector via <code>docker compose</code>, e o Gemini Flash na camada gratuita para geração. O corpus embutido no guia tem 48 dispositivos da Lei 14.133/2021 com redação adaptada para estudo: serve para ver o mecanismo, não para citar. Nos exercícios você usa o PDF oficial, e é ali que a sujeira aparece.</p>
+<p class="mini">Se este guia está hospedado no seu GitHub Pages, tudo o que você salva (chave, índice, anotações, progresso, versões de prompt) fica no navegador que você usa para estudar. Outro navegador começa do zero.</p>
+
+    <div class="pager"><a class="prev disabled" href="#"><small>anterior</small>—</a><a class="next" href="01-modelos.html"><small>próxima</small>Como um modelo de linguagem funciona</a></div>
+    <p class="foot">Guia de estudo pessoal. Corpus com redação adaptada da Lei 14.133/2021 para fins didáticos; confira o texto oficial antes de qualquer uso real. A chave da API fica apenas neste navegador; experimentos ao vivo chamam a API do Google diretamente e consomem a sua cota.</p>
+  </div></main>
+  <aside class="toc" aria-label="Nesta página" hidden><div class="t">Nesta página</div><ol id="toc-list"></ol></aside>
+</div>
+<script>window.GUIA_MANIFEST = {pages: [{"id": "p0", "file": "index.html", "title": "Início", "chapters": []}, {"id": "p1", "file": "01-modelos.html", "title": "Como um modelo de linguagem funciona", "chapters": ["p1-c1", "p1-c2", "p1-c3", "p1-c4", "p1-c5", "p1-c6", "p1-c7", "p1-c8", "p1-c9", "p1-c10"]}, {"id": "p2", "file": "02-embeddings.html", "title": "Embeddings", "chapters": []}, {"id": "p3", "file": "03-busca-vetorial.html", "title": "Busca vetorial e índices", "chapters": []}, {"id": "p4", "file": "04-busca-lexical-hibrida.html", "title": "Busca lexical e híbrida", "chapters": []}, {"id": "p5", "file": "05-rag.html", "title": "RAG de ponta a ponta e ingestão", "chapters": []}, {"id": "p6", "file": "06-prompt.html", "title": "Prompt engineering", "chapters": []}, {"id": "p7", "file": "07-validacao.html", "title": "Alucinação, validação e guardrails", "chapters": []}, {"id": "p8", "file": "08-avaliacao.html", "title": "Avaliação", "chapters": []}, {"id": "p9", "file": "09-dados-python.html", "title": "Dados e Python para RAG", "chapters": []}, {"id": "p10", "file": "10-custo-operacao.html", "title": "Custo, modelos e operação", "chapters": []}, {"id": "glossario", "file": "glossario.html", "title": "Glossário", "chapters": []}, {"id": "exercicios", "file": "exercicios.html", "title": "Exercícios", "chapters": []}, {"id": "prompts", "file": "prompts.html", "title": "Biblioteca de prompts", "chapters": []}]};</script>
+<script src="assets/corpus.js"></script>
+<script src="assets/core.js"></script>
+<script src="assets/site.js"></script>
+
+</body>
+</html>

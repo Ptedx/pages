@@ -19,11 +19,11 @@
 
 const PAGES = [
   {
-    file: "guiarag.html",
+    file: "guia/index.html",
     title: "Guia de RAG aplicado",
-    desc: "Guia de estudo sobre RAG, embeddings, busca híbrida, prompt engineering, validação e avaliação, com experimentos ao vivo pela API do Gemini.",
+    desc: "Trilha de estudo sobre RAG aplicado, com experimentos ao vivo pela API do Gemini.",
     tags: ["IA", "RAG", "estudo", "interativo"],
-    date: "2026-09-04",
+    date: "2026-09-05",
     accent: "#0E7C7B"
   },
   {

@@ -1,0 +1,726 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Como um modelo de linguagem funciona · Guia RAG aplicado</title>
+<meta name="description" content="Tokens, atenção, decodificação, contexto, esquema de saída, modelos que pensam e o que o modelo não faz.">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/guia.css">
+</head>
+<body data-page="p1">
+<a class="skip" href="#main">Pular para o conteúdo</a>
+<header class="topbar">
+  <button class="iconbtn" id="menu" aria-expanded="false" aria-controls="sidenav" aria-label="Abrir navegação">☰ Páginas</button>
+  <a class="brand" href="index.html">Guia de estudo · RAG aplicado<small>Plataforma de Conformidade e Risco · trilha dos exercícios VIN-5 a VIN-12</small></a>
+  <button class="iconbtn" id="theme" aria-pressed="false">Tema escuro</button>
+</header>
+<div class="scrim"></div>
+<div class="shell">
+  <nav class="side" id="sidenav" aria-label="Páginas do guia">
+    <div class="progress"><span id="prog-text">0 capítulos concluídos</span><div class="bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" aria-label="Progresso do estudo"><i id="prog-bar"></i></div></div>
+    <div class="group">Trilha</div><ol><li><a href="index.html" data-page="p0"><span class="num">0</span><span>Início</span><span class="done-mark" aria-hidden="true"></span></a></li><li><a href="01-modelos.html" data-page="p1" aria-current="page"><span class="num">1</span><span>Modelos de linguagem</span><span class="done-mark" aria-hidden="true"></span></a></li><li><span class="soon" title="O que o vetor captura, métricas, dimensões, tipos de tarefa e limites."><span class="num">2</span><span>Embeddings</span><span class="tag">em breve</span></span></li><li><span class="soon" title="Exato versus aproximado, HNSW por dentro, pgvector."><span class="num">3</span><span>Busca vetorial e índices</span><span class="tag">em breve</span></span></li><li><span class="soon" title="tsvector, BM25, RRF e rerankers."><span class="num">4</span><span>Busca lexical e híbrida</span><span class="tag">em breve</span></span></li><li><span class="soon" title="Padrões de arquitetura, segmentação, identificadores, vigência."><span class="num">5</span><span>RAG e ingestão</span><span class="tag">em breve</span></span></li><li><span class="soon" title="Anatomia, delimitação, esquema, decomposição, versionamento e a biblioteca do projeto."><span class="num">6</span><span>Prompt engineering</span><span class="tag">em breve</span></span></li><li><span class="soon" title="Taxonomia das falhas, camadas de mitigação, juiz de aderência."><span class="num">7</span><span>Validação e guardrails</span><span class="tag">em breve</span></span></li><li><span class="soon" title="Conjuntos de avaliação, métricas de busca e de resposta, protocolo."><span class="num">8</span><span>Avaliação</span><span class="tag">em breve</span></span></li><li><span class="soon" title="PDF, limpeza, regex, JSONL, pandas, Pydantic, psycopg."><span class="num">9</span><span>Dados e Python</span><span class="tag">em breve</span></span></li><li><span class="soon" title="Tokens, cache, limites de taxa, retentativa, observabilidade, escolha de modelo."><span class="num">10</span><span>Custo e operação</span><span class="tag">em breve</span></span></li></ol><div class="group">Referência rápida</div><ol><li><a href="glossario.html" data-page="glossario"><span class="num">•</span><span>Glossário</span><span class="done-mark" aria-hidden="true"></span></a></li><li><span class="soon" title="Os oito exercícios com roteiro completo."><span class="num">•</span><span>Exercícios</span><span class="tag">em breve</span></span></li><li><span class="soon" title="Os prompts do projeto, versionados, para copiar."><span class="num">•</span><span>Biblioteca de prompts</span><span class="tag">em breve</span></span></li></ol>
+  </nav>
+  <main id="main" tabindex="-1"><div class="page-in">
+    <div class="toc-inline" ><label for="toc-select">Nesta página</label><select id="toc-select"><option value="">ir para o capítulo…</option></select></div>
+    <div id="keybanner" hidden><div class="callout warn"><span class="t">Sem chave do Gemini configurada</span><p>Os experimentos ao vivo desta página ficam desativados. Configure a chave na <a href="index.html#chave">página inicial</a>; os experimentos de brinquedo funcionam sem ela.</p></div></div>
+    <div class="page-head">
+  <div class="kicker">Página 1 · Fundamentos</div>
+  <h1>Como um modelo de linguagem funciona</h1>
+  <p class="lead">Tudo o que você vai construir depois (busca, prompt, validação) só faz sentido quando se entende o que o modelo faz de verdade a cada chamada. Esta página desmonta a caixa preta até o nível em que dá para prever o comportamento dele, sem uma equação sequer.</p>
+  <div class="meta"><a class="exlink" href="https://linear.app/vinicius-costa/issue/VIN-5" target="_blank" rel="noopener">VIN-5 · Ex. 1</a><span>·</span><span>10 capítulos · leitura ativa de 40 a 60 minutos · 9 experimentos</span></div>
+</div>
+
+<div class="goals">
+  <h3>Ao terminar esta página você consegue</h3>
+  <ul>
+    <li>Explicar, sem olhar, o que acontece entre você enviar um prompt e receber a resposta, token por token.</li>
+    <li>Prever quando a temperatura, o top-p e o limite de saída vão mudar o resultado, e escolher os valores certos para classificação e para redação.</li>
+    <li>Montar uma chamada com instrução de sistema, esquema de saída e validação em Pydantic (o Ex. 1 inteiro).</li>
+    <li>Dizer, para uma tarefa qualquer, se um modelo "que pensa" vale o custo ou se atrapalha.</li>
+    <li>Listar o que o modelo não faz bem e por quê, e reconhecer cada caso quando aparecer no seu pipeline.</li>
+  </ul>
+</div>
+
+<!-- ============================================================ 1 -->
+<section class="chapter" id="c1" data-ch="p1-c1">
+  <div class="ch-head"><span class="n">Capítulo 1</span><h2>O que o modelo faz de verdade</h2><label class="donebox"><input type="checkbox" data-done> Capítulo concluído</label></div>
+
+  <p>Um modelo de linguagem é uma função. Ela recebe uma sequência de texto e devolve, para cada pedaço de texto possível, a probabilidade de esse pedaço ser o próximo. Só isso. Não há um módulo de "entender a pergunta", outro de "consultar a memória" e outro de "redigir". Há uma função de prever o próximo pedaço, chamada em loop: o pedaço escolhido é colado no fim da sequência, a função roda de novo com a sequência maior, e assim até sair um pedaço especial que significa "acabou".</p>
+  <p>Esse loop tem nome: geração <strong>autorregressiva</strong>. "Auto" porque o modelo alimenta a si mesmo com a própria saída; "regressiva" porque cada passo depende de todos os anteriores. A resposta que você lê é a trilha deixada por esse loop. E o que parece raciocínio, memória ou opinião é o efeito de ter aprendido, com uma quantidade enorme de texto, quais continuações costumam aparecer depois de quais começos.</p>
+
+  <figure class="diagram" data-caps='["A sequência de entrada: o prompt inteiro, já convertido em tokens.","O modelo lê tudo e produz uma distribuição: uma probabilidade para cada token possível do vocabulário.","Um token é escolhido (aqui, o mais provável). É a única decisão do passo.","O token escolhido é colado no fim. A sequência cresceu em um.","O modelo roda de novo sobre a sequência nova. Nada foi guardado entre um passo e outro além do próprio texto.","Repete até sair o token de fim. A resposta é a soma dos tokens escolhidos."]' aria-label="Loop autorregressivo: sequência, distribuição, escolha, anexar, repetir">
+    <div class="dtools"><button class="btn small" data-stepper="ar">Passo a passo</button><button class="btn small ghost" data-stepper-reset="ar">Reiniciar</button><span class="mini" id="ar-cap"></span></div>
+    <svg viewBox="0 0 760 240" role="img" aria-labelledby="art"><title id="art">O loop de geração</title>
+      <defs><marker id="ar1" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="var(--muted)"/></marker></defs>
+      <g class="node stage" data-stage="ar-0"><rect x="10" y="30" width="170" height="60" rx="8"/><text x="95" y="54" text-anchor="middle" class="t">Sequência</text><text x="95" y="72" text-anchor="middle">prompt + tokens gerados</text></g>
+      <g class="node ia stage" data-stage="ar-1"><rect x="220" y="30" width="170" height="60" rx="8"/><text x="305" y="54" text-anchor="middle" class="t">Modelo</text><text x="305" y="72" text-anchor="middle">distribuição sobre o vocabulário</text></g>
+      <g class="node gate stage" data-stage="ar-2"><rect x="430" y="30" width="150" height="60" rx="8"/><text x="505" y="54" text-anchor="middle" class="t">Escolha</text><text x="505" y="72" text-anchor="middle">temperatura · top-p</text></g>
+      <g class="node stage" data-stage="ar-3"><rect x="620" y="30" width="130" height="60" rx="8"/><text x="685" y="54" text-anchor="middle" class="t">Anexar</text><text x="685" y="72" text-anchor="middle">sequência + 1</text></g>
+      <g class="node stage" data-stage="ar-4"><rect x="220" y="150" width="170" height="50" rx="8"/><text x="305" y="171" text-anchor="middle" class="t">Rodar de novo</text><text x="305" y="188" text-anchor="middle">sem memória fora do texto</text></g>
+      <g class="node ok stage" data-stage="ar-5"><rect x="520" y="150" width="150" height="50" rx="8"/><text x="595" y="171" text-anchor="middle" class="t">Token de fim</text><text x="595" y="188" text-anchor="middle">resposta pronta</text></g>
+      <path class="edge" d="M180 60 H216" marker-end="url(#ar1)"/><path class="edge" d="M390 60 H426" marker-end="url(#ar1)"/><path class="edge" d="M580 60 H616" marker-end="url(#ar1)"/>
+      <path class="edge" d="M685 90 V220 H305 V206" marker-end="url(#ar1)"/><path class="edge" d="M220 175 C150 175 95 150 95 94" marker-end="url(#ar1)"/>
+      <path class="edge" d="M505 90 V120 C505 150 540 150 560 150" stroke-dasharray="4 3" marker-end="url(#ar1)"/>
+      <text class="lbl" x="440" y="130">se o escolhido for &lt;fim&gt;</text>
+    </svg>
+    <figcaption>Não existe estado escondido entre os passos: tudo o que o modelo "lembra" está na própria sequência. Por isso o que você coloca no prompt é literalmente tudo o que ele sabe naquela chamada.</figcaption>
+  </figure>
+
+  <p>Três consequências práticas saem direto desse desenho, e você vai reencontrá-las em todas as páginas seguintes.</p>
+  <p><strong>O modelo não consulta nada; ele continua.</strong> Quando você pergunta "qual artigo trata da dispensa por valor?", o modelo não abre a lei. Ele produz a continuação mais provável para aquela sequência. "Art. 24" é uma continuação muito provável, porque a Lei 8.666 tinha esse artigo e o modelo leu milhares de textos sobre ela. Provável frequentemente coincide com verdadeiro. Não é a mesma coisa. Toda a página 7 existe por causa desta frase.</p>
+  <p><strong>Tudo o que entra na sequência muda tudo o que sai.</strong> O prompt não é uma "pergunta" para o modelo "responder": é o começo de um texto que ele vai continuar. Mudar uma palavra no começo muda a distribuição de todos os tokens seguintes. É por isso que prompt engineering funciona, e é por isso que ele é frágil.</p>
+  <p><strong>Se não está na sequência, não existe.</strong> A Lei 14.133 inteira só influencia a resposta se estiver no prompt. É a razão de ser do RAG: em vez de esperar que o modelo lembre, você coloca os trechos certos na sequência antes de pedir a resposta.</p>
+
+  <div class="lab">
+    <header><h4>Experimento · Gere um token de cada vez</h4><span class="badge toy">brinquedo</span></header>
+    <div class="body">
+      <p>Uma distribuição de brinquedo, com probabilidades inventadas para ilustrar o mecanismo. Clique em "próximo token" e veja a sequência crescer; mude a temperatura e observe a escolha ficar previsível ou aleatória. Os números são fictícios; o mecanismo é o real.</p>
+      <div class="row">
+        <div><label class="f">Sequência</label><div class="tokens" id="nt-seq" aria-live="polite"></div></div>
+      </div>
+      <div class="row">
+        <div><label class="f" for="nt-temp">Temperatura = <span id="nt-tempv">0</span></label><input type="range" id="nt-temp" min="0" max="2" step="0.1" value="0"></div>
+        <div class="fixed"><button class="btn" id="nt-next">Próximo token</button></div>
+        <div class="fixed"><button class="btn ghost" id="nt-reset">Recomeçar</button></div>
+      </div>
+      <figure class="diagram" style="margin:0"><svg id="nt-svg" viewBox="0 0 760 170" role="img" aria-label="Distribuição de probabilidade dos próximos tokens candidatos"></svg><figcaption id="nt-cap">Distribuição sobre os candidatos ao próximo token.</figcaption></figure>
+    </div>
+  </div>
+
+  <div class="doit"><span class="ic">faça agora</span><p>Deixe a temperatura em 0 e gere até o fim duas vezes. Recomece com temperatura 1,5 e gere de novo. Repare que em 0 a sequência é sempre a mesma, e que em 1,5 um token improvável escolhido cedo muda todos os seguintes: é o efeito cascata do loop.</p></div>
+
+  <div class="faq">
+    <h3>Perguntas que aparecem aqui</h3>
+    <details><summary>Se o modelo só prevê o próximo token, como ele responde perguntas que exigem raciocínio?</summary><p>Porque texto que contém raciocínio é texto, e o modelo aprendeu a continuá-lo. Quando ele "raciocina", está gerando tokens que parecem uma cadeia de raciocínio, e essa cadeia gerada entra na sequência e condiciona os tokens seguintes. É por isso que pedir os passos antes da resposta melhora a resposta: os passos viram contexto para ela.</p><p class="why">Mecanismo, não mágica: raciocínio escrito é contexto que o próprio modelo produziu.</p></details>
+    <details><summary>O modelo lembra da conversa anterior?</summary><p>Não. Cada chamada é uma função pura sobre a sequência enviada. Quando um chat "lembra", é porque a aplicação reenviou o histórico inteiro dentro da sequência. No projeto, isso significa que cada critério de auditoria é uma chamada independente, e tudo o que ela precisa vai no prompt.</p><p class="why">Não há estado entre chamadas; há reenvio.</p></details>
+    <details><summary>Por que respostas iguais para a mesma pergunta às vezes divergem um pouco, mesmo em temperatura 0?</summary><p>Porque a conta é feita em ponto flutuante, em hardware paralelo, e pequenas diferenças de arredondamento podem mudar qual token é o mais provável quando dois estão quase empatados. Temperatura 0 é "quase determinístico". Para o projeto isso é irrelevante na prática, mas é o motivo de o Ex. 8 pedir três execuções.</p><p class="why">Determinismo forte exigiria o mesmo hardware, a mesma versão e um seed; a API não garante isso.</p></details>
+    <details><summary>O que é o token de fim?</summary><p>Um token especial do vocabulário que o modelo aprendeu a produzir quando a continuação natural é "acabou". Quando ele é escolhido, o loop para. Se o limite de saída (maxOutputTokens) chega antes, a resposta é cortada no meio, e é isso que você viu quando o modelo devolveu texto vazio ou truncado.</p><p class="why">Dois jeitos de parar: o modelo decide, ou o limite corta.</p></details>
+  </div>
+
+  <div class="notes"><label for="n-p1-c1">Caderno · com as suas palavras</label><p class="hint">Explique para alguém que nunca viu um modelo: por que perguntar "qual artigo fala de dispensa?" sem colocar a lei no prompt produz um número de artigo que parece certo e pode estar errado.</p><textarea class="prose" id="n-p1-c1" data-note="p1-c1"></textarea><div class="saved"></div></div>
+</section>
+
+<!-- ============================================================ 2 -->
+<section class="chapter" id="c2" data-ch="p1-c2">
+  <div class="ch-head"><span class="n">Capítulo 2</span><h2>Tokens: a unidade que o modelo lê e que você paga</h2><label class="donebox"><input type="checkbox" data-done> Capítulo concluído</label></div>
+
+  <p>O modelo não lê letras nem palavras. Antes de qualquer coisa, o texto passa por um <strong>tokenizador</strong>, que o corta em pedaços de um dicionário fixo, chamados tokens, e substitui cada pedaço por um número. O modelo só vê a lista de números. Na saída, acontece o inverso: cada número gerado vira o pedaço de texto correspondente.</p>
+  <p>O dicionário é construído uma vez, antes do treinamento, por algoritmos como BPE ou SentencePiece, que juntam sequências de caracteres frequentes em um único símbolo. O resultado é um vocabulário de dezenas ou centenas de milhares de pedaços, em que palavras comuns em inglês são um token só, palavras comuns em português costumam ser um ou dois, e palavras raras, nomes, siglas e números viram vários pedaços. "licitação" tende a ser um ou dois tokens; "inexequibilidade" pode ser quatro ou cinco; "R$ 100.000,00" vira uma sequência de pedaços em que cada grupo de dígitos e cada símbolo é um token à parte.</p>
+  <p>Isso tem três efeitos que você sente no bolso e na qualidade. Em português, 100 palavras dão entre 130 e 170 tokens, mais do que em inglês, porque acentos, terminações verbais e concordância fragmentam mais. Números e referências são caros e frágeis: "art. 75, § 2º, inciso II" são muitos tokens, e o modelo os vê como pedaços soltos, não como um endereço. E como você paga por token, contar tokens é a base de toda decisão de custo.</p>
+
+  <div class="lab">
+    <header><h4>Experimento · Enxergue os tokens</h4><span class="badge toy">estimativa</span><span class="badge live">contagem real com chave</span></header>
+    <div class="body">
+      <p>A página não tem o tokenizador do Gemini (ele é do Google), então a divisão colorida é uma <em>estimativa</em> de onde os cortes tendem a cair: palavras curtas e comuns inteiras, palavras longas partidas, números e pontuação separados. A contagem real vem da API, com a chave.</p>
+      <div class="row top"><div><label class="f" for="tk-text">Texto</label><textarea id="tk-text" class="prose">Art. 75, § 2º: as contratações de pequeno valor, inferiores a R$ 50.000,00, serão precedidas de divulgação de aviso em sítio eletrônico oficial pelo prazo mínimo de 3 dias úteis.</textarea></div></div>
+      <div class="row"><div class="fixed"><button class="btn" id="tk-run">Estimar e contar</button></div><div class="fixed"><button class="btn ghost" id="tk-en">Comparar com a tradução em inglês</button></div></div>
+      <div class="tokens" id="tk-view" aria-live="polite"></div>
+      <div class="grid3" style="margin-top:12px">
+        <div class="card"><h4>Palavras</h4><div class="out" id="tk-words">–</div></div>
+        <div class="card"><h4>Tokens estimados</h4><div class="out" id="tk-est">–</div></div>
+        <div class="card"><h4>Tokens reais (API)</h4><div class="out" id="tk-real">–</div></div>
+      </div>
+      <div class="status" id="tk-status"></div>
+    </div>
+  </div>
+
+  <div class="doit"><span class="ic">faça agora</span><p>Troque "R$ 50.000,00" por "cinquenta mil reais" e conte de novo. Depois troque "inexequibilidade" no lugar de "aviso". Observe quanto cada mudança custa em tokens: número escrito por extenso costuma ser mais barato, e palavra rara mais cara.</p></div>
+
+  <h3>O que isso muda no projeto</h3>
+  <p>Cada trecho da base normativa tem em média 90 tokens. Um prompt de auditoria com 12 trechos, a instrução e o critério fica perto de 1.400 tokens de entrada; com o texto de um edital inteiro junto, dezenas de milhares. A diferença de custo entre um pipeline que manda o edital inteiro a cada critério e um que manda só a seção relevante é de uma ordem de grandeza, e ela é decidida por contagem de tokens, não por opinião. A página 10 faz essa conta com você.</p>
+  <p>O segundo efeito é na busca: como referências exatas viram pedaços soltos, o modelo de embeddings (página 2) representa mal "art. 75". É uma das razões de a busca híbrida existir.</p>
+
+  <div class="faq">
+    <h3>Perguntas que aparecem aqui</h3>
+    <details><summary>Por que a estimativa "caracteres ÷ 3,6" funciona?</summary><p>Porque, em português corrente, um token tem em média 3 a 4 caracteres. É uma regra de bolso para orçar; para qualquer decisão com dinheiro, conte de verdade com <code>countTokens</code>, que é gratuito e instantâneo.</p><p class="why">Média estatística de textos comuns; texto com muitos números ou siglas foge dela.</p></details>
+    <details><summary>Espaços e acentos contam?</summary><p>Contam. O espaço geralmente vem colado ao token seguinte (o token é " licitação", com o espaço), então não é um token separado, mas muda qual pedaço é usado. Acentos podem fazer uma palavra que seria um token virar dois. Quebras de linha e marcação (as tags <code>&lt;trecho&gt;</code> do seu prompt) também custam, pouco, mas custam.</p><p class="why">Tudo o que está no texto vira token; nada é "de graça".</p></details>
+    <details><summary>O tokenizador é o mesmo para todos os modelos?</summary><p>Não. Cada família de modelo tem o seu, e as contagens diferem. É por isso que o custo de um mesmo prompt muda ao trocar de provedor, e por que a página conta tokens com o modelo que você selecionou, não com uma tabela fixa.</p><p class="why">Vocabulário é parte do modelo; trocar o modelo troca a contagem.</p></details>
+  </div>
+
+  <div class="notes"><label for="n-p1-c2">Caderno</label><p class="hint">Por que "art. 75, § 2º" é ao mesmo tempo caro em tokens e mal representado pelo modelo? O que isso sugere para a busca?</p><textarea class="prose" id="n-p1-c2" data-note="p1-c2"></textarea><div class="saved"></div></div>
+</section>
+
+<!-- ============================================================ 3 -->
+<section class="chapter" id="c3" data-ch="p1-c3">
+  <div class="ch-head"><span class="n">Capítulo 3</span><h2>Atenção e a janela de contexto</h2><label class="donebox"><input type="checkbox" data-done> Capítulo concluído</label></div>
+
+  <p>Como o modelo "lê" a sequência inteira antes de prever o próximo token? Pelo mecanismo de <strong>atenção</strong>. A intuição basta: para produzir cada token novo, o modelo calcula, para cada token que já está na sequência, o quanto ele importa agora, e monta a previsão como uma mistura ponderada dos que importam. Ao gerar a palavra depois de "o prazo mínimo de divulgação do edital é de", a atenção pesa forte em "prazo", "edital" e no trecho da lei que fala de dias úteis, e quase nada em "o", "de", "é". Esses pesos são recalculados a cada token gerado.</p>
+
+  <figure class="diagram" aria-label="Pesos de atenção de brinquedo entre as palavras de uma frase">
+    <div class="dtools"><span class="mini">Clique numa palavra da frase para ver, de brinquedo, em que outras ela "presta atenção".</span></div>
+    <svg id="att-svg" viewBox="0 0 760 150" role="img" aria-label="Frase com linhas de atenção"></svg>
+    <figcaption id="att-cap">Pesos ilustrativos. No modelo real há dezenas de "cabeças" de atenção por camada, cada uma pesando as palavras de um jeito, e dezenas de camadas empilhadas.</figcaption>
+  </figure>
+
+  <p>A <strong>janela de contexto</strong> é o máximo de tokens que o modelo aceita numa chamada, somando tudo: instrução de sistema, seu prompt, os trechos recuperados e a própria resposta. Modelos atuais aceitam de centenas de milhares a um milhão de tokens. Isso é muito, e é uma armadilha, por dois motivos.</p>
+  <p>O primeiro é custo e tempo: você paga cada token da entrada, e a atenção custa mais quanto mais tokens há para pesar. O segundo é qualidade. Um resultado de pesquisa bem documentado, conhecido como "perdido no meio", mostrou que modelos usam melhor a informação que está no começo e no fim do contexto e pior a que está no meio. Doze trechos relevantes são usados; cinquenta, com o certo no meio de irrelevantes, são frequentemente ignorados. Contexto grande não é contexto bem usado.</p>
+
+  <figure class="diagram" aria-label="Orçamento de contexto: como os tokens se dividem entre instrução, trechos, pergunta e resposta">
+    <div class="dtools"><label class="f" for="cw-k" style="margin:0">Trechos recuperados (top-k):</label><input type="range" id="cw-k" min="1" max="50" value="12" style="width:200px"><span id="cw-kv" class="mini" style="font-family:var(--mono)">12</span></div>
+    <svg viewBox="0 0 760 120" role="img" aria-labelledby="cwt"><title id="cwt">Barra proporcional do orçamento de contexto</title><g id="cw-bars"></g><text class="lbl" x="0" y="112" id="cw-total">total ≈ 0 tokens</text></svg>
+    <figcaption>Cada trecho da lei tem em média 90 tokens. A partir de uns 20 trechos, o contexto é quase só trechos e a pergunta vira um detalhe no meio. O projeto usa top-k 12 por isso, e coloca a pergunta no fim, onde a atenção é mais forte.</figcaption>
+  </figure>
+
+  <div class="doit"><span class="ic">faça agora</span><p>Arraste o controle para 50 e leia a proporção. Depois volte para 12. Guarde a intuição: recuperar mais trechos não é mais seguro; é mais caro e mais fácil de ignorar o certo.</p></div>
+
+  <div class="faq">
+    <h3>Perguntas que aparecem aqui</h3>
+    <details><summary>Se a janela aceita um milhão de tokens, por que não mandar a lei inteira e pular a busca?</summary><p>Porque você pagaria a lei inteira em cada chamada (a 14.133 tem mais de 100 mil tokens), a resposta demoraria muito mais, e o modelo usaria mal o que está no meio. E porque a citação verificável precisa de trechos identificados: mandar o texto inteiro não diz qual dispositivo sustenta a resposta. A busca entrega doze trechos com id; a lei inteira entrega um bloco anônimo.</p><p class="why">Custo, latência, "perdido no meio" e rastreabilidade, todos apontam para recuperar pouco e certo.</p></details>
+    <details><summary>Onde colocar a pergunta: antes ou depois dos trechos?</summary><p>Depois. O fim do contexto é a região mais bem usada, e a pergunta é o que o modelo precisa "ter em mente" ao gerar. Instrução no começo (sistema), trechos no meio, pergunta e formato no fim.</p><p class="why">Aproveita as duas regiões fortes: começo para regras, fim para a tarefa.</p></details>
+    <details><summary>A ordem dos trechos importa?</summary><p>Um pouco. Os mais relevantes nas pontas (primeiro e último) tendem a ser mais usados. Com top-k 12 o efeito é pequeno; com 30 ou mais, vale ordenar por relevância e colocar o melhor no fim, logo antes da pergunta.</p><p class="why">Mesmo fenômeno do "perdido no meio", aplicado à lista de trechos.</p></details>
+  </div>
+
+  <div class="notes"><label for="n-p1-c3">Caderno</label><p class="hint">Descreva o que "perdido no meio" muda no jeito de montar o prompt do projeto: onde vai a instrução, onde vão os trechos, onde vai o critério.</p><textarea class="prose" id="n-p1-c3" data-note="p1-c3"></textarea><div class="saved"></div></div>
+</section>
+
+<!-- ============================================================ 4 -->
+<section class="chapter" id="c4" data-ch="p1-c4">
+  <div class="ch-head"><span class="n">Capítulo 4</span><h2>Decodificação: temperatura, top-k e top-p</h2><label class="donebox"><input type="checkbox" data-done> Capítulo concluído</label></div>
+
+  <p>O modelo entrega uma distribuição; alguém precisa escolher um token dela. Essa escolha se chama <strong>decodificação</strong>, e os três controles que você vê em toda API mexem nela, não no modelo.</p>
+  <p><strong>Temperatura</strong> reescala a distribuição antes de sortear. Em 0, sempre sai o token mais provável: comportamento "ganancioso", quase determinístico. Em 1, a distribuição é usada como veio. Acima de 1, as probabilidades se achatam: tokens improváveis ganham chance, e a saída fica mais variada e mais errática. <strong>Top-k</strong> corta a distribuição aos k tokens mais prováveis antes de sortear; o resto vira zero. <strong>Top-p</strong> (ou "núcleo") mantém os tokens mais prováveis até que a soma das probabilidades passe de p, e descarta a cauda. A diferença é que top-k corta um número fixo e top-p corta por massa de probabilidade, então se adapta: quando o modelo está seguro, poucos tokens sobram; quando está em dúvida, muitos.</p>
+
+  <div class="lab">
+    <header><h4>Experimento · A mesma distribuição, três controles</h4><span class="badge toy">brinquedo</span></header>
+    <div class="body">
+      <p>Oito candidatos ao próximo token com pontuações inventadas. Mexa nos controles e veja a distribuição final que o sorteio vai usar. Os tokens riscados foram cortados por top-k ou top-p.</p>
+      <div class="row">
+        <div><label class="f" for="dc-temp">Temperatura = <span id="dc-tempv">1.0</span></label><input type="range" id="dc-temp" min="0.05" max="2" step="0.05" value="1"></div>
+        <div><label class="f" for="dc-topk">top-k = <span id="dc-topkv">8</span></label><input type="range" id="dc-topk" min="1" max="8" step="1" value="8"></div>
+        <div><label class="f" for="dc-topp">top-p = <span id="dc-toppv">1.00</span></label><input type="range" id="dc-topp" min="0.05" max="1" step="0.05" value="1"></div>
+      </div>
+      <figure class="diagram" style="margin:0"><svg id="dc-svg" viewBox="0 0 760 200" role="img" aria-label="Distribuição final após temperatura, top-k e top-p"></svg><figcaption id="dc-cap"></figcaption></figure>
+    </div>
+  </div>
+
+  <div class="doit"><span class="ic">faça agora</span><p>Leve a temperatura para 0,05 e veja um token dominar. Volte para 1 e reduza top-p até 0,5: repare que os cortados são sempre os da cauda, e que quantos sobram depende da forma da distribuição. Agora suba a temperatura para 2 com top-p 1: a cauda inteira fica viável, e é dali que saem os artigos inventados.</p></div>
+
+  <h3>O que usar em cada tarefa</h3>
+  <div class="tbl-wrap"><table>
+    <thead><tr><th>Tarefa</th><th>Temperatura</th><th>Por quê</th></tr></thead>
+    <tbody>
+      <tr><td>Classificar um critério de edital</td><td class="num">0</td><td>Você quer a mesma resposta para a mesma entrada. Variação é defeito.</td></tr>
+      <tr><td>Extrair campos de um documento</td><td class="num">0</td><td>Idem. O campo existe ou não existe.</td></tr>
+      <tr><td>Responder com citação (RAG)</td><td class="num">0 a 0,3</td><td>Um pouco de variação na redação é aceitável; nas citações, não. O esquema e a validação seguram as citações.</td></tr>
+      <tr><td>Redigir um resumo para leitura humana</td><td class="num">0,5 a 0,8</td><td>Texto mais natural; erros factuais ainda são pegos pela revisão humana.</td></tr>
+      <tr><td>Gerar variações para um conjunto de avaliação</td><td class="num">0,9 a 1,2</td><td>Aqui você quer diversidade de propósito.</td></tr>
+    </tbody>
+  </table></div>
+  <p>No projeto, tudo é 0. Não há tarefa de criatividade no pipeline de auditoria, e reproduzibilidade é requisito.</p>
+
+  <div class="lab">
+    <header><h4>Experimento · A mesma pergunta em temperatura 0 e 1,5</h4><span class="badge live">ao vivo</span></header>
+    <div class="body">
+      <p>Roda a mesma pergunta três vezes em cada temperatura, de memória (sem trechos, de propósito). Em 0 as três tendem a coincidir; em 1,5 divergem, e é comum o número do artigo mudar entre uma e outra.</p>
+      <div class="row">
+        <div><label class="f" for="t3-q">Pergunta</label><input type="text" id="t3-q" value="Em uma frase: qual artigo da Lei 14.133 trata da dispensa de licitação por valor?"></div>
+        <div class="fixed"><button class="btn" id="t3-run">Rodar 6 chamadas</button></div>
+      </div>
+      <div class="cmp">
+        <div class="col"><h5>temperatura 0</h5><div class="out" id="t3-a">–</div></div>
+        <div class="col"><h5>temperatura 1,5</h5><div class="out" id="t3-b">–</div></div>
+      </div>
+      <div class="status" id="t3-status"></div>
+    </div>
+  </div>
+
+  <div class="faq">
+    <h3>Perguntas que aparecem aqui</h3>
+    <details><summary>Temperatura 0 garante a resposta certa?</summary><p>Não. Garante a resposta mais provável, de forma repetível. Se o modelo "acredita" que a dispensa está no art. 24, temperatura 0 vai devolver art. 24 todas as vezes, com convicção. Determinismo e correção são coisas diferentes; correção vem do contexto certo e da validação.</p><p class="why">Temperatura mexe na escolha, não no conhecimento.</p></details>
+    <details><summary>Devo mexer em top-p e top-k junto com a temperatura?</summary><p>Na maioria dos casos, não. Temperatura 0 já torna top-p e top-k irrelevantes (só o mais provável sobra). Para tarefas de redação, ajuste um deles, não os três; combinar tudo dificulta entender o que mudou. Os padrões da API são razoáveis.</p><p class="why">Um controle por vez, o mesmo princípio de todo o guia.</p></details>
+    <details><summary>Existe "seed" para forçar determinismo?</summary><p>Algumas APIs aceitam um seed que fixa o sorteio, e ajuda quando a temperatura não é zero. Ainda não garante repetição perfeita entre versões de modelo ou hardware diferente. Para o projeto, temperatura 0 mais validação é suficiente.</p><p class="why">Seed fixa o sorteio; não fixa o modelo.</p></details>
+  </div>
+
+  <div class="notes"><label for="n-p1-c4">Caderno</label><p class="hint">Explique por que "temperatura 0" e "resposta correta" não são a mesma coisa, usando o exemplo do art. 24.</p><textarea class="prose" id="n-p1-c4" data-note="p1-c4"></textarea><div class="saved"></div></div>
+</section>
+
+<!-- ============================================================ 5 -->
+<section class="chapter" id="c5" data-ch="p1-c5">
+  <div class="ch-head"><span class="n">Capítulo 5</span><h2>Instrução de sistema, turnos e cache</h2><label class="donebox"><input type="checkbox" data-done> Capítulo concluído</label></div>
+
+  <p>As APIs separam a entrada em papéis. A <strong>instrução de sistema</strong> é a parte fixa: quem o modelo é, que regras segue, em que formato responde. Os <strong>turnos</strong> de usuário e de modelo são a conversa em si; em uma chamada de RAG normalmente há um único turno de usuário com os trechos e a pergunta. A separação não é cosmética. Os modelos são treinados para dar mais peso ao que está no sistema, e a parte fixa é candidata natural a <strong>cache</strong>: quando o começo do prompt se repete entre chamadas, o provedor pode reaproveitar o processamento e cobrar menos por esses tokens.</p>
+
+  <figure class="diagram" aria-label="Estrutura de uma chamada: instrução de sistema, turno de usuário com trechos e pergunta, resposta do modelo">
+    <svg viewBox="0 0 760 210" role="img" aria-labelledby="rlt"><title id="rlt">Papéis dentro de uma chamada</title>
+      <g class="node"><rect x="10" y="10" width="740" height="52" rx="8"/><text x="24" y="32" class="t">systemInstruction · fixo entre chamadas · candidato a cache</text><text x="24" y="50">"Você verifica conformidade em contratações públicas. Responda só com base nos trechos. Responda em JSON."</text></g>
+      <g class="node ia"><rect x="10" y="78" width="740" height="66" rx="8"/><text x="24" y="100" class="t">contents[0] · role: user · muda a cada chamada</text><text x="24" y="118">&lt;trechos&gt; … 12 trechos com id … &lt;/trechos&gt;</text><text x="24" y="136">&lt;pergunta&gt; Qual o limite para dispensa em obras? &lt;/pergunta&gt;</text></g>
+      <g class="node ok"><rect x="10" y="160" width="740" height="40" rx="8"/><text x="24" y="184" class="t">candidates[0] · role: model · a resposta, no formato pedido</text></g>
+    </svg>
+    <figcaption>Em uma conversa de várias rodadas, os turnos anteriores de usuário e de modelo são reenviados dentro de <code>contents</code>. O modelo não guarda nada; a aplicação reenvia.</figcaption>
+  </figure>
+
+  <p>Uma regra de organização decorre disso: o que não muda vai para o sistema, o que muda vai para o usuário. Regras, papel, formato e exemplos fixos no sistema; documento, trechos e pergunta no usuário. Isso maximiza o cache, deixa o prompt de usuário curto e legível, e faz o versionamento (página 6) recair sobre um arquivo só.</p>
+
+  <div class="lab">
+    <header><h4>Experimento · Com e sem instrução de sistema</h4><span class="badge live">ao vivo</span></header>
+    <div class="body">
+      <p>A mesma pergunta, com dois trechos da lei como contexto, uma vez sem instrução de sistema e outra com. Observe o formato da resposta, o tamanho e se ela cita o id do trecho.</p>
+      <div class="row">
+        <div><label class="f" for="si-q">Pergunta</label><input type="text" id="si-q" value="Qual o limite de valor para dispensa de licitação em compras comuns?"></div>
+        <div class="fixed"><button class="btn" id="si-run">Rodar as duas</button></div>
+      </div>
+      <div class="row top"><div><label class="f" for="si-sys">Instrução de sistema</label><textarea id="si-sys">Você é um verificador de conformidade. Responda em uma frase, apenas com base nos trechos, e termine com o id do trecho usado entre colchetes.</textarea></div></div>
+      <div class="cmp">
+        <div class="col"><h5>sem sistema</h5><div class="out" id="si-a">–</div></div>
+        <div class="col"><h5>com sistema</h5><div class="out" id="si-b">–</div></div>
+      </div>
+      <div class="status" id="si-status"></div>
+    </div>
+  </div>
+
+  <div class="faq">
+    <h3>Perguntas que aparecem aqui</h3>
+    <details><summary>Posso colocar tudo no prompt de usuário e ignorar o sistema?</summary><p>Funciona, mas pior: menos peso nas regras, nenhum cache e um prompt de usuário gigante que mistura o fixo com o variável. A separação custa nada e organiza o versionamento.</p><p class="why">Peso, cache e organização, os três a favor de separar.</p></details>
+    <details><summary>Como o cache funciona no Gemini?</summary><p>Há cache implícito: quando o começo do prompt repete o de uma chamada recente, o provedor reaproveita e cobra menos pelos tokens repetidos, acima de um tamanho mínimo. Há também cache explícito, em que você registra um conteúdo grande (um edital inteiro, por exemplo) e o referencia nas chamadas seguintes. Os dois dependem de o conteúdo repetido estar no <em>começo</em> da sequência.</p><p class="why">Cache é prefixo: o que muda tem que vir depois do que não muda.</p></details>
+    <details><summary>Instrução de sistema impede o modelo de obedecer a um documento malicioso?</summary><p>Reduz, não impede. É uma das camadas. As outras são delimitar o conteúdo como dado, exigir esquema de saída e validar o resultado em código. Página 7.</p><p class="why">Nenhuma camada sozinha; todas juntas.</p></details>
+  </div>
+
+  <div class="notes"><label for="n-p1-c5">Caderno</label><p class="hint">Liste o que, no prompt de auditoria do projeto, vai para o sistema e o que vai para o usuário. Justifique um item de cada lado.</p><textarea class="prose" id="n-p1-c5" data-note="p1-c5"></textarea><div class="saved"></div></div>
+</section>
+
+<!-- ============================================================ 6 -->
+<section class="chapter" id="c6" data-ch="p1-c6">
+  <div class="ch-head"><span class="n">Capítulo 6</span><h2>Saída estruturada e esquema</h2><label class="donebox"><input type="checkbox" data-done> Capítulo concluído</label></div>
+
+  <p>Texto livre é fácil de pedir e impossível de conferir. Se a resposta é "o limite é R$ 50 mil, conforme o art. 75, II", o seu código precisa achar o número, achar o artigo e torcer para o formato não mudar na chamada seguinte. Com <strong>saída estruturada</strong> você declara o formato: a API restringe a geração a um JSON válido naquele esquema, e o seu código lê campos com nome e tipo. É o hábito mais importante do pipeline inteiro, e o Ex. 1 existe para construí-lo.</p>
+  <p>Na API do Gemini, isso são dois campos de configuração: <code>responseMimeType: "application/json"</code> liga o modo JSON, e <code>responseSchema</code> descreve o formato num subconjunto de esquema OpenAPI: tipos (<code>STRING</code>, <code>NUMBER</code>, <code>INTEGER</code>, <code>BOOLEAN</code>, <code>ARRAY</code>, <code>OBJECT</code>), <code>enum</code> para listas fechadas, <code>required</code>, <code>nullable</code>, <code>items</code> para arrays e <code>properties</code> para objetos. Em Python, você não escreve esse esquema à mão: define uma classe Pydantic e o SDK converte.</p>
+  <p>Três cuidados que economizam horas. Enumerações são a forma mais forte de restringir: <code>classificacao: CONFORME | ALERTA | NAO_CONFORME | NAO_AVALIAVEL</code> elimina a criatividade no campo que importa. Campos opcionais são armadilha: o modelo tende a preencher tudo; se um campo pode não existir, torne-o <code>nullable</code> e diga na instrução quando usar nulo. E esquema garante <em>forma</em>, não <em>conteúdo</em>: um <code>id</code> pode ter o formato certo e apontar para um trecho que não existe. Validação de conteúdo é a página 7.</p>
+
+  <div class="lab">
+    <header><h4>Experimento · Montador de esquema</h4><span class="badge toy">gera código</span><span class="badge live">executa com chave</span></header>
+    <div class="body">
+      <p>Defina os campos que quer extrair de um trecho da lei. O painel gera o <code>responseSchema</code> e a classe Pydantic equivalente, e, com chave, roda a extração ao vivo sobre o trecho escolhido.</p>
+      <div class="row">
+        <div><label class="f" for="sb-name">Nome do campo</label><input type="text" id="sb-name" value="valor_limite"></div>
+        <div><label class="f" for="sb-type">Tipo</label><select id="sb-type"><option value="STRING">STRING</option><option value="NUMBER">NUMBER</option><option value="INTEGER">INTEGER</option><option value="BOOLEAN">BOOLEAN</option><option value="ENUM">ENUM (lista fechada)</option><option value="ARRAY_STRING">ARRAY de STRING</option></select></div>
+        <div><label class="f" for="sb-enum">Valores do enum (vírgula)</label><input type="text" id="sb-enum" placeholder="CONFORME, ALERTA, NAO_CONFORME"></div>
+        <div class="fixed"><label class="donebox" style="padding:6px 10px"><input type="checkbox" id="sb-null"> pode ser nulo</label></div>
+        <div class="fixed"><button class="btn small" id="sb-add">Adicionar campo</button></div>
+      </div>
+      <div class="tbl-wrap"><table id="sb-table"><thead><tr><th>Campo</th><th>Tipo</th><th>Detalhes</th><th></th></tr></thead><tbody></tbody></table></div>
+      <div class="cmp">
+        <div class="col"><h5>responseSchema (JSON)</h5><div class="out" id="sb-json"></div></div>
+        <div class="col"><h5>Pydantic (Python)</h5><div class="out" id="sb-py"></div></div>
+      </div>
+      <div class="row" style="margin-top:12px">
+        <div><label class="f" for="sb-trecho">Trecho para extrair</label><select id="sb-trecho"></select></div>
+        <div class="fixed"><button class="btn" id="sb-run">Extrair ao vivo</button></div>
+      </div>
+      <div class="out" id="sb-out">–</div>
+      <div class="status" id="sb-status"></div>
+    </div>
+  </div>
+
+  <div class="doit"><span class="ic">faça agora</span><p>Adicione um campo <code>artigo</code> do tipo STRING e um <code>e_dispensa</code> BOOLEAN. Rode a extração no trecho do art. 75, I. Depois rode no art. 5º (princípios), onde não há valor nenhum: veja o que o modelo coloca em <code>valor_limite</code>. Se inventou um número, é o caso de campo nulo e de instrução dizendo quando usar nulo.</p></div>
+
+  <pre><code class="language-python"># Ex. 1 — o esqueleto que você vai repetir em todos os exercícios
+from pydantic import BaseModel
+from google import genai
+
+class Resposta(BaseModel):
+    tema: str
+    resumo: str
+    confianca: float
+
+client = genai.Client()  # lê GEMINI_API_KEY do ambiente (.env)
+r = client.models.generate_content(
+    model="gemini-2.5-flash",
+    contents="Resuma em uma frase o objetivo da fase preparatória de uma licitação.",
+    config={
+        "temperature": 0,
+        "response_mime_type": "application/json",
+        "response_schema": Resposta,          # o SDK converte a classe em esquema
+        "thinking_config": {"thinking_budget": 0},
+    },
+)
+obj = Resposta.model_validate_json(r.text)  # e você valida de novo, sempre
+print(obj)</code></pre>
+
+  <div class="faq">
+    <h3>Perguntas que aparecem aqui</h3>
+    <details><summary>Se a API já garante o esquema, por que validar com Pydantic de novo?</summary><p>Porque a garantia é da forma, e porque APIs mudam, modelos mudam e um dia a resposta virá truncada por limite de tokens e não será JSON válido. A validação no seu código é a última linha, e é barata. Nunca aceite texto sem passar por ela.</p><p class="why">Confiança em fronteira externa é sempre verificada, seja API de banco, seja de modelo.</p></details>
+    <details><summary>O modo JSON piora a qualidade da resposta?</summary><p>Em geral não, e para tarefas de classificação e extração melhora, porque força o modelo a se comprometer com valores em vez de hedgear em prosa. Para texto longo e narrativo, um campo de texto dentro do JSON funciona bem. Evite esquemas enormes com dezenas de campos aninhados: divida em chamadas.</p><p class="why">Esquema é restrição útil; esquema gigante é uma tarefa gigante disfarçada.</p></details>
+    <details><summary>Enum ou STRING com instrução "use um destes valores"?</summary><p>Enum, sempre que a lista é fechada. A instrução é probabilística; o enum é restrição na geração. É a diferença entre pedir e garantir, que reaparece em toda a página 7.</p><p class="why">Mecanismo vence instrução.</p></details>
+  </div>
+
+  <div class="notes"><label for="n-p1-c6">Caderno</label><p class="hint">Escreva o esquema (campos e tipos) da resposta de auditoria de um critério, e marque qual campo é enum e qual pode ser nulo.</p><textarea class="prose" id="n-p1-c6" data-note="p1-c6"></textarea><div class="saved"></div></div>
+</section>
+
+<!-- ============================================================ 7 -->
+<section class="chapter" id="c7" data-ch="p1-c7">
+  <div class="ch-head"><span class="n">Capítulo 7</span><h2>Modelos que "pensam"</h2><label class="donebox"><input type="checkbox" data-done> Capítulo concluído</label></div>
+
+  <p>Lembre do capítulo 1: raciocínio escrito é contexto que o próprio modelo produz e que melhora os tokens seguintes. Os modelos com <strong>pensamento</strong> (raciocínio, "thinking") automatizam isso: antes de emitir a resposta, geram uma sequência interna de tokens de raciocínio, que você não vê inteira, mas paga. O ganho é real em tarefas de várias etapas: problemas de lógica, planejamento, análise de um documento longo contra vários critérios ao mesmo tempo. O custo é real também: mais tokens, mais tempo, e um comportamento que você viu na prática: com limite de saída baixo, o modelo gasta o orçamento inteiro pensando e devolve texto vazio.</p>
+  <p>A regra prática é a mesma de sempre: modelo por tarefa. Classificar um critério com o dispositivo legal já anexado é uma tarefa curta e bem especificada; pensamento ali é lento, caro e não melhora o resultado de forma mensurável. Analisar um edital inteiro procurando fragilidades não listadas é uma tarefa aberta, e um modelo que pensa costuma render mais. No projeto, a Camada 5 usa "um critério por chamada" justamente para ficar no primeiro caso e usar modelo econômico; um passo de "achados não previstos", se um dia existir, seria o lugar do modelo que pensa.</p>
+  <p>Na API, o controle é o <code>thinkingConfig</code>: nos modelos 2.5 há um orçamento de tokens de pensamento (zero desliga); nos 3.x há níveis (baixo, médio, alto) e o pensamento não pode ser totalmente desligado. O guia manda o mínimo por padrão. Os tokens de pensamento aparecem separados na resposta (<code>thoughtsTokenCount</code>), o que permite medir quanto custaram.</p>
+
+  <div class="lab">
+    <header><h4>Experimento · Mesma tarefa, com e sem pensamento</h4><span class="badge live">ao vivo</span></header>
+    <div class="body">
+      <p>Classifica um trecho da lei contra um critério simples, duas vezes: com o pensamento no mínimo e no máximo que o modelo selecionado permite. Compare tempo, tokens e resultado. Para uma tarefa assim, a expectativa é: mesmo resultado, custo muito diferente.</p>
+      <div class="row">
+        <div><label class="f" for="th-crit">Critério</label><input type="text" id="th-crit" value="O dispositivo estabelece um limite de valor em reais?"></div>
+        <div><label class="f" for="th-trecho">Trecho</label><select id="th-trecho"></select></div>
+        <div class="fixed"><button class="btn" id="th-run">Comparar</button></div>
+      </div>
+      <div class="cmp">
+        <div class="col"><h5>pensamento mínimo</h5><div class="out" id="th-a">–</div></div>
+        <div class="col"><h5>pensamento máximo</h5><div class="out" id="th-b">–</div></div>
+      </div>
+      <div class="status" id="th-status"></div>
+    </div>
+  </div>
+
+  <div class="faq">
+    <h3>Perguntas que aparecem aqui</h3>
+    <details><summary>O pensamento é a mesma coisa que pedir "pense passo a passo" no prompt?</summary><p>É a versão treinada e automatizada disso. Pedir passos no prompt funciona em qualquer modelo e você vê os passos; o pensamento nativo é mais eficiente e em geral melhor, mas os passos ficam ocultos (você recebe no máximo um resumo). Para auditoria com rastreabilidade, prefira campos de raciocínio no esquema (por exemplo <code>justificativa</code>), que ficam gravados e auditáveis.</p><p class="why">Rastreabilidade pede raciocínio visível; pensamento nativo é oculto.</p></details>
+    <details><summary>Por que a resposta veio vazia com o modelo 3.x?</summary><p>Porque os tokens de pensamento contam dentro de <code>maxOutputTokens</code>. Com limite pequeno, o modelo esgota o orçamento pensando e não sobra nada para a resposta. Solução: limite maior (2.048 ou mais) e pensamento no mínimo para tarefas curtas.</p><p class="why">Um orçamento só, dividido entre pensar e responder.</p></details>
+    <details><summary>Quando vale usar um modelo maior em vez de um que pensa?</summary><p>São eixos diferentes. Tamanho do modelo é conhecimento e capacidade geral; pensamento é tempo de computação por resposta. Para o seu pipeline, a ordem de tentativa é: melhorar a recuperação, melhorar o prompt, ligar o pensamento, e só então subir de modelo. A página 10 tem a árvore de decisão.</p><p class="why">Do mais barato para o mais caro; cada passo só se o anterior não bastou.</p></details>
+  </div>
+
+  <div class="notes"><label for="n-p1-c7">Caderno</label><p class="hint">Para cada uma das três chamadas do projeto (classificar critério, extrair campos, achados não previstos), diga se usaria pensamento e por quê.</p><textarea class="prose" id="n-p1-c7" data-note="p1-c7"></textarea><div class="saved"></div></div>
+</section>
+
+<!-- ============================================================ 8 -->
+<section class="chapter" id="c8" data-ch="p1-c8">
+  <div class="ch-head"><span class="n">Capítulo 8</span><h2>O que o modelo não faz bem</h2><label class="donebox"><input type="checkbox" data-done> Capítulo concluído</label></div>
+
+  <p>Tudo aqui decorre de "prever o próximo token". O modelo não tem calculadora, contador, calendário nem índice. Ele tem probabilidades de continuação. Onde a continuação provável e a resposta correta divergem, ele erra com confiança. Conhecer a lista evita que você peça ao modelo o que deveria pedir ao código.</p>
+  <dl class="dl">
+    <dt>Contar e calcular</dt><dd>Contar palavras, somar valores, calcular prazos em dias úteis. Sai errado com frequência e com aparência de certo. No projeto, o score é calculado em Python a partir das classificações; o modelo nunca soma nada.</dd>
+    <dt>Referências exatas</dt><dd>Número de artigo, inciso, parágrafo, valor em reais, data. São tokens soltos, não endereços. Sem o trecho no contexto, o modelo produz o número mais provável, não o correto. Com o trecho, ele precisa copiar, e copiar ele faz bem; ainda assim, a validação confere.</dd>
+    <dt>Negação e exceção</dt><dd>"Não se aplica quando…", "salvo se…", "exceto nos casos de…" são estruturas em que o modelo escorrega, porque a continuação provável ignora a exceção. Critérios de auditoria com exceção pedem instrução explícita e, se possível, um campo no esquema para "exceção aplicável".</dd>
+    <dt>Aritmética de datas</dt><dd>"Oito dias úteis a partir de 3 de setembro" envolve calendário e feriado. Extraia as datas com o modelo e calcule o prazo em código.</dd>
+    <dt>Saber o que não sabe</dt><dd>Sem uma saída de recusa no esquema (<code>sem_evidencia</code>), o modelo preenche a lacuna com a continuação provável. Dar a ele um jeito legítimo de dizer "não há evidência" é o que torna a recusa possível.</dd>
+    <dt>Consistência entre chamadas</dt><dd>Cada chamada é independente. Dois critérios que se contradizem não serão notados pelo modelo; serão pelo seu código, se você comparar.</dd>
+  </dl>
+
+  <div class="lab">
+    <header><h4>Experimento · Três coisas que o modelo erra e o código acerta</h4><span class="badge live">ao vivo</span></header>
+    <div class="body">
+      <p>Cada botão faz uma pergunta em que a resposta certa é computável. O painel mostra a do modelo e a do código lado a lado.</p>
+      <div class="chips" style="margin-bottom:12px">
+        <button class="chip" data-test="contar">Contar palavras de um trecho</button>
+        <button class="chip" data-test="somar">Somar três valores em reais</button>
+        <button class="chip" data-test="artigo">Número do artigo, sem contexto</button>
+        <button class="chip" data-test="negacao">Exceção: "salvo se"</button>
+      </div>
+      <div class="out" id="lim-q" style="margin-bottom:10px">Escolha um teste.</div>
+      <div class="cmp">
+        <div class="col"><h5>modelo</h5><div class="out" id="lim-a">–</div></div>
+        <div class="col"><h5>código / gabarito</h5><div class="out" id="lim-b">–</div></div>
+      </div>
+      <div class="status" id="lim-status"></div>
+    </div>
+  </div>
+
+  <div class="faq">
+    <h3>Perguntas que aparecem aqui</h3>
+    <details><summary>Os modelos novos não resolveram isso?</summary><p>Melhoraram muito, sobretudo os que pensam, que conseguem "escrever a conta" antes de responder. Mas o mecanismo é o mesmo, e a regra de projeto não muda: o que é computável se computa em código, onde é grátis, exato e testável. Não há motivo para pagar tokens por uma soma.</p><p class="why">Mesmo que o modelo acerte, o código acerta mais barato e sempre.</p></details>
+    <details><summary>Então para que serve o modelo na auditoria?</summary><p>Para o que código não faz: ler um edital escrito de mil jeitos e dizer se ele contém, em substância, o que um dispositivo exige. Julgamento sobre linguagem natural. Tudo ao redor (buscar, somar, validar, comparar) é código.</p><p class="why">Modelo para julgamento de texto; código para tudo o que tem resposta exata.</p></details>
+  </div>
+
+  <div class="notes"><label for="n-p1-c8">Caderno</label><p class="hint">Liste três lugares do pipeline do projeto em que alguém poderia ser tentado a pedir ao modelo algo que deveria ser código, e o que você faria no lugar.</p><textarea class="prose" id="n-p1-c8" data-note="p1-c8"></textarea><div class="saved"></div></div>
+</section>
+
+<!-- ============================================================ 9 -->
+<section class="chapter" id="c9" data-ch="p1-c9">
+  <div class="ch-head"><span class="n">Capítulo 9</span><h2>O ecossistema mínimo: como se chama um modelo</h2><label class="donebox"><input type="checkbox" data-done> Capítulo concluído</label></div>
+
+  <p>Há três jeitos de falar com um modelo, e você vai usar os três. Esta página usa o primeiro.</p>
+  <h3>1 · REST direto</h3>
+  <p>Uma requisição HTTP com JSON. É o que este guia faz no seu navegador, e vale conhecer porque é o que todo SDK faz por baixo. Abaixo, a chamada exatamente como o guia monta.</p>
+  <pre><code class="language-javascript">const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelo}:generateContent?key=${chave}`;
+const body = {
+  systemInstruction: { parts: [{ text: instrucaoDeSistema }] },
+  contents: [{ role: "user", parts: [{ text: promptDoUsuario }] }],
+  generationConfig: {
+    temperature: 0,
+    maxOutputTokens: 2048,
+    responseMimeType: "application/json",
+    responseSchema: esquema,                    // opcional
+    thinkingConfig: { thinkingBudget: 0 },      // 2.5: desliga; 3.x: thinkingLevel: "LOW"
+  },
+};
+const r = await fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+const j = await r.json();
+const texto = j.candidates[0].content.parts.map(p => p.text).join("");
+// j.usageMetadata.promptTokenCount, candidatesTokenCount, thoughtsTokenCount</code></pre>
+  <h3>2 · SDK google-genai (Python)</h3>
+  <p>O mesmo, com tipagem, conversão de Pydantic em esquema e tratamento de erro. É o que os exercícios usam.</p>
+  <pre><code class="language-python">from google import genai
+client = genai.Client()  # GEMINI_API_KEY no ambiente
+
+r = client.models.generate_content(
+    model="gemini-2.5-flash",
+    contents=prompt_do_usuario,
+    config={
+        "system_instruction": instrucao_de_sistema,
+        "temperature": 0,
+        "max_output_tokens": 2048,
+        "response_mime_type": "application/json",
+        "response_schema": Resposta,           # classe Pydantic
+        "thinking_config": {"thinking_budget": 0},
+    },
+)
+print(r.text, r.usage_metadata)
+
+# embeddings
+e = client.models.embed_content(model="gemini-embedding-001", contents=["texto"], config={"task_type": "RETRIEVAL_DOCUMENT", "output_dimensionality": 768})
+vetor = e.embeddings[0].values</code></pre>
+  <h3>3 · Ollama (local)</h3>
+  <p>Um servidor HTTP na sua máquina, com a mesma ideia de chamada. Sem chave, sem cota, sem rede. Para embeddings é a escolha do projeto; para geração, serve para entender o mecanismo com um modelo pequeno.</p>
+  <pre><code class="language-python">import requests
+
+# geração
+r = requests.post("http://localhost:11434/api/generate", json={
+    "model": "qwen2.5:3b", "prompt": "Diga apenas: pronto", "stream": False,
+    "options": {"temperature": 0}, "format": "json",
+})
+print(r.json()["response"])
+
+# embeddings (bge-m3 → 1024 dimensões)
+r = requests.post("http://localhost:11434/api/embed", json={"model": "bge-m3", "input": ["Art. 75. É dispensável a licitação…"]})
+vetor = r.json()["embeddings"][0]</code></pre>
+
+  <h3>Higiene de chave</h3>
+  <p>A chave vai em variável de ambiente (arquivo <code>.env</code> fora do Git, lido pelo SDK), nunca no código. Em página pública, restrinja a chave por domínio. Uma chave por projeto: a do n8n e a dos estudos são separadas de propósito, e uma vazada não derruba a outra.</p>
+
+  <div class="faq">
+    <h3>Perguntas que aparecem aqui</h3>
+    <details><summary>Que diferença faz o plano Claude, nisso tudo?</summary><p>O Agent SDK em Python consome a cota da assinatura, não crédito de API, e serve para comparar a qualidade da resposta final com um modelo mais forte. Ele é um agente (roda um loop de ferramentas), não uma chamada crua como as três acima; para o pipeline de auditoria em produção, o projeto prevê chave de API com contrato de retenção zero.</p><p class="why">Bom para comparar; não é o caminho de produção.</p></details>
+    <details><summary>Por que o guia usa REST em vez de um SDK JavaScript?</summary><p>Para você ver o corpo da requisição inteiro e entender cada campo. Depois de ler o REST, qualquer SDK vira açúcar.</p><p class="why">Aprender no nível de baixo uma vez; usar o de cima depois.</p></details>
+  </div>
+
+  <div class="notes"><label for="n-p1-c9">Caderno</label><p class="hint">Escreva, de cabeça, os campos de <code>generationConfig</code> que o projeto usa em toda chamada e para que serve cada um.</p><textarea class="prose" id="n-p1-c9" data-note="p1-c9"></textarea><div class="saved"></div></div>
+</section>
+
+<!-- ============================================================ 10 -->
+<section class="chapter" id="c10" data-ch="p1-c10">
+  <div class="ch-head"><span class="n">Capítulo 10</span><h2>No projeto, checklist e autoavaliação</h2><label class="donebox"><input type="checkbox" data-done> Capítulo concluído</label></div>
+
+  <h3>No projeto</h3>
+  <p>O ia-worker declara esquema em toda chamada, roda com temperatura zero e pensamento no mínimo, separa instrução de sistema (papel, regras, formato) de prompt de usuário (documento, trechos, critério), e coloca o critério no fim do contexto. O orçamento por chamada é um critério com os 12 trechos recuperados: pequeno, previsível, cacheável. Nada que seja computável passa pelo modelo: score, prazos, somas e comparações entre critérios são código. E toda resposta, mesmo com esquema, é validada antes de existir como dado.</p>
+
+  <h3>Checklist de domínio</h3>
+  <p>Marque só o que você faria sem consultar a página.</p>
+  <ul class="checklist">
+    <li><input type="checkbox" id="ck1"><label for="ck1">Explico o loop autorregressivo e por que o modelo "não lembra" nada entre chamadas.</label></li>
+    <li><input type="checkbox" id="ck2"><label for="ck2">Estimo tokens de um texto em português e sei quando contar de verdade.</label></li>
+    <li><input type="checkbox" id="ck3"><label for="ck3">Sei o que "perdido no meio" muda na ordem do prompt e no top-k.</label></li>
+    <li><input type="checkbox" id="ck4"><label for="ck4">Escolho temperatura por tarefa e explico por que 0 não é "correto".</label></li>
+    <li><input type="checkbox" id="ck5"><label for="ck5">Monto uma chamada com sistema, esquema e Pydantic (Ex. 1).</label></li>
+    <li><input type="checkbox" id="ck6"><label for="ck6">Decido se uma tarefa merece modelo que pensa.</label></li>
+    <li><input type="checkbox" id="ck7"><label for="ck7">Listo cinco coisas que o modelo não faz bem e o que fazer no lugar.</label></li>
+  </ul>
+
+  <h3>Autoavaliação</h3>
+  <div class="quiz" id="quiz-p1">
+    <fieldset><legend>1. Depois de gerar um token, o que o modelo guarda para o passo seguinte?</legend>
+      <label class="opt"><input type="radio" name="q1" data-correct="1"> Nada além do próprio texto: a sequência (com o token novo) é reprocessada inteira.</label><div class="why">Correto. Não há estado escondido; toda a "memória" é o texto da sequência.</div>
+      <label class="opt"><input type="radio" name="q1"> Um resumo interno da conversa, que persiste entre chamadas.</label><div class="why">Não há persistência entre chamadas; quem reenvia o histórico é a aplicação.</div>
+      <label class="opt"><input type="radio" name="q1"> Os pesos da rede, que são ajustados a cada resposta.</label><div class="why">Os pesos são fixos após o treinamento; a inferência não os altera.</div>
+    </fieldset>
+    <fieldset><legend>2. Por que "art. 75, § 2º" é frágil para o modelo?</legend>
+      <label class="opt"><input type="radio" name="q2"> Porque a lei é recente e o modelo não a leu.</label><div class="why">Mesmo leis antigas sofrem: o problema é o mecanismo, não a data.</div>
+      <label class="opt"><input type="radio" name="q2" data-correct="1"> Porque vira tokens soltos sem sentido próprio, e o modelo produz o número mais provável, não um endereço.</label><div class="why">Correto. Referências exatas são pedaços sem semântica; sem o trecho no contexto, saem por probabilidade.</div>
+      <label class="opt"><input type="radio" name="q2"> Porque números são proibidos no modo JSON.</label><div class="why">Números são perfeitamente válidos no esquema.</div>
+    </fieldset>
+    <fieldset><legend>3. Você recuperou 40 trechos e colocou o mais relevante no meio. O que espera?</legend>
+      <label class="opt"><input type="radio" name="q3"> Resposta melhor: mais contexto é mais informação.</label><div class="why">Mais contexto custa mais e o meio é a região pior usada.</div>
+      <label class="opt"><input type="radio" name="q3" data-correct="1"> Risco de o trecho certo ser ignorado ("perdido no meio"), além de custo e latência maiores.</label><div class="why">Correto. Recupere pouco e certo, e coloque o melhor nas pontas.</div>
+      <label class="opt"><input type="radio" name="q3"> Nenhuma diferença; a atenção pesa todos os tokens igualmente.</label><div class="why">A atenção pesa de forma desigual, e a posição influencia.</div>
+    </fieldset>
+    <fieldset><legend>4. Temperatura 0 em uma classificação de critério garante…</legend>
+      <label class="opt"><input type="radio" name="q4"> A classificação correta.</label><div class="why">Garante a mais provável, que pode estar errada com convicção.</div>
+      <label class="opt"><input type="radio" name="q4" data-correct="1"> A mesma classificação para a mesma entrada (quase sempre), correta ou não.</label><div class="why">Correto. Determinismo ≠ correção; correção vem do contexto e da validação.</div>
+      <label class="opt"><input type="radio" name="q4"> Que o modelo não use conhecimento externo.</label><div class="why">Temperatura não controla a fonte da informação.</div>
+    </fieldset>
+    <fieldset><legend>5. Qual campo de esquema restringe mais fortemente a resposta de classificação?</legend>
+      <label class="opt"><input type="radio" name="q5"> Um STRING com a instrução "use CONFORME, ALERTA ou NAO_CONFORME".</label><div class="why">Instrução é probabilística; o modelo pode escrever "conforme" ou "Conforme com ressalvas".</div>
+      <label class="opt"><input type="radio" name="q5" data-correct="1"> Um enum com os valores permitidos.</label><div class="why">Correto. Enum é restrição na geração: só esses valores saem.</div>
+      <label class="opt"><input type="radio" name="q5"> Um campo nullable.</label><div class="why">Nullable permite ausência; não restringe os valores.</div>
+    </fieldset>
+    <fieldset><legend>6. Um modelo 3.x devolveu texto vazio com finishReason MAX_TOKENS. Causa mais provável?</legend>
+      <label class="opt"><input type="radio" name="q6" data-correct="1"> Os tokens de pensamento consumiram o limite de saída antes da resposta.</label><div class="why">Correto. Pensamento conta dentro de maxOutputTokens; suba o limite e reduza o nível.</div>
+      <label class="opt"><input type="radio" name="q6"> A chave da API expirou.</label><div class="why">Chave inválida devolve erro HTTP, não resposta vazia.</div>
+      <label class="opt"><input type="radio" name="q6"> O prompt não tinha instrução de sistema.</label><div class="why">Ausência de sistema não produz resposta vazia.</div>
+    </fieldset>
+    <fieldset><legend>7. Qual destas tarefas você entregaria ao modelo, e não ao código?</legend>
+      <label class="opt"><input type="radio" name="q7"> Calcular o score ponderado a partir das classificações.</label><div class="why">Computável: código, sempre.</div>
+      <label class="opt"><input type="radio" name="q7"> Contar dias úteis entre duas datas.</label><div class="why">Calendário e feriados: código.</div>
+      <label class="opt"><input type="radio" name="q7" data-correct="1"> Dizer se um parágrafo do edital, escrito de forma livre, atende ao que o art. 33 exige.</label><div class="why">Correto. Julgamento sobre linguagem natural é o que o modelo faz e o código não.</div>
+    </fieldset>
+    <fieldset><legend>8. Onde colocar as regras fixas do verificador de conformidade?</legend>
+      <label class="opt"><input type="radio" name="q8" data-correct="1"> Na instrução de sistema, para peso, cache e versionamento.</label><div class="why">Correto. Fixo no sistema; variável no usuário.</div>
+      <label class="opt"><input type="radio" name="q8"> No fim do prompt de usuário, depois da pergunta.</label><div class="why">O fim é para a tarefa; regras fixas no fim não são cacheáveis e misturam papéis.</div>
+      <label class="opt"><input type="radio" name="q8"> Em cada trecho recuperado, repetidas.</label><div class="why">Repetir regras nos dados confunde dado com instrução.</div>
+    </fieldset>
+    <button class="btn grade">Corrigir</button>
+    <div class="score"></div>
+  </div>
+
+  <h3>Leitura adicional</h3>
+  <p>Documentação da API do Gemini sobre <a href="https://ai.google.dev/gemini-api/docs/text-generation" target="_blank" rel="noopener">geração de texto</a>, <a href="https://ai.google.dev/gemini-api/docs/structured-output" target="_blank" rel="noopener">saída estruturada</a>, <a href="https://ai.google.dev/gemini-api/docs/thinking" target="_blank" rel="noopener">pensamento</a> e <a href="https://ai.google.dev/gemini-api/docs/tokens" target="_blank" rel="noopener">tokens</a>; a documentação do <a href="https://docs.pydantic.dev/" target="_blank" rel="noopener">Pydantic</a>; e a API do <a href="https://github.com/ollama/ollama/blob/main/docs/api.md" target="_blank" rel="noopener">Ollama</a>.</p>
+</section>
+
+    <div class="pager"><a class="prev" href="index.html"><small>anterior</small>Início</a><a class="next disabled" href="#"><small>próxima</small>em construção</a></div>
+    <p class="foot">Guia de estudo pessoal. Corpus com redação adaptada da Lei 14.133/2021 para fins didáticos; confira o texto oficial antes de qualquer uso real. A chave da API fica apenas neste navegador; experimentos ao vivo chamam a API do Google diretamente e consomem a sua cota.</p>
+  </div></main>
+  <aside class="toc" aria-label="Nesta página" ><div class="t">Nesta página</div><ol id="toc-list"></ol></aside>
+</div>
+<script>window.GUIA_MANIFEST = {pages: [{"id": "p0", "file": "index.html", "title": "Início", "chapters": []}, {"id": "p1", "file": "01-modelos.html", "title": "Como um modelo de linguagem funciona", "chapters": ["p1-c1", "p1-c2", "p1-c3", "p1-c4", "p1-c5", "p1-c6", "p1-c7", "p1-c8", "p1-c9", "p1-c10"]}, {"id": "p2", "file": "02-embeddings.html", "title": "Embeddings", "chapters": []}, {"id": "p3", "file": "03-busca-vetorial.html", "title": "Busca vetorial e índices", "chapters": []}, {"id": "p4", "file": "04-busca-lexical-hibrida.html", "title": "Busca lexical e híbrida", "chapters": []}, {"id": "p5", "file": "05-rag.html", "title": "RAG de ponta a ponta e ingestão", "chapters": []}, {"id": "p6", "file": "06-prompt.html", "title": "Prompt engineering", "chapters": []}, {"id": "p7", "file": "07-validacao.html", "title": "Alucinação, validação e guardrails", "chapters": []}, {"id": "p8", "file": "08-avaliacao.html", "title": "Avaliação", "chapters": []}, {"id": "p9", "file": "09-dados-python.html", "title": "Dados e Python para RAG", "chapters": []}, {"id": "p10", "file": "10-custo-operacao.html", "title": "Custo, modelos e operação", "chapters": []}, {"id": "glossario", "file": "glossario.html", "title": "Glossário", "chapters": []}, {"id": "exercicios", "file": "exercicios.html", "title": "Exercícios", "chapters": []}, {"id": "prompts", "file": "prompts.html", "title": "Biblioteca de prompts", "chapters": []}]};</script>
+<script src="assets/corpus.js"></script>
+<script src="assets/core.js"></script>
+<script src="assets/site.js"></script>
+<script>
+(function () {
+  const reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const needKey = () => { if (!gemini.ready()) throw new Error('Precisa de chave (configure na página inicial).'); };
+
+  /* ---------- c1 · próximo token (brinquedo) ---------- */
+  const NT_STEPS = [
+    { cands: [['para', 0.62], ['nos', 0.14], ['quando', 0.11], ['em', 0.07], ['se', 0.06]] },
+    { cands: [['contratação', 0.55], ['obras', 0.2], ['compras', 0.12], ['serviços', 0.08], ['aquisição', 0.05]] },
+    { cands: [['que', 0.7], ['de', 0.15], ['cujo', 0.08], ['com', 0.07]] },
+    { cands: [['envolva', 0.66], ['tenha', 0.14], ['apresente', 0.1], ['possua', 0.1]] },
+    { cands: [['valores', 0.72], ['montante', 0.12], ['preço', 0.1], ['quantia', 0.06]] },
+    { cands: [['inferiores', 0.58], ['abaixo', 0.2], ['menores', 0.12], ['até', 0.1]] },
+    { cands: [['a', 0.9], ['ao', 0.06], ['de', 0.04]] },
+    { cands: [['R$', 0.64], ['cem', 0.18], ['cinquenta', 0.1], ['dez', 0.08]] },
+    { cands: [['100.000,00', 0.46], ['50.000,00', 0.33], ['10.000,00', 0.11], ['1.000,00', 0.1]] },
+    { cands: [['<fim>', 0.5], [', no', 0.3], ['(', 0.2]] },
+  ];
+  let ntSeq = ['É', 'dispensável', 'a', 'licitação'], ntStep = 0;
+  function softmaxT(cands, T) { if (T <= 0.001) return cands.map(([t, p], i) => [t, i === 0 ? 1 : 0]); const z = cands.map(([, p]) => Math.pow(p, 1 / T)); const s = z.reduce((a, b) => a + b, 0); return cands.map(([t], i) => [t, z[i] / s]); }
+  function ntRender(picked = null) {
+    $('#nt-seq').innerHTML = ntSeq.map((t, i) => `<span style="background:${i >= 4 ? 'var(--teal-soft)' : 'var(--surface-2)'};border:1px solid ${i >= 4 ? 'var(--teal)' : 'var(--line)'}">${esc(t)}</span>`).join(' ');
+    const step = NT_STEPS[ntStep]; const svg = $('#nt-svg');
+    if (!step) { svg.innerHTML = '<text x="10" y="40" font-size="14" fill="var(--muted)">Token de fim gerado. Recomece para tentar outra temperatura.</text>'; $('#nt-cap').textContent = 'A sequência terminou.'; return; }
+    const T = +$('#nt-temp').value; const dist = softmaxT(step.cands, T); const w = 760 / dist.length;
+    svg.innerHTML = dist.map(([t, p], i) => `<g class="bar ${t === picked ? 'pick' : ''}"><rect x="${i * w + 12}" y="${150 - p * 130}" width="${w - 24}" height="${p * 130}" rx="4"/><text x="${i * w + w / 2}" y="${142 - p * 130}" text-anchor="middle">${(p * 100).toFixed(0)}%</text><text x="${i * w + w / 2}" y="166" text-anchor="middle">${esc(t)}</text></g>`).join('');
+    $('#nt-cap').textContent = T <= 0.001 ? 'Temperatura 0: o mais provável sempre vence.' : `Temperatura ${T}: sorteio proporcional às barras.`;
+  }
+  $('#nt-temp').addEventListener('input', () => { $('#nt-tempv').textContent = $('#nt-temp').value; ntRender(); });
+  $('#nt-next').addEventListener('click', () => { const step = NT_STEPS[ntStep]; if (!step) return; const dist = softmaxT(step.cands, +$('#nt-temp').value); let r = Math.random(), pick = dist[dist.length - 1][0]; for (const [t, p] of dist) { if (r < p) { pick = t; break; } r -= p; } ntRender(pick); setTimeout(() => { if (pick !== '<fim>') ntSeq.push(pick); ntStep++; ntRender(); }, reduce ? 0 : 350); });
+  $('#nt-reset').addEventListener('click', () => { ntSeq = ['É', 'dispensável', 'a', 'licitação']; ntStep = 0; ntRender(); });
+  ntRender();
+
+  /* ---------- c2 · tokens ---------- */
+  function tokEstimate(text) {
+    const parts = []; const re = /(\d+|[A-Za-zÀ-ÿ]+|\s+|[^\sA-Za-zÀ-ÿ\d])/g; let m;
+    while ((m = re.exec(text))) {
+      const s = m[0]; if (/^\s+$/.test(s)) { parts.push({ t: s, n: 0 }); continue; }
+      if (/^\d+$/.test(s)) { for (let i = 0; i < s.length; i += 3) parts.push({ t: s.slice(i, i + 3), n: 1 }); continue; }
+      if (/^[A-Za-zÀ-ÿ]+$/.test(s)) { const L = s.length; const n = L <= 4 ? 1 : L <= 8 ? (/[çãõéíóáúâêô]/.test(s) ? 2 : 1) : Math.ceil(L / 4.5); if (n === 1) parts.push({ t: s, n: 1 }); else { const sz = Math.ceil(L / n); for (let i = 0; i < L; i += sz) parts.push({ t: s.slice(i, i + sz), n: 1 }); } continue; }
+      parts.push({ t: s, n: 1 });
+    }
+    return parts;
+  }
+  const PAL = ['#0E7C7B', '#0B2A4A', '#9A5F0A', '#2A7A4B', '#7B3F9E'];
+  function tkRun() {
+    const text = $('#tk-text').value; const parts = tokEstimate(text); let k = 0;
+    $('#tk-view').innerHTML = parts.map((p) => p.n ? `<span style="background:${PAL[k++ % PAL.length]}22;border-bottom:2px solid ${PAL[(k - 1) % PAL.length]}">${esc(p.t)}</span>` : esc(p.t)).join('');
+    const n = parts.reduce((a, p) => a + p.n, 0); $('#tk-words').textContent = (text.trim().match(/\S+/g) || []).length; $('#tk-est').textContent = n; $('#tk-real').textContent = '–';
+    if (!gemini.ready()) { setStatus($('#tk-status'), 'Sem chave: só a estimativa. A contagem real precisa da API.'); return; }
+    guard($('#tk-status'), async () => { setStatus($('#tk-status'), 'Contando…'); const r = await gemini.countTokens(text); $('#tk-real').textContent = r; setStatus($('#tk-status'), `Real: ${r} · estimado: ${n} · ${(r / Math.max(1, (text.trim().match(/\S+/g) || []).length)).toFixed(2)} tokens por palavra.`, 'ok'); });
+  }
+  $('#tk-run').addEventListener('click', tkRun);
+  $('#tk-en').addEventListener('click', () => guard($('#tk-status'), async () => {
+    needKey(); const pt = $('#tk-text').value; setStatus($('#tk-status'), 'Traduzindo e contando…');
+    const tr = await gemini.generate({ user: `Translate to English, output only the translation:\n${pt}`, json: false, maxTokens: 512 });
+    const [a, b] = await Promise.all([gemini.countTokens(pt), gemini.countTokens(tr.text)]);
+    $('#tk-real').textContent = `${a} (pt) · ${b} (en)`; setStatus($('#tk-status'), `Português: ${a} tokens · inglês: ${b} tokens (${((a / b - 1) * 100).toFixed(0)}% a mais em português). Tradução: "${tr.text.trim().slice(0, 120)}…"`, 'ok');
+  }));
+  tkRun();
+
+  /* ---------- c3 · atenção (brinquedo) ---------- */
+  const W = ['o', 'prazo', 'mínimo', 'de', 'divulgação', 'do', 'edital', 'é', 'de', '8', 'dias', 'úteis'];
+  const ATT = { 1: { 2: .5, 4: .3, 6: .25, 10: .6, 11: .4 }, 2: { 1: .7, 9: .3, 10: .3 }, 4: { 1: .4, 6: .8 }, 6: { 4: .7, 1: .3 }, 9: { 10: .9, 11: .6, 1: .3 }, 10: { 9: .8, 11: .8, 1: .5 }, 11: { 10: .8, 9: .5 } };
+  function attRender(sel = 10) {
+    const x = (i) => 30 + i * 62; let s = '';
+    const w = ATT[sel] || {};
+    Object.entries(w).forEach(([j, v]) => { s += `<g class="att"><path d="M${x(sel)} 100 C ${x(sel)} ${100 - 60 * v - 20}, ${x(+j)} ${100 - 60 * v - 20}, ${x(+j)} 100" fill="none" stroke="var(--teal)" stroke-width="${1 + v * 4}" opacity="${0.35 + v * 0.6}"/></g>`; });
+    W.forEach((t, i) => { s += `<g class="tok ${i === sel ? 'new' : ''}" style="cursor:pointer" data-i="${i}"><rect x="${x(i) - 26}" y="104" width="52" height="30" rx="6"/><text x="${x(i)}" y="124" text-anchor="middle">${esc(t)}</text></g>`; });
+    $('#att-svg').innerHTML = s; $$('#att-svg g.tok').forEach((g) => g.addEventListener('click', () => attRender(+g.dataset.i)));
+    const top = Object.entries(w).sort((a, b) => b[1] - a[1]).slice(0, 3).map(([j]) => `"${W[+j]}"`).join(', ');
+    $('#att-cap').textContent = w && Object.keys(w).length ? `"${W[sel]}" presta atenção sobretudo em ${top}. Palavras funcionais ("o", "de", "é") quase não recebem peso.` : `"${W[sel]}" é palavra funcional: quase não concentra atenção, e quase ninguém presta atenção nela.`;
+  }
+  attRender();
+  const cwK = $('#cw-k');
+  function renderCW() { const k = +cwK.value; $('#cw-kv').textContent = k; const parts = [['instrução', 220, 'var(--navy)'], ['trechos', k * 90, 'var(--teal)'], ['pergunta', 40, 'var(--amber)'], ['resposta (teto)', 400, 'var(--muted)']]; const total = parts.reduce((a, p) => a + p[1], 0); let x = 0, html = ''; parts.forEach(([n, v, c]) => { const w = (v / total) * 760; html += `<rect x="${x}" y="30" width="${Math.max(w - 2, 1)}" height="44" fill="${c}" rx="4"/>`; if (w > 60) html += `<text x="${x + 8}" y="57" font-size="12" fill="#fff">${n} · ${v}</text>`; x += w; }); $('#cw-bars').innerHTML = html; $('#cw-total').textContent = `total ≈ ${total} tokens · trechos = ${Math.round((k * 90 / total) * 100)}%`; }
+  cwK.addEventListener('input', renderCW); renderCW();
+
+  /* ---------- c4 · decodificação (brinquedo) ---------- */
+  const DC = [['R$', 3.2], ['cem', 2.1], ['cinquenta', 1.7], ['valores', 1.2], ['dez', 0.9], ['mil', 0.6], ['quinze', 0.2], ['art.', -0.4]];
+  function dcRender() {
+    const T = +$('#dc-temp').value, K = +$('#dc-topk').value, P = +$('#dc-topp').value; $('#dc-tempv').textContent = T.toFixed(2); $('#dc-topkv').textContent = K; $('#dc-toppv').textContent = P.toFixed(2);
+    const z = DC.map(([, l]) => Math.exp(l / T)); const s = z.reduce((a, b) => a + b, 0); let probs = DC.map(([t], i) => ({ t, p: z[i] / s, cut: false }));
+    probs.forEach((p, i) => { if (i >= K) p.cut = true; }); let acc = 0; probs.forEach((p) => { if (p.cut) return; if (acc >= P) { p.cut = true; return; } acc += p.p; });
+    const keep = probs.filter((p) => !p.cut); const ks = keep.reduce((a, p) => a + p.p, 0); probs.forEach((p) => (p.f = p.cut ? 0 : p.p / ks));
+    const w = 760 / probs.length;
+    $('#dc-svg').innerHTML = probs.map((p, i) => `<g class="bar" opacity="${p.cut ? 0.35 : 1}"><rect x="${i * w + 10}" y="${170 - p.f * 140}" width="${w - 20}" height="${Math.max(1, p.f * 140)}" rx="4" fill="${p.cut ? 'var(--muted)' : 'var(--teal)'}"/><text x="${i * w + w / 2}" y="${162 - p.f * 140}" text-anchor="middle">${p.cut ? 'cortado' : (p.f * 100).toFixed(0) + '%'}</text><text x="${i * w + w / 2}" y="190" text-anchor="middle" ${p.cut ? 'text-decoration="line-through"' : ''}>${esc(p.t)}</text></g>`).join('');
+    $('#dc-cap').textContent = `${keep.length} de ${probs.length} candidatos viáveis. ${T < 0.2 ? 'Temperatura baixa: quase tudo vai para o primeiro.' : T > 1.3 ? 'Temperatura alta: a cauda ganha massa; é daí que saem os erros confiantes.' : ''}`;
+  }
+  ['dc-temp', 'dc-topk', 'dc-topp'].forEach((id) => $('#' + id).addEventListener('input', dcRender)); dcRender();
+  $('#t3-run').addEventListener('click', () => guard($('#t3-status'), async () => {
+    needKey(); const q = $('#t3-q').value; setStatus($('#t3-status'), 'Rodando 6 chamadas…'); $('#t3-a').textContent = '…'; $('#t3-b').textContent = '…';
+    const run = async (temp, el) => { const out = []; for (let i = 0; i < 3; i++) { const r = await gemini.generate({ user: q, temperature: temp, json: false, maxTokens: 1024 }); out.push(`${i + 1}. ${r.text.trim()} (${r.ms} ms)`); $(el).textContent = out.join('\n\n'); } };
+    await run(0, '#t3-a'); await run(1.5, '#t3-b'); setStatus($('#t3-status'), 'Compare as três de cada lado. Repare se o número do artigo muda entre elas.', 'ok');
+  }));
+
+  /* ---------- c5 · com e sem sistema ---------- */
+  $('#si-run').addEventListener('click', () => guard($('#si-status'), async () => {
+    needKey(); setStatus($('#si-status'), 'Rodando…');
+    const ids = ['L14133-art75-incI', 'L14133-art75-incII']; const up = `<trechos>\n${buildContext(ids)}\n</trechos>\n<pergunta>${$('#si-q').value}</pergunta>`;
+    const a = await gemini.generate({ user: up, json: false, maxTokens: 1024 }); $('#si-a').textContent = `${a.text.trim()}\n\n— ${a.usage.candidatesTokenCount ?? '?'} tokens de saída · ${a.ms} ms`;
+    const b = await gemini.generate({ system: $('#si-sys').value, user: up, json: false, maxTokens: 1024 }); $('#si-b').textContent = `${b.text.trim()}\n\n— ${b.usage.candidatesTokenCount ?? '?'} tokens de saída · ${b.ms} ms`;
+    setStatus($('#si-status'), 'Mesmo contexto e pergunta; só a instrução de sistema mudou.', 'ok');
+  }));
+
+  /* ---------- c6 · montador de esquema ---------- */
+  const fields = [{ name: 'valor_limite', type: 'NUMBER', nullable: true }, { name: 'aplica_a', type: 'STRING', nullable: false }];
+  const trSel = $('#sb-trecho'); corpus.trechos.forEach((t) => trSel.add(new Option(`${t.dispositivo} · ${t.conteudo.slice(0, 50)}…`, t.id))); trSel.value = 'L14133-art75-incI';
+  function sbSchema() { const props = {}; fields.forEach((f) => { let p; if (f.type === 'ENUM') p = { type: 'STRING', enum: f.enum }; else if (f.type === 'ARRAY_STRING') p = { type: 'ARRAY', items: { type: 'STRING' } }; else p = { type: f.type }; if (f.nullable) p.nullable = true; props[f.name] = p; }); return { type: 'OBJECT', properties: props, required: fields.map((f) => f.name) }; }
+  function sbPy() { const map = { STRING: 'str', NUMBER: 'float', INTEGER: 'int', BOOLEAN: 'bool', ARRAY_STRING: 'list[str]' }; const enums = fields.filter((f) => f.type === 'ENUM'); let s = 'from pydantic import BaseModel\nfrom typing import Literal\n\n'; s += 'class Extracao(BaseModel):\n'; fields.forEach((f) => { let t = f.type === 'ENUM' ? `Literal[${f.enum.map((e) => JSON.stringify(e)).join(', ')}]` : map[f.type]; if (f.nullable) t += ' | None'; s += `    ${f.name}: ${t}\n`; }); return s; }
+  function sbRender() { $('#sb-table tbody').innerHTML = fields.map((f, i) => `<tr><td><code>${esc(f.name)}</code></td><td>${esc(f.type)}</td><td>${f.enum ? esc(f.enum.join(' | ')) : ''}${f.nullable ? ' <span class="pill warn">nullable</span>' : ''}</td><td><button class="btn small ghost" data-rm="${i}">remover</button></td></tr>`).join(''); $$('#sb-table [data-rm]').forEach((b) => b.addEventListener('click', () => { fields.splice(+b.dataset.rm, 1); sbRender(); })); $('#sb-json').textContent = JSON.stringify(sbSchema(), null, 2); $('#sb-py').textContent = sbPy(); }
+  $('#sb-add').addEventListener('click', () => { const name = $('#sb-name').value.trim().replace(/[^a-z0-9_]/gi, '_'); if (!name) return; const type = $('#sb-type').value; const f = { name, type, nullable: $('#sb-null').checked }; if (type === 'ENUM') f.enum = $('#sb-enum').value.split(',').map((s) => s.trim()).filter(Boolean); fields.push(f); sbRender(); });
+  $('#sb-run').addEventListener('click', () => guard($('#sb-status'), async () => {
+    needKey(); const t = corpus.byId[trSel.value]; setStatus($('#sb-status'), 'Extraindo…');
+    const r = await gemini.generate({ system: 'Extraia os campos pedidos do trecho fornecido. Use null quando o trecho não contiver a informação. Não invente.', user: `<trecho id="${t.id}" dispositivo="${t.dispositivo}">\n${t.conteudo}\n</trecho>`, json: true, schema: sbSchema(), maxTokens: 1024 });
+    const obj = parseJSON(r.text); $('#sb-out').textContent = obj ? JSON.stringify(obj, null, 2) : r.text; setStatus($('#sb-status'), `${r.ms} ms · ${r.usage.totalTokenCount ?? '?'} tokens. Confira campo a campo contra o trecho: forma garantida, conteúdo não.`, 'ok');
+  }));
+  sbRender();
+
+  /* ---------- c7 · pensamento ---------- */
+  const thSel = $('#th-trecho'); corpus.trechos.forEach((t) => thSel.add(new Option(`${t.dispositivo} · ${t.conteudo.slice(0, 50)}…`, t.id))); thSel.value = 'L14133-art75-incII';
+  $('#th-run').addEventListener('click', () => guard($('#th-status'), async () => {
+    needKey(); const t = corpus.byId[thSel.value]; const m = gemini.model; const is3 = /gemini-3/.test(m);
+    const minT = is3 ? { thinkingLevel: 'LOW' } : { thinkingBudget: 0 }; const maxT = is3 ? { thinkingLevel: 'HIGH' } : { thinkingBudget: 2048 };
+    const schema = { type: 'OBJECT', properties: { resposta: { type: 'STRING', enum: ['SIM', 'NAO'] }, justificativa: { type: 'STRING' } }, required: ['resposta', 'justificativa'] };
+    const user = `<criterio>${$('#th-crit').value}</criterio>\n<trecho id="${t.id}">${t.conteudo}</trecho>\nClassifique.`;
+    setStatus($('#th-status'), 'Rodando com pensamento mínimo…');
+    const a = await gemini.generate({ user, json: true, schema, maxTokens: 4096, thinking: minT }); $('#th-a').textContent = `${a.text.trim()}\n\n— ${a.ms} ms · pensamento: ${a.usage.thoughtsTokenCount ?? 0} tokens · saída: ${a.usage.candidatesTokenCount ?? '?'}`;
+    setStatus($('#th-status'), 'Rodando com pensamento máximo…');
+    const b = await gemini.generate({ user, json: true, schema, maxTokens: 8192, thinking: maxT }); $('#th-b').textContent = `${b.text.trim()}\n\n— ${b.ms} ms · pensamento: ${b.usage.thoughtsTokenCount ?? 0} tokens · saída: ${b.usage.candidatesTokenCount ?? '?'}`;
+    setStatus($('#th-status'), `Modelo ${m}. Mesma resposta? Compare o custo em tokens e tempo.`, 'ok');
+  }));
+
+  /* ---------- c8 · limites ---------- */
+  const LIM = {
+    contar: () => { const t = corpus.byId['L14133-art72']; const n = (t.conteudo.match(/\S+/g) || []).length; return { q: `Quantas palavras tem o texto a seguir? Responda só o número.\n\n${t.conteudo}`, gab: `${n} palavras (contagem por espaços em código)` }; },
+    somar: () => ({ q: 'Some estes valores e responda só o resultado em reais: R$ 47.350,80 + R$ 128.975,15 + R$ 9.874,05', gab: 'R$ 186.200,00 (47350.80 + 128975.15 + 9874.05)' }),
+    artigo: () => ({ q: 'Sem consultar nada: qual inciso de qual artigo da Lei 14.133/2021 fixa o limite de dispensa de licitação para compras e outros serviços? Responda só "art. X, inciso Y".', gab: 'art. 75, inciso II (o modelo costuma citar o art. 24 da Lei 8.666 ou trocar o inciso)' }),
+    negacao: () => ({ q: 'Regra: "A contratação direta é permitida, salvo se o objeto puder ser fornecido por mais de um interessado, hipótese em que a licitação é obrigatória." Situação: o objeto pode ser fornecido por três empresas. A contratação direta é permitida? Responda SIM ou NAO e uma frase.', gab: 'NAO: a exceção ("salvo se") se aplica, logo a licitação é obrigatória.' }),
+  };
+  $$('#c8 .chip').forEach((c) => c.addEventListener('click', () => guard($('#lim-status'), async () => {
+    needKey(); const { q, gab } = LIM[c.dataset.test](); $('#lim-q').textContent = q; $('#lim-b').textContent = gab; $('#lim-a').textContent = '…'; setStatus($('#lim-status'), 'Perguntando…');
+    const r = await gemini.generate({ user: q, json: false, maxTokens: 512 }); $('#lim-a').textContent = r.text.trim() + `\n\n— ${r.ms} ms`; setStatus($('#lim-status'), 'Compare. Se o modelo acertou, rode de novo: o ponto é que ele acerta por probabilidade, e o código acerta por construção.', 'ok');
+  })));
+})();
+
+</script>
+</body>
+</html>

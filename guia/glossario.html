@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Glossário · Guia RAG aplicado</title>
+<meta name="description" content="Os termos do guia, uma frase cada, com filtro.">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/guia.css">
+</head>
+<body data-page="glossario">
+<a class="skip" href="#main">Pular para o conteúdo</a>
+<header class="topbar">
+  <button class="iconbtn" id="menu" aria-expanded="false" aria-controls="sidenav" aria-label="Abrir navegação">☰ Páginas</button>
+  <a class="brand" href="index.html">Guia de estudo · RAG aplicado<small>Plataforma de Conformidade e Risco · trilha dos exercícios VIN-5 a VIN-12</small></a>
+  <button class="iconbtn" id="theme" aria-pressed="false">Tema escuro</button>
+</header>
+<div class="scrim"></div>
+<div class="shell">
+  <nav class="side" id="sidenav" aria-label="Páginas do guia">
+    <div class="progress"><span id="prog-text">0 capítulos concluídos</span><div class="bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" aria-label="Progresso do estudo"><i id="prog-bar"></i></div></div>
+    <div class="group">Trilha</div><ol><li><a href="index.html" data-page="p0"><span class="num">0</span><span>Início</span><span class="done-mark" aria-hidden="true"></span></a></li><li><a href="01-modelos.html" data-page="p1"><span class="num">1</span><span>Modelos de linguagem</span><span class="done-mark" aria-hidden="true"></span></a></li><li><span class="soon" title="O que o vetor captura, métricas, dimensões, tipos de tarefa e limites."><span class="num">2</span><span>Embeddings</span><span class="tag">em breve</span></span></li><li><span class="soon" title="Exato versus aproximado, HNSW por dentro, pgvector."><span class="num">3</span><span>Busca vetorial e índices</span><span class="tag">em breve</span></span></li><li><span class="soon" title="tsvector, BM25, RRF e rerankers."><span class="num">4</span><span>Busca lexical e híbrida</span><span class="tag">em breve</span></span></li><li><span class="soon" title="Padrões de arquitetura, segmentação, identificadores, vigência."><span class="num">5</span><span>RAG e ingestão</span><span class="tag">em breve</span></span></li><li><span class="soon" title="Anatomia, delimitação, esquema, decomposição, versionamento e a biblioteca do projeto."><span class="num">6</span><span>Prompt engineering</span><span class="tag">em breve</span></span></li><li><span class="soon" title="Taxonomia das falhas, camadas de mitigação, juiz de aderência."><span class="num">7</span><span>Validação e guardrails</span><span class="tag">em breve</span></span></li><li><span class="soon" title="Conjuntos de avaliação, métricas de busca e de resposta, protocolo."><span class="num">8</span><span>Avaliação</span><span class="tag">em breve</span></span></li><li><span class="soon" title="PDF, limpeza, regex, JSONL, pandas, Pydantic, psycopg."><span class="num">9</span><span>Dados e Python</span><span class="tag">em breve</span></span></li><li><span class="soon" title="Tokens, cache, limites de taxa, retentativa, observabilidade, escolha de modelo."><span class="num">10</span><span>Custo e operação</span><span class="tag">em breve</span></span></li></ol><div class="group">Referência rápida</div><ol><li><a href="glossario.html" data-page="glossario" aria-current="page"><span class="num">•</span><span>Glossário</span><span class="done-mark" aria-hidden="true"></span></a></li><li><span class="soon" title="Os oito exercícios com roteiro completo."><span class="num">•</span><span>Exercícios</span><span class="tag">em breve</span></span></li><li><span class="soon" title="Os prompts do projeto, versionados, para copiar."><span class="num">•</span><span>Biblioteca de prompts</span><span class="tag">em breve</span></span></li></ol>
+  </nav>
+  <main id="main" tabindex="-1"><div class="page-in">
+    <div class="toc-inline" hidden><label for="toc-select">Nesta página</label><select id="toc-select"><option value="">ir para o capítulo…</option></select></div>
+    <div id="keybanner" hidden><div class="callout warn"><span class="t">Sem chave do Gemini configurada</span><p>Os experimentos ao vivo desta página ficam desativados. Configure a chave na <a href="index.html#chave">página inicial</a>; os experimentos de brinquedo funcionam sem ela.</p></div></div>
+    <div class="page-head">
+  <div class="kicker">Referência rápida</div>
+  <h1>Glossário</h1>
+  <p class="lead">Os termos do guia em uma frase cada, com a página onde são explicados a fundo. Para consulta rápida; para dominar, vá à página.</p>
+</div>
+<div class="row"><div><label class="f" for="gl-q">Filtrar</label><input type="text" id="gl-q" placeholder="digite para filtrar…"></div></div>
+<ul class="gloss" id="gl-list">
+<li><b>Alucinação</b><span class="sec">7 · Validação · em breve</span><br>Conteúdo gerado que parece factual mas não tem base no contexto; consequência de prever o token mais provável.</li>
+<li><b>BM25</b><span class="sec">3–4 · Busca · em breve</span><br>Fórmula de pontuação lexical: palavra rara no corpus e frequente no trecho vale mais, com desconto por trecho longo.</li>
+<li><b>Chunk / trecho</b><span class="sec">5 · RAG · em breve</span><br>Unidade indexada da base. Aqui, um dispositivo normativo (artigo, parágrafo, inciso).</li>
+<li><b>Cobertura</b><span class="sec">8 · Avaliação · em breve</span><br>Achados esperados que o sistema apontou ÷ achados esperados. Mede o que deixou passar.</li>
+<li><b>Cosseno (similaridade)</b><span class="sec">2 · Embeddings · em breve</span><br>Cosseno do ângulo entre dois vetores: 1 = mesma direção, 0 = sem relação. Ignora o tamanho.</li>
+<li><b>Contexto (janela de)</b><a class="sec" href="01-modelos.html">1 · Modelos</a><br>Máximo de tokens que o modelo aceita por chamada, somando instrução, prompt, trechos e resposta.</li>
+<li><b>Delimitação</b><span class="sec">6 · Prompt · em breve</span><br>Marcar o conteúdo externo com tags e rotulá-lo como dado, para que o modelo não o trate como instrução.</li>
+<li><b>Dimensão (do vetor)</b><span class="sec">2 · Embeddings · em breve</span><br>Quantidade de números em um embedding. Fixa por coluna no pgvector; mudar exige reindexar.</li>
+<li><b>Embedding</b><span class="sec">2 · Embeddings · em breve</span><br>Vetor numérico que representa o significado de um texto; textos próximos em sentido têm vetores próximos.</li>
+<li><b>Esquema de saída</b><a class="sec" href="01-modelos.html">1 · Modelos</a><br>Estrutura JSON que o modelo é obrigado a seguir na resposta; permite validar campo a campo.</li>
+<li><b>Fidelidade</b><span class="sec">8 · Avaliação · em breve</span><br>Respostas cujas citações válidas incluem a fonte esperada ÷ total. Mede se o modelo usou o que a busca trouxe.</li>
+<li><b>GIN</b><span class="sec">3–4 · Busca · em breve</span><br>Índice do PostgreSQL para busca textual (tsvector). Torna a busca lexical rápida.</li>
+<li><b>HNSW</b><span class="sec">3–4 · Busca · em breve</span><br>Índice de vizinhos mais próximos em grafo; busca vetorial aproximada em milissegundos.</li>
+<li><b>Identificador natural</b><span class="sec">5 · RAG · em breve</span><br>Id derivado do conteúdo (norma + dispositivo), não gerado. Reindexar preserva as citações.</li>
+<li><b>Idempotência</b><span class="sec">10 · Custo · em breve</span><br>Repetir a mesma operação com a mesma chave produz o mesmo efeito uma única vez. Evita cobrança dupla.</li>
+<li><b>Ingestão</b><span class="sec">5 · RAG · em breve</span><br>Fluxo que monta a base: normalizar, segmentar, vetorizar, indexar. Roda fora do ciclo de análise.</li>
+<li><b>Injeção por documento</b><span class="sec">7 · Validação · em breve</span><br>Texto malicioso dentro de um documento analisado tentando alterar o comportamento do modelo.</li>
+<li><b>Instrução de sistema</b><a class="sec" href="01-modelos.html">1 · Modelos</a><br>Parte fixa do prompt com papel e regras; recebe mais peso do modelo e pode ser cacheada.</li>
+<li><b>Lexical (busca)</b><span class="sec">3–4 · Busca · em breve</span><br>Busca por palavras e radicais; acha referência exata, perde sinônimo.</li>
+<li><b>Ollama</b><span class="sec">10 · Custo · em breve</span><br>Programa que roda modelos de linguagem e de embeddings localmente, sem API.</li>
+<li><b>pgvector</b><span class="sec">2 · Embeddings · em breve</span><br>Extensão do PostgreSQL que adiciona o tipo vector e os índices de similaridade.</li>
+<li><b>Prompt</b><span class="sec">6 · Prompt · em breve</span><br>Todo o texto enviado ao modelo em uma chamada: sistema + usuário (tarefa, contexto, formato).</li>
+<li><b>RAG</b><span class="sec">5 · RAG · em breve</span><br>Retrieval-augmented generation: recuperar trechos de uma base e gerar a resposta com base neles.</li>
+<li><b>recall@k</b><span class="sec">8 · Avaliação · em breve</span><br>Perguntas cujo trecho esperado está entre os k recuperados ÷ total. Mede só a busca.</li>
+<li><b>Recusa correta</b><span class="sec">8 · Avaliação · em breve</span><br>Nas perguntas sem resposta na base, o modelo declara sem_evidencia em vez de inventar.</li>
+<li><b>RRF</b><span class="sec">3–4 · Busca · em breve</span><br>Reciprocal rank fusion: soma de 1/(K+posição) por lista; funde rankings sem comparar pontuações.</li>
+<li><b>Segmentação</b><span class="sec">5 · RAG · em breve</span><br>Cortar o texto em trechos antes de indexar. Aqui, por unidade normativa.</li>
+<li><b>Temperatura</b><a class="sec" href="01-modelos.html">1 · Modelos</a><br>Controle da aleatoriedade na escolha do próximo token; 0 = determinístico.</li>
+<li><b>Token</b><a class="sec" href="01-modelos.html">1 · Modelos</a><br>Unidade de texto que o modelo lê e cobra; em português, ~1,5 token por palavra.</li>
+<li><b>top-k</b><span class="sec">3–4 · Busca · em breve</span><br>Quantidade de trechos recuperados enviados ao modelo. No projeto, 12.</li>
+<li><b>tsvector</b><span class="sec">3–4 · Busca · em breve</span><br>Representação do texto em radicais para a busca textual do PostgreSQL.</li>
+<li><b>Validação</b><span class="sec">7 · Validação · em breve</span><br>Conferência em código do que o modelo devolveu: esquema, fonte existe, fonte vigente.</li>
+<li><b>Vetorial (busca)</b><span class="sec">3–4 · Busca · em breve</span><br>Busca por proximidade de embeddings; acha sentido, perde referência exata.</li>
+<li><b>Vigência</b><span class="sec">5 · RAG · em breve</span><br>Intervalo em que uma norma valia; a consulta filtra pela data do documento analisado.</li>
+</ul>
+    
+    <p class="foot">Guia de estudo pessoal. Corpus com redação adaptada da Lei 14.133/2021 para fins didáticos; confira o texto oficial antes de qualquer uso real. A chave da API fica apenas neste navegador; experimentos ao vivo chamam a API do Google diretamente e consomem a sua cota.</p>
+  </div></main>
+  <aside class="toc" aria-label="Nesta página" hidden><div class="t">Nesta página</div><ol id="toc-list"></ol></aside>
+</div>
+<script>window.GUIA_MANIFEST = {pages: [{"id": "p0", "file": "index.html", "title": "Início", "chapters": []}, {"id": "p1", "file": "01-modelos.html", "title": "Como um modelo de linguagem funciona", "chapters": ["p1-c1", "p1-c2", "p1-c3", "p1-c4", "p1-c5", "p1-c6", "p1-c7", "p1-c8", "p1-c9", "p1-c10"]}, {"id": "p2", "file": "02-embeddings.html", "title": "Embeddings", "chapters": []}, {"id": "p3", "file": "03-busca-vetorial.html", "title": "Busca vetorial e índices", "chapters": []}, {"id": "p4", "file": "04-busca-lexical-hibrida.html", "title": "Busca lexical e híbrida", "chapters": []}, {"id": "p5", "file": "05-rag.html", "title": "RAG de ponta a ponta e ingestão", "chapters": []}, {"id": "p6", "file": "06-prompt.html", "title": "Prompt engineering", "chapters": []}, {"id": "p7", "file": "07-validacao.html", "title": "Alucinação, validação e guardrails", "chapters": []}, {"id": "p8", "file": "08-avaliacao.html", "title": "Avaliação", "chapters": []}, {"id": "p9", "file": "09-dados-python.html", "title": "Dados e Python para RAG", "chapters": []}, {"id": "p10", "file": "10-custo-operacao.html", "title": "Custo, modelos e operação", "chapters": []}, {"id": "glossario", "file": "glossario.html", "title": "Glossário", "chapters": []}, {"id": "exercicios", "file": "exercicios.html", "title": "Exercícios", "chapters": []}, {"id": "prompts", "file": "prompts.html", "title": "Biblioteca de prompts", "chapters": []}]};</script>
+<script src="assets/corpus.js"></script>
+<script src="assets/core.js"></script>
+<script src="assets/site.js"></script>
+
+</body>
+</html>
