@@ -1,0 +1,150 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Exercícios · Guia RAG aplicado</title>
+<meta name="description" content="Os oito exercícios com roteiro completo.">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/guia.css">
+</head>
+<body data-page="exercicios">
+<a class="skip" href="#main">Pular para o conteúdo</a>
+<header class="topbar">
+  <button class="iconbtn" id="menu" aria-expanded="false" aria-controls="sidenav" aria-label="Abrir navegação">☰ Páginas</button>
+  <a class="brand" href="index.html">Guia de estudo · RAG aplicado<small>Plataforma de Conformidade e Risco · trilha dos exercícios VIN-5 a VIN-12</small></a>
+  <button class="iconbtn" id="theme" aria-pressed="false">Tema escuro</button>
+</header>
+<div class="scrim"></div>
+<div class="shell">
+  <nav class="side" id="sidenav" aria-label="Páginas do guia">
+    <div class="progress"><span id="prog-text">0 capítulos concluídos</span><div class="bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" aria-label="Progresso do estudo"><i id="prog-bar"></i></div></div>
+    <div class="group">Trilha</div><ol><li><a href="index.html" data-page="p0"><span class="num">0</span><span>Início</span><span class="done-mark" aria-hidden="true"></span></a></li><li><a href="01-modelos.html" data-page="p1"><span class="num">1</span><span>Modelos de linguagem</span><span class="done-mark" aria-hidden="true"></span></a></li><li><a href="02-embeddings.html" data-page="p2"><span class="num">2</span><span>Embeddings</span><span class="done-mark" aria-hidden="true"></span></a></li><li><a href="03-busca-vetorial.html" data-page="p3"><span class="num">3</span><span>Busca vetorial e índices</span><span class="done-mark" aria-hidden="true"></span></a></li><li><a href="04-busca-lexical-hibrida.html" data-page="p4"><span class="num">4</span><span>Busca lexical e híbrida</span><span class="done-mark" aria-hidden="true"></span></a></li><li><a href="05-rag.html" data-page="p5"><span class="num">5</span><span>RAG e ingestão</span><span class="done-mark" aria-hidden="true"></span></a></li><li><a href="06-prompt.html" data-page="p6"><span class="num">6</span><span>Prompt engineering</span><span class="done-mark" aria-hidden="true"></span></a></li><li><a href="07-validacao.html" data-page="p7"><span class="num">7</span><span>Validação e guardrails</span><span class="done-mark" aria-hidden="true"></span></a></li><li><a href="08-avaliacao.html" data-page="p8"><span class="num">8</span><span>Avaliação</span><span class="done-mark" aria-hidden="true"></span></a></li><li><a href="09-dados-python.html" data-page="p9"><span class="num">9</span><span>Dados e Python</span><span class="done-mark" aria-hidden="true"></span></a></li><li><a href="10-custo-operacao.html" data-page="p10"><span class="num">10</span><span>Custo e operação</span><span class="done-mark" aria-hidden="true"></span></a></li></ol><div class="group">Referência rápida</div><ol><li><a href="glossario.html" data-page="glossario"><span class="num">•</span><span>Glossário</span><span class="done-mark" aria-hidden="true"></span></a></li><li><a href="exercicios.html" data-page="exercicios" aria-current="page"><span class="num">•</span><span>Exercícios</span><span class="done-mark" aria-hidden="true"></span></a></li><li><a href="prompts.html" data-page="prompts"><span class="num">•</span><span>Biblioteca de prompts</span><span class="done-mark" aria-hidden="true"></span></a></li></ol>
+  </nav>
+  <main id="main" tabindex="-1"><div class="page-in">
+    <div class="toc-inline" hidden><label for="toc-select">Nesta página</label><select id="toc-select"><option value="">ir para o capítulo…</option></select></div>
+    <div id="keybanner" hidden><div class="callout warn"><span class="t">Sem chave do Gemini configurada</span><p>Os experimentos ao vivo desta página ficam desativados. Configure a chave na <a href="index.html#chave">página inicial</a>; os experimentos de brinquedo funcionam sem ela.</p></div></div>
+    <div class="page-head">
+  <div class="kicker">Referência rápida</div>
+  <h1>Exercícios</h1>
+  <p class="lead">Os oito exercícios do projeto <em>Estudos RAG</em> no Linear, com o roteiro de cada um e o que o guia oferece para cada passo: a página que explica, o experimento que deixa ver, o código de referência que se lê antes de escrever o seu. A ordem é a dos cards; as páginas assumem as anteriores.</p>
+</div>
+
+<div class="tbl-wrap"><table>
+  <thead><tr><th>Ex.</th><th>Card</th><th>Entregável</th><th>Páginas</th></tr></thead>
+  <tbody>
+    <tr><td>1</td><td><a href="#ex1">Ambiente e primeira chamada com saída estruturada</a></td><td><code>ex1.py</code>, <code>compose.yaml</code>, <code>.env.example</code>, tabela de quebras de esquema</td><td>1 · 8 (Pydantic, p. 9)</td></tr>
+    <tr><td>2</td><td><a href="#ex2">Dados: de PDF a trechos por dispositivo</a></td><td><code>ex2_segmentar.py</code>, <code>data/trechos.jsonl</code>, inspeção</td><td>5 · 9</td></tr>
+    <tr><td>3</td><td><a href="#ex3">Embeddings e busca vetorial no pgvector</a></td><td><code>ex3_indexar.py</code>, <code>ex3_buscar.py</code>, 5 testes</td><td>2 · 3</td></tr>
+    <tr><td>4</td><td><a href="#ex4">Busca híbrida com fusão RRF em uma consulta SQL</a></td><td>migração <code>tsv</code> + GIN, <code>ex4_comparar.py</code>, tabela 5 × 3</td><td>4</td></tr>
+    <tr><td>5</td><td><a href="#ex5">Prompt engineering: contexto como dado, esquema e versão</a></td><td><code>prompts/responder_v1..v3.md</code>, <code>ex5_responder.py</code>, tabela 8 × 3</td><td>5 · 6</td></tr>
+    <tr><td>6</td><td><a href="#ex6">Validação: conferir cada citação contra a base</a></td><td><code>ex6_validar.py</code>, descartes por motivo × versão</td><td>7</td></tr>
+    <tr><td>7</td><td><a href="#ex7">Conjunto de avaliação: recall@k e fidelidade</a></td><td><code>eval/perguntas.jsonl</code>, <code>ex7_avaliar.py</code>, tabela de experimentos</td><td>8</td></tr>
+    <tr><td>8</td><td><a href="#ex8">Mini auditoria: critérios, classificação e índice determinístico</a></td><td><code>criterios/edital.json</code>, <code>ex8_auditar.py</code>, relatório</td><td>6 · 7 · 10</td></tr>
+  </tbody>
+</table></div>
+
+<h2 id="ex1">Ex. 1 · Ambiente e primeira chamada com saída estruturada <a class="exlink" href="https://linear.app/vinicius-costa/issue/VIN-5" target="_blank" rel="noopener">VIN-5</a></h2>
+<p><b>Objetivo:</b> ter o ambiente de pé e fazer o modelo devolver um JSON que o seu código valida. É o hábito mais importante de todo o pipeline: nunca aceitar texto livre.</p>
+<ol class="steps">
+  <li>Instalar <code>uv</code> e criar o projeto: <code>uv init estudos-rag &amp;&amp; cd estudos-rag</code>.</li>
+  <li>Instalar Ollama e baixar dois modelos: <code>ollama pull bge-m3</code> (embeddings, bom em português) e <code>ollama pull qwen2.5:3b</code> (chat local, para testes sem rede).</li>
+  <li>Criar <code>compose.yaml</code> com <code>pgvector/pgvector:pg16</code>, subir com <code>docker compose up -d</code>, conectar com <code>psql</code> e rodar <code>CREATE EXTENSION vector;</code>.</li>
+  <li>Criar uma chave gratuita no Google AI Studio e guardar em <code>.env</code> (nunca no código).</li>
+  <li>Escrever <code>ex1.py</code>: modelo Pydantic <code>Resposta(tema: str, resumo: str, confianca: float)</code>, prompt curto ao Gemini Flash-Lite pedindo JSON nesse formato, validar com <code>Resposta.model_validate_json(...)</code>.</li>
+  <li>Repetir com o modelo local via Ollama e comparar quantas vezes cada um quebra o esquema em 10 chamadas.</li>
+</ol>
+<p><b>No guia:</b> <a href="01-modelos.html#c6">página 1, capítulo 6</a> (saída estruturada e esquema: por que declarar e por que validar) e o <a href="01-modelos.html#c4">capítulo 4</a> (temperatura 0); <a href="09-dados-python.html#c8">página 9, capítulo 8</a> (Pydantic v2, <code>model_validate_json</code>, como coletar erros sem derrubar o laço); <a href="10-custo-operacao.html#c6">página 10, capítulo 6</a> (modelo local contra API: onde cada um cabe). <b>Ao fechar:</b> pedir esquema no prompt reduz erro; validar no código elimina. Temperatura 0 e esquema declarado são o padrão. O ambiente local é o mesmo da produção (pgvector), não um substituto.</p>
+
+<h2 id="ex2">Ex. 2 · Dados: de PDF a trechos por dispositivo <a class="exlink" href="https://linear.app/vinicius-costa/issue/VIN-6" target="_blank" rel="noopener">VIN-6</a></h2>
+<p><b>Objetivo:</b> transformar a Lei 14.133 em uma lista de trechos, um por artigo/parágrafo/inciso, cada um com identificador natural. É o exercício de manipulação de dados: 80% do trabalho de RAG é isto.</p>
+<ol class="steps">
+  <li>Baixar o PDF da Lei 14.133/2021 (Planalto) e extrair o texto com <code>pymupdf</code>. Salvar o bruto em <code>data/lei14133.txt</code> e olhar: hifenização, cabeçalhos repetidos, numeração quebrada.</li>
+  <li>Escrever a limpeza: cabeçalho e rodapé, linhas quebradas, espaços.</li>
+  <li>Segmentar por dispositivo com regex (<code>Art. 25.</code>, <code>§ 2º</code>, <code>I -</code>, <code>a)</code>); cada trecho com <code>id</code> no formato <code>L14133-art25-p2-incI</code>, <code>dispositivo</code> legível e <code>conteudo</code>.</li>
+  <li>Gravar em <code>data/trechos.jsonl</code> e abrir com pandas: quantos, tamanho médio, os 10 maiores, os 10 menores.</li>
+  <li>Achar os erros de segmentação (vai ter) e corrigir a regex. Iterar até o Art. 75 sair com todos os incisos certos.</li>
+</ol>
+<p><b>No guia:</b> <a href="09-dados-python.html">página 9 inteira</a>: Raio-X do texto bruto (cap. 1), extração e ordem de leitura (cap. 2), bancada de limpeza e inspetor de caracteres (cap. 3), laboratório de regex e galeria de armadilhas (cap. 4), segmentador com três versões e o check do Art. 75 (cap. 5), inspetor de JSONL (cap. 6), painel pandas (cap. 7); código de referência com testes no cap. 10. <a href="05-rag.html#c4">Página 5, capítulos 4 e 5</a> (por que por dispositivo, caput como prefixo, ids). <b>Ao fechar:</b> segmentar por unidade normativa é o que torna a citação verificável; o identificador é chave natural; pandas serve para olhar antes de confiar.</p>
+
+<h2 id="ex3">Ex. 3 · Embeddings e busca vetorial no pgvector <a class="exlink" href="https://linear.app/vinicius-costa/issue/VIN-7" target="_blank" rel="noopener">VIN-7</a></h2>
+<p><b>Objetivo:</b> vetorizar os trechos do Ex. 2, gravar no pgvector e fazer a primeira busca por similaridade.</p>
+<ol class="steps">
+  <li>Criar a tabela <code>rag.chunk (id text primary key, dispositivo text, conteudo text, embedding vector(1024))</code>: bge-m3 gera 1.024 dimensões.</li>
+  <li><code>ex3_indexar.py</code>: para cada trecho do JSONL, chamar o Ollama (<code>/api/embeddings</code>, <code>bge-m3</code>) e inserir. Em lotes, medindo o tempo.</li>
+  <li>Índice HNSW: <code>CREATE INDEX ON rag.chunk USING hnsw (embedding vector_cosine_ops);</code>.</li>
+  <li><code>ex3_buscar.py</code>: pergunta → vetor → <code>ORDER BY embedding &lt;=&gt; $1 LIMIT 5</code> → dispositivo + trecho.</li>
+  <li>Testar com 5 perguntas ("quando a licitação pode ser dispensada?", "prazo de publicação do edital", "o que é ETP?", "qual o limite para dispensa por valor?", "art. 75") e anotar o que veio certo e errado.</li>
+</ol>
+<p><b>No guia:</b> <a href="02-embeddings.html">página 2</a> (o que o vetor captura, cosseno, dimensões, tipos de tarefa, vizinhos mais próximos e a diluição); <a href="03-busca-vetorial.html">página 3</a> (exato contra aproximado, HNSW por dentro com animação, parâmetros, SQL do pgvector e o verificador de uso de índice, tamanho do índice). <b>Ao fechar:</b> embedding representa sentido e cosseno mede proximidade; a busca vetorial acha paráfrase e erra referência exata ("art. 75" tende a falhar); HNSW é o que torna a busca rápida.</p>
+
+<h2 id="ex4">Ex. 4 · Busca híbrida com fusão RRF em uma consulta SQL <a class="exlink" href="https://linear.app/vinicius-costa/issue/VIN-8" target="_blank" rel="noopener">VIN-8</a></h2>
+<p><b>Objetivo:</b> adicionar busca lexical em português e fundir os dois rankings com RRF, tudo em uma única consulta.</p>
+<ol class="steps">
+  <li>Coluna <code>tsv tsvector</code> gerada com <code>to_tsvector('portuguese', conteudo)</code> e índice GIN.</li>
+  <li>Busca lexical isolada com <code>websearch_to_tsquery('portuguese', $1)</code> e <code>ts_rank_cd</code>. Testar "art. 75" e "dispensa de licitação".</li>
+  <li>Consulta híbrida: duas CTEs (vetorial e lexical, 50 candidatos cada, <code>row_number()</code> como posição), <code>FULL OUTER JOIN</code> por id, pontuação <code>1/(60+pos)</code> somada, <code>LIMIT 12</code>.</li>
+  <li><code>ex4_comparar.py</code>: para cada pergunta do Ex. 3, top-5 de vetorial, lexical e híbrida lado a lado.</li>
+  <li>Mexer na constante (60 → 10 → 200) e no número de candidatos e observar.</li>
+</ol>
+<p><b>No guia:</b> <a href="04-busca-lexical-hibrida.html">página 4</a>: analisador que espelha o <code>to_tsvector</code> em português (cap. 2), ts_rank e pesos (cap. 3), BM25 aberto (cap. 4), GIN (cap. 5), construtor de tsquery com frase e prefixo (cap. 6), calculadora de RRF e o duelo das três buscas (cap. 7), reranker (cap. 8), recall das três buscas (cap. 9) e o SQL completo com <code>pt_unaccent</code> e a CTE híbrida (cap. 10). <b>Ao fechar:</b> lexical preserva referência exata, vetorial preserva alcance semântico, a híbrida pega os dois; RRF combina rankings sem pontuações comparáveis; a fusão no banco mantém uma consulta só.</p>
+
+<h2 id="ex5">Ex. 5 · Prompt engineering: contexto como dado, esquema e versão <a class="exlink" href="https://linear.app/vinicius-costa/issue/VIN-9" target="_blank" rel="noopener">VIN-9</a></h2>
+<p><b>Objetivo:</b> montar o prompt que recebe os trechos recuperados e responde com citação, em JSON, e sentir na pele o que muda quando o prompt muda.</p>
+<ol class="steps">
+  <li><code>prompts/responder_v1.md</code> com quatro partes: papel, tarefa, contexto delimitado (<code>&lt;trechos&gt;…&lt;/trechos&gt;</code>, cada um com <code>id</code>) e esquema de saída (<code>resposta</code>, <code>citacoes[]</code> com <code>id</code> e <code>dispositivo</code>, <code>sem_evidencia</code>).</li>
+  <li><code>ex5_responder.py</code>: pergunta → busca híbrida (top-12) → prompt → Flash a temperatura 0 → Pydantic → imprime.</li>
+  <li>8 perguntas, 2 sem resposta na lei ("qual o prazo de garantia de um notebook?"). O modelo inventa ou declara <code>sem_evidencia</code>?</li>
+  <li><code>responder_v2.md</code> mudando só uma coisa (instrução explícita de recusa). Mesmas 8 perguntas. Comparar.</li>
+  <li><code>responder_v3.md</code> com "uma tarefa só" (resumo e citação em duas chamadas). Comparar de novo.</li>
+  <li>Registrar em cada resposta qual versão a gerou.</li>
+</ol>
+<p><b>No guia:</b> <a href="06-prompt.html">página 6</a>: anatomia com partes ligáveis (cap. 1), A/B ao vivo (cap. 2), injeção (cap. 3), esquema e Pydantic (cap. 4), few-shot (cap. 5), decomposição (cap. 6), playground de versões com diff (cap. 7), sensibilidade (cap. 8), linter (cap. 9); <a href="05-rag.html#c7">página 5, capítulo 7</a> (orçamento e ordem do contexto); <a href="prompts.html">biblioteca de prompts</a> (<code>resposta_v3</code>). <b>Ao fechar:</b> o conteúdo recuperado entra como dado delimitado; prompt é código versionado, uma mudança por vez; instrução curta e específica vence a longa e genérica; o modelo fraco expõe o prompt ruim.</p>
+
+<h2 id="ex6">Ex. 6 · Validação: conferir cada citação contra a base <a class="exlink" href="https://linear.app/vinicius-costa/issue/VIN-10" target="_blank" rel="noopener">VIN-10</a></h2>
+<p><b>Objetivo:</b> parar de confiar no modelo. Toda citação que ele devolve é conferida no banco; o que não existe é descartado e contado.</p>
+<ol class="steps">
+  <li><code>ex6_validar.py</code>: para cada <code>citacoes[].id</code>, <code>SELECT 1 FROM rag.chunk WHERE id = $1</code>; inexistente → remover e <code>descartes['fonte_inexistente']++</code>.</li>
+  <li>Resposta sem citação → descartada inteira (<code>descartes['sem_citacao']</code>).</li>
+  <li>Segunda verificação: o <code>dispositivo</code> citado está entre os 12 trechos enviados? Fora disso, <code>descartes['fora_do_contexto']</code>.</li>
+  <li>8 perguntas × 3 prompts do Ex. 5 → contador de descartes por motivo e por versão.</li>
+  <li>Provocar o erro: prompt sem trechos (contador sobe); prompt com ids inventados (o descarte pega).</li>
+</ol>
+<p><b>No guia:</b> <a href="07-validacao.html">página 7</a>: taxonomia das falhas em cartões, anatomia e galeria (cap. 1), camadas (cap. 2), o validador com os sete motivos, o editor de JSON e o contador de descartes (cap. 3), juiz de aderência (cap. 4), recusa (cap. 5), injeção (cap. 6), números sem fonte (cap. 7), guardrails (cap. 8), operar a validação (cap. 9), código de referência (cap. 10). <b>Ao fechar:</b> prompt pede, validação garante, e as camadas são independentes; o contador de descartes é o termômetro do pipeline; nada persiste sem citação existente.</p>
+
+<h2 id="ex7">Ex. 7 · Conjunto de avaliação: recall@k e fidelidade <a class="exlink" href="https://linear.app/vinicius-costa/issue/VIN-11" target="_blank" rel="noopener">VIN-11</a></h2>
+<p><b>Objetivo:</b> medir em vez de achar. Um conjunto fixo de perguntas com resposta esperada e dois números que dizem se uma mudança melhorou ou piorou.</p>
+<ol class="steps">
+  <li><code>eval/perguntas.jsonl</code> com 10 perguntas sobre a Lei 14.133, cada uma com o(s) <code>id</code> esperado(s). À mão, olhando a lei.</li>
+  <li><code>ex7_avaliar.py</code>: <b>recall@k</b> (só a busca híbrida, top-12: algum id esperado entre os 12? acertos ÷ 10) e <b>fidelidade</b> (pipeline inteiro, Ex. 5 + 6: citações validadas incluem um id esperado? acertos ÷ 10).</li>
+  <li>Linha de base: anotar os dois números.</li>
+  <li>Uma mudança por vez: top-k 12 → 5; constante RRF 60 → 20; só vetorial; só lexical; prompt v1 → v3. Tabela.</li>
+  <li>Escolher a melhor combinação e deixá-la como padrão.</li>
+</ol>
+<p><b>No guia:</b> <a href="08-avaliacao.html">página 8</a>: painel-alvo (cap. 1), construtor de casos com detector de vazamento lexical (cap. 2), calculadora de ranking (cap. 3), rotulagem e kappa (cap. 4), protocolo e simulador de sobreajuste (cap. 5), a rodada completa ao vivo com tabela por pergunta (cap. 6), intervalo de Wilson (cap. 7), comparador pareado (cap. 8), índice e concordância (cap. 9), <code>avaliar.py</code> (cap. 10). <b>Ao fechar:</b> recall@k mede a busca isolada e fidelidade mede o conjunto; 10 itens já mudam a forma de trabalhar; melhorar a recuperação rende mais que trocar de modelo.</p>
+
+<h2 id="ex8">Ex. 8 · Mini auditoria: critérios, classificação e índice determinístico <a class="exlink" href="https://linear.app/vinicius-costa/issue/VIN-12" target="_blank" rel="noopener">VIN-12</a></h2>
+<p><b>Objetivo:</b> a Camada 5 em miniatura: um edital de teste, três critérios ancorados na lei, classificação por critério pelo modelo, índice calculado em Python.</p>
+<ol class="steps">
+  <li>Um edital real e pequeno (pregão simples), texto extraído com <code>pymupdf</code>.</li>
+  <li><code>criterios/edital.json</code> com 3 critérios: <code>id</code>, <code>descricao</code>, <code>fonte_id</code> (um id de <code>rag.chunk</code>), <code>peso</code>. Exemplos: critério de julgamento (art. 33), prazo mínimo de publicidade (art. 55), garantia compatível com o art. 96/98.</li>
+  <li>Uma chamada por critério: edital delimitado como dado + trecho da lei do <code>fonte_id</code> + esquema <code>{classificacao, trecho_do_edital, justificativa}</code>.</li>
+  <li>Validar cada resposta (Ex. 6). Índice em Python: CONFORME = 100, ALERTA = 50, NAO_CONFORME = 0, NAO_AVALIAVEL fora; média ponderada. Nunca pedir o número ao modelo.</li>
+  <li>3 execuções a temperatura 0 (iguais?) e 1 a temperatura 1 (variação).</li>
+  <li>Relatório: critério, classificação, trecho do edital, fundamento legal, índice.</li>
+</ol>
+<p><b>No guia:</b> <a href="10-custo-operacao.html#c7">página 10, capítulos 7 e 8</a> (índice determinístico, nota do modelo contra índice do código, a mini auditoria ao vivo com 3× e relatório em Markdown) e o <code>ex8_auditar.py</code> completo com <code>llm.py</code> (cap. 10); <a href="06-prompt.html#c6">página 6, capítulo 6</a> (um critério por chamada, o construtor de critérios); <a href="07-validacao.html#c3">página 7, capítulo 3</a> (validação em código); <a href="08-avaliacao.html#c9">página 8, capítulo 9</a> (o índice por blocos e a concordância com o auditor). <b>Ao fechar:</b> o modelo classifica, o código calcula; um critério por chamada é mais barato, mais testável e menos propenso a invenção; este é o núcleo do <code>ia-worker</code>.</p>
+
+    
+    <p class="foot">Guia de estudo pessoal. Corpus com redação adaptada da Lei 14.133/2021 para fins didáticos; confira o texto oficial antes de qualquer uso real. A chave da API fica apenas neste navegador; experimentos ao vivo chamam a API do Google diretamente e consomem a sua cota.</p>
+  </div></main>
+  <aside class="toc" aria-label="Nesta página" hidden><div class="t">Nesta página</div><ol id="toc-list"></ol></aside>
+</div>
+<script>window.GUIA_MANIFEST = {pages: [{"id": "p0", "file": "index.html", "num": "0", "title": "Início", "chapters": [], "issue": null}, {"id": "p1", "file": "01-modelos.html", "num": "1", "title": "Como um modelo de linguagem funciona", "chapters": ["p1-c1", "p1-c2", "p1-c3", "p1-c4", "p1-c5", "p1-c6", "p1-c7", "p1-c8", "p1-c9", "p1-c10"], "issue": "VIN-5"}, {"id": "p2", "file": "02-embeddings.html", "num": "2", "title": "Embeddings", "chapters": ["p2-c1", "p2-c2", "p2-c3", "p2-c4", "p2-c5", "p2-c6", "p2-c7", "p2-c8", "p2-c9", "p2-c10"], "issue": "VIN-7"}, {"id": "p3", "file": "03-busca-vetorial.html", "num": "3", "title": "Busca vetorial e índices", "chapters": ["p3-c1", "p3-c2", "p3-c3", "p3-c4", "p3-c5", "p3-c6", "p3-c7", "p3-c8", "p3-c9", "p3-c10"], "issue": "VIN-7"}, {"id": "p4", "file": "04-busca-lexical-hibrida.html", "num": "4", "title": "Busca lexical e híbrida", "chapters": ["p4-c1", "p4-c2", "p4-c3", "p4-c4", "p4-c5", "p4-c6", "p4-c7", "p4-c8", "p4-c9", "p4-c10"], "issue": "VIN-8"}, {"id": "p5", "file": "05-rag.html", "num": "5", "title": "RAG de ponta a ponta e ingestão", "chapters": ["p5-c1", "p5-c2", "p5-c3", "p5-c4", "p5-c5", "p5-c6", "p5-c7", "p5-c8", "p5-c9", "p5-c10"], "issue": "VIN-6"}, {"id": "p6", "file": "06-prompt.html", "num": "6", "title": "Prompt engineering", "chapters": ["p6-c1", "p6-c2", "p6-c3", "p6-c4", "p6-c5", "p6-c6", "p6-c7", "p6-c8", "p6-c9", "p6-c10"], "issue": "VIN-9"}, {"id": "p7", "file": "07-validacao.html", "num": "7", "title": "Alucinação, validação e guardrails", "chapters": ["p7-c1", "p7-c2", "p7-c3", "p7-c4", "p7-c5", "p7-c6", "p7-c7", "p7-c8", "p7-c9", "p7-c10"], "issue": "VIN-10"}, {"id": "p8", "file": "08-avaliacao.html", "num": "8", "title": "Avaliação", "chapters": ["p8-c1", "p8-c2", "p8-c3", "p8-c4", "p8-c5", "p8-c6", "p8-c7", "p8-c8", "p8-c9", "p8-c10"], "issue": "VIN-11"}, {"id": "p9", "file": "09-dados-python.html", "num": "9", "title": "Dados e Python para RAG", "chapters": ["p9-c1", "p9-c2", "p9-c3", "p9-c4", "p9-c5", "p9-c6", "p9-c7", "p9-c8", "p9-c9", "p9-c10"], "issue": "VIN-6"}, {"id": "p10", "file": "10-custo-operacao.html", "num": "10", "title": "Custo, modelos e operação", "chapters": ["p10-c1", "p10-c2", "p10-c3", "p10-c4", "p10-c5", "p10-c6", "p10-c7", "p10-c8", "p10-c9", "p10-c10"], "issue": "VIN-12"}, {"id": "glossario", "file": "glossario.html", "num": "•", "title": "Glossário", "chapters": [], "issue": null}, {"id": "exercicios", "file": "exercicios.html", "num": "•", "title": "Exercícios", "chapters": [], "issue": null}, {"id": "prompts", "file": "prompts.html", "num": "•", "title": "Biblioteca de prompts", "chapters": [], "issue": null}]};</script>
+<script src="assets/corpus.js"></script>
+<script src="assets/core.js"></script>
+<script src="assets/site.js"></script>
+
+</body>
+</html>

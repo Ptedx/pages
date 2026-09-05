@@ -359,6 +359,23 @@ tr.warn td{background:var(--amber-soft)}
 #py-model .an{border-bottom:none;display:inline-block;min-width:100%;padding:1px 2px}
 #py-model .an.lit{background:rgba(79,193,191,.35)}
 
+/* ------- página 10: operação ------- */
+.stack{display:flex;height:34px;border-radius:8px;overflow:hidden;border:1px solid var(--line);margin:8px 0 10px}
+.stack i{display:flex;align-items:center;justify-content:center;font-style:normal;font-size:.72rem;color:#fff;min-width:2px;overflow:hidden;white-space:nowrap}
+.stack i span{padding:0 6px;overflow:hidden;text-overflow:ellipsis}
+.stack .s0,.sw.s0{background:var(--navy)}.stack .s1,.sw.s1{background:var(--teal)}.stack .s2,.sw.s2{background:var(--amber)}.stack .s3,.sw.s3{background:var(--red)}
+#cs-svg,#rs-svg,#op-svg{width:100%;height:auto;display:block;margin-top:8px}
+#cs-svg text,#rs-svg text,#op-svg text{font-size:10px;fill:var(--ink)}
+#cs-svg .lbl,#rs-svg .lbl,#op-svg .lbl{fill:var(--muted)}
+#cc-bars .b,#cs-bars .b,#rs-bars .b,#mc-bars .b,#up-bars .b{grid-template-columns:170px 1fr 96px}
+.reptbl td{vertical-align:top;font-size:.85rem}.reptbl td:first-child{min-width:150px}.reptbl td:nth-child(2){font-family:var(--mono);white-space:nowrap}
+#op-alerts .legend{display:flex;gap:12px;flex-wrap:wrap;color:var(--muted);font-size:.78rem;margin-top:4px}
+#op-alerts .legend i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:4px;vertical-align:middle}
+.fail.g-provedor{border-left-color:var(--amber)}.fail.g-qualidade{border-left-color:var(--red)}.fail.g-custo{border-left-color:var(--teal)}.fail.g-seguranca{border-left-color:var(--navy)}
+.fail.g-numero{border-left-color:var(--amber)}.fail.g-unicode{border-left-color:var(--red)}.fail.g-estrutura{border-left-color:var(--teal)}
+#ma-stages{grid-template-columns:repeat(auto-fit,minmax(150px,1fr));margin:10px 0}
+#ma-stages .stage{padding:8px 10px}#ma-stages .stage h5{margin:0;font-size:.8rem}
+
 /* ------- svg diagrams ------- */
 .diagram .node rect,.diagram .node ellipse{fill:var(--surface);stroke:var(--navy);stroke-width:1.4}
 .diagram .node.ia rect{stroke:var(--teal)}
