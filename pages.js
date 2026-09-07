@@ -19,6 +19,14 @@
 
 const PAGES = [
   {
+    file: "craft.html",
+    title: "Albion Craft Ops",
+    desc: "Painel de decisão para craft no Albion Online: receitas, sessões, venda no Black Market, risco de transporte e lucro contra a meta, com preços do AODP.",
+    tags: ["jogos", "ferramenta", "interativo"],
+    date: "2026-09-07",
+    accent: "#2A78D6"
+  },
+  {
     file: "guia/index.html",
     title: "Guia de RAG aplicado",
     desc: "Trilha de estudo sobre RAG aplicado, com experimentos ao vivo pela API do Gemini.",

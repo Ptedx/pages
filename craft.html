@@ -1,0 +1,1031 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="light dark">
+<title>Albion Craft Ops</title>
+<style>
+:root{
+  color-scheme:light;
+  --bg:#f9f9f7; --surface:#fcfcfb; --surface2:#f1f0ec; --ink:#0b0b0b; --ink2:#52514e; --muted:#898781;
+  --grid:#e1e0d9; --axis:#c3c2b7; --border:rgba(11,11,11,.10); --border2:rgba(11,11,11,.18);
+  --s1:#2a78d6; --s2:#eb6834; --s3:#1baf7a; --s7:#4a3aa7;
+  --good:#0ca30c; --warn:#fab219; --serious:#ec835a; --crit:#d03b3b; --goodtext:#006300;
+  --accent:#2a78d6; --accent-ink:#ffffff; --neg:#e34948;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    color-scheme:dark;
+    --bg:#0d0d0d; --surface:#1a1a19; --surface2:#242422; --ink:#ffffff; --ink2:#c3c2b7; --muted:#898781;
+    --grid:#2c2c2a; --axis:#383835; --border:rgba(255,255,255,.10); --border2:rgba(255,255,255,.2);
+    --s1:#3987e5; --s2:#d95926; --s3:#199e70; --s7:#9085e9; --goodtext:#0ca30c; --accent:#3987e5; --neg:#e66767;
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme:dark;
+  --bg:#0d0d0d; --surface:#1a1a19; --surface2:#242422; --ink:#ffffff; --ink2:#c3c2b7; --muted:#898781;
+  --grid:#2c2c2a; --axis:#383835; --border:rgba(255,255,255,.10); --border2:rgba(255,255,255,.2);
+  --s1:#3987e5; --s2:#d95926; --s3:#199e70; --s7:#9085e9; --goodtext:#0ca30c; --accent:#3987e5; --neg:#e66767;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0;width:100%;background:var(--bg);color:var(--ink);font:14px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;-webkit-text-size-adjust:100%}
+body{min-height:100dvh;padding-bottom:calc(64px + env(safe-area-inset-bottom))}
+h1,h2,h3{margin:0;font-weight:650;letter-spacing:-.01em}
+h1{font-size:18px}
+h2{font-size:16px;margin-bottom:10px}
+h3{font-size:14px;color:var(--ink2);font-weight:600;margin-bottom:8px}
+p{margin:0 0 8px}
+a{color:var(--accent)}
+small,.muted{color:var(--muted)}
+.hint{color:var(--ink2);font-size:12.5px;margin-bottom:10px}
+
+/* header */
+header{position:sticky;top:0;z-index:20;background:var(--surface);border-bottom:1px solid var(--border);padding:10px 14px;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+header .brand{display:flex;align-items:center;gap:8px}
+header .brand .dot{width:10px;height:10px;border-radius:50%;background:var(--s1)}
+header .status{display:flex;gap:14px;flex-wrap:wrap;color:var(--ink2);font-size:12.5px;margin-left:auto;align-items:center}
+header .status b{color:var(--ink);font-weight:600}
+nav.tabs{display:flex;gap:4px;width:100%;overflow-x:auto;padding-top:6px}
+nav.tabs button{background:transparent;border:0;border-bottom:2px solid transparent;color:var(--ink2);padding:8px 12px;font:inherit;font-weight:600;cursor:pointer;white-space:nowrap}
+nav.tabs button.active{color:var(--ink);border-bottom-color:var(--accent)}
+nav.bottom{display:none}
+
+main{width:100%;padding:14px;max-width:100%}
+section.view{display:none}
+section.view.active{display:block}
+
+.grid{display:grid;gap:12px}
+.grid.kpi{grid-template-columns:repeat(auto-fit,minmax(150px,1fr))}
+.grid.two{grid-template-columns:repeat(auto-fit,minmax(320px,1fr))}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px;min-width:0}
+.card.tight{padding:10px 12px}
+.kpi .label{font-size:12px;color:var(--ink2);margin-bottom:4px}
+.kpi .value{font-size:22px;font-weight:650;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+.kpi .sub{font-size:12px;color:var(--muted);margin-top:2px}
+.kpi .value.pos{color:var(--goodtext)} .kpi .value.neg{color:var(--neg)}
+.stack{display:flex;flex-direction:column;gap:12px}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.row.between{justify-content:space-between}
+.spacer{flex:1}
+
+/* forms */
+form .fields{display:grid;gap:10px;grid-template-columns:repeat(auto-fit,minmax(150px,1fr))}
+label.f{display:flex;flex-direction:column;gap:4px;font-size:12px;color:var(--ink2);min-width:0}
+label.f.wide{grid-column:1/-1}
+label.f.chk{flex-direction:row;align-items:center;gap:8px;font-size:13px;color:var(--ink);padding-top:18px}
+input,select,textarea{width:100%;font:inherit;font-size:16px;padding:8px 10px;border:1px solid var(--border2);border-radius:8px;background:var(--surface);color:var(--ink);min-width:0}
+input[type=checkbox]{width:18px;height:18px;padding:0}
+input:focus,select:focus,textarea:focus{outline:2px solid var(--accent);outline-offset:1px;border-color:transparent}
+button.btn{font:inherit;font-weight:600;padding:9px 14px;border-radius:8px;border:1px solid var(--border2);background:var(--surface);color:var(--ink);cursor:pointer;white-space:nowrap}
+button.btn.primary{background:var(--accent);color:var(--accent-ink);border-color:transparent}
+button.btn.danger{color:var(--crit);border-color:var(--crit)}
+button.btn.sm{padding:5px 9px;font-size:12.5px;font-weight:600}
+button.btn:disabled{opacity:.5;cursor:default}
+.chip{display:inline-flex;align-items:center;gap:4px;font-size:11.5px;padding:2px 8px;border-radius:999px;background:var(--surface2);color:var(--ink2);border:1px solid var(--border);white-space:nowrap}
+.chip.ok{color:var(--goodtext);border-color:var(--good)} .chip.warn{color:#8a5a00;border-color:var(--warn)} .chip.bad{color:var(--crit);border-color:var(--crit)}
+:root[data-theme="dark"] .chip.warn{color:var(--warn)}
+@media (prefers-color-scheme:dark){ :root:not([data-theme="light"]) .chip.warn{color:var(--warn)} }
+.chip.bm{color:var(--s7);border-color:var(--s7)} .chip.city{color:var(--s3);border-color:var(--s3)}
+
+/* tables */
+.tbl-wrap{width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch}
+table{border-collapse:collapse;width:100%;font-size:13px}
+th,td{padding:8px 8px;text-align:left;border-bottom:1px solid var(--grid);vertical-align:top;white-space:nowrap}
+th{color:var(--ink2);font-weight:600;font-size:12px;position:sticky;top:0;background:var(--surface)}
+td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
+tr.dim td{opacity:.55}
+tr.best td{background:color-mix(in srgb,var(--s1) 8%,transparent)}
+td .sub{display:block;font-size:11.5px;color:var(--muted);white-space:normal}
+.pos{color:var(--goodtext)} .neg{color:var(--neg)}
+tr[data-id]{cursor:pointer}
+
+/* mobile cards for the decision table */
+@media (max-width:760px){
+  table.cards,table.cards tbody,table.cards tr,table.cards td{display:block;width:100%}
+  table.cards thead{display:none}
+  table.cards tr{border:1px solid var(--border);border-radius:10px;margin-bottom:10px;padding:8px 10px;background:var(--surface)}
+  table.cards td{border:0;padding:3px 0;white-space:normal;display:flex;justify-content:space-between;gap:10px;text-align:right}
+  table.cards td::before{content:attr(data-l);color:var(--muted);font-size:12px;text-align:left;flex:0 0 auto}
+  table.cards td.title{display:block;text-align:left;font-weight:650;font-size:14px;padding-bottom:6px;border-bottom:1px solid var(--grid);margin-bottom:4px}
+  table.cards td.title::before{display:none}
+  table.cards td.empty{display:none}
+  table.cards td.num{text-align:right}
+  tr.best td{background:transparent}
+  table.cards tr.best{border-color:var(--s1)}
+}
+
+/* ingredients editor */
+.ing-list{display:flex;flex-direction:column;gap:6px}
+.ing-row{display:grid;grid-template-columns:1fr 90px auto;gap:6px;align-items:center}
+.ing-row .id{font-size:12px;color:var(--ink2);overflow:hidden;text-overflow:ellipsis}
+
+/* charts */
+.chart{width:100%;height:auto;display:block}
+.chart text{font-family:inherit;font-size:11px;fill:var(--muted)}
+.chart .grid line{stroke:var(--grid);stroke-width:1}
+.chart .axis{stroke:var(--axis)}
+.legend{display:flex;gap:14px;flex-wrap:wrap;font-size:12px;color:var(--ink2);margin-bottom:6px}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:5px;vertical-align:-1px}
+.tip{position:fixed;pointer-events:none;background:var(--surface);border:1px solid var(--border2);border-radius:8px;padding:6px 8px;font-size:12px;z-index:50;box-shadow:0 4px 14px rgba(0,0,0,.15);display:none;max-width:240px}
+
+details{border:1px solid var(--border);border-radius:10px;padding:8px 12px;background:var(--surface)}
+details summary{cursor:pointer;font-weight:600;color:var(--ink2)}
+.list{display:flex;flex-direction:column;gap:8px}
+.item-card{display:flex;gap:10px;align-items:flex-start;justify-content:space-between;border:1px solid var(--border);border-radius:10px;padding:10px 12px;background:var(--surface)}
+.item-card .t{font-weight:650}
+.item-card .m{font-size:12px;color:var(--ink2);white-space:normal}
+.item-card .chip{white-space:normal;height:auto;line-height:1.3;margin-top:4px}
+.item-card{flex-wrap:wrap}
+.toast{position:fixed;left:50%;bottom:calc(76px + env(safe-area-inset-bottom));transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:8px 14px;border-radius:999px;font-size:13px;z-index:60;opacity:0;transition:opacity .2s;pointer-events:none}
+.toast.show{opacity:1}
+.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px}
+
+@media (max-width:760px){
+  header{padding:8px 12px}
+  header .status{width:100%;margin-left:0;gap:10px}
+  nav.tabs{display:none}
+  nav.bottom{display:flex;position:fixed;bottom:0;left:0;right:0;z-index:30;background:var(--surface);border-top:1px solid var(--border);padding:6px 4px calc(6px + env(safe-area-inset-bottom))}
+  nav.bottom button{flex:1;background:transparent;border:0;color:var(--ink2);font:inherit;font-size:11px;font-weight:600;padding:6px 2px;display:flex;flex-direction:column;align-items:center;gap:2px;cursor:pointer}
+  nav.bottom button span.ic{font-size:18px;line-height:1}
+  nav.bottom button.active{color:var(--accent)}
+  main{padding:10px}
+  .kpi .value{font-size:19px}
+  .grid.kpi{grid-template-columns:repeat(2,1fr)}
+}
+@media (min-width:761px){ body{padding-bottom:24px} }
+</style>
+</head>
+<body>
+<header>
+  <div class="brand"><span class="dot"></span><h1>Albion Craft Ops</h1></div>
+  <div class="status" id="hdr-status"></div>
+  <nav class="tabs" id="tabs-top"></nav>
+</header>
+
+<main>
+  <!-- DECISÃO -->
+  <section class="view" id="view-decisao">
+    <div class="stack">
+      <div class="card tight">
+        <div class="row between">
+          <div class="row">
+            <label class="f" style="min-width:150px"><span>Ordenar por</span>
+              <select id="dec-sort">
+                <option value="perFocus">Prata por focus</option>
+                <option value="best">Lucro por unidade</option>
+                <option value="daily">Lucro/dia com todo o focus</option>
+                <option value="perKg">Prata por kg (BM)</option>
+                <option value="perTrip">Prata por viagem (BM)</option>
+                <option value="perCapital">Prata por capital preso</option>
+                <option value="margin">Margem %</option>
+              </select></label>
+            <label class="f" style="min-width:130px"><span>Cidade</span>
+              <select id="dec-city"><option value="">Todas</option></select></label>
+            <label class="f chk" style="padding-top:18px"><input type="checkbox" id="dec-bm"> Só elegíveis para BM</label>
+            <label class="f chk" style="padding-top:18px"><input type="checkbox" id="dec-hide"> Ocultar incompletos</label>
+          </div>
+          <div class="row">
+            <button class="btn" id="btn-prices-2">Atualizar preços</button>
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="row between" style="margin-bottom:8px">
+          <h2 style="margin:0">Painel de decisão</h2>
+          <span class="muted" id="dec-meta"></span>
+        </div>
+        <p class="hint">Clique no item para ver os preços por cidade. Marque "bônus" no item que está com bônus diário hoje: o retorno extra entra no cálculo e o dia fica registrado no histórico.</p>
+        <div class="tbl-wrap"><table class="cards" id="dec-table"></table></div>
+      </div>
+      <div class="card" id="dec-detail" style="display:none"></div>
+    </div>
+  </section>
+
+  <!-- CATÁLOGO -->
+  <section class="view" id="view-catalogo">
+    <div class="grid two">
+      <div class="card">
+        <h2 id="item-form-title">Nova receita</h2>
+        <form id="item-form" autocomplete="off" novalidate>
+          <input type="hidden" id="it-id">
+          <div class="fields">
+            <label class="f"><span>Tipo</span>
+              <select id="it-kind"><option value="craft">Craft (equipamento)</option><option value="refine">Refino (material)</option></select></label>
+            <label class="f"><span>Família</span><select id="it-family"></select></label>
+            <label class="f"><span>Tier</span><select id="it-tier"><option>4</option><option selected>5</option><option>6</option><option>7</option><option>8</option></select></label>
+            <label class="f"><span>Encantamento</span><select id="it-ench"><option value="0">.0</option><option value="1">.1</option><option value="2">.2</option><option value="3">.3</option><option value="4">.4</option></select></label>
+            <label class="f wide"><span>Nome</span><input id="it-name" placeholder="Grande Cajado da Natureza T5"></label>
+            <label class="f wide"><span>ID do item (AODP)</span><input id="it-itemid" class="mono" placeholder="T5_2H_NATURESTAFF"></label>
+            <label class="f"><span>Cidade de craft</span><select id="it-city"></select></label>
+            <label class="f"><span>Sua spec</span><input id="it-spec" type="number" min="0" max="100" step="1" placeholder="0-100"></label>
+            <label class="f"><span>Focus por craft</span><input id="it-focus" type="number" min="0" step="1" inputmode="numeric"></label>
+            <label class="f"><span>Taxa da estação (prata/craft)</span><input id="it-fee" type="number" min="0" step="1" inputmode="numeric"></label>
+            <label class="f"><span>Retorno com focus (%)</span><input id="it-rrrf" type="number" min="0" max="100" step="any" inputmode="decimal"></label>
+            <label class="f"><span>Retorno sem focus (%)</span><input id="it-rrrn" type="number" min="0" max="100" step="any" inputmode="decimal"></label>
+            <label class="f"><span>Peso por unidade (kg)</span><input id="it-weight" type="number" min="0" step="any" inputmode="decimal"></label>
+            <label class="f"><span>Unidades por craft</span><input id="it-out" type="number" min="1" step="1" value="1" inputmode="numeric"></label>
+            <label class="f chk"><input type="checkbox" id="it-usefocus" checked> Usar focus neste item</label>
+            <label class="f"><span>Bônus diário quando ativo (%)</span><input id="it-bonuspct" type="number" min="0" max="50" step="1" value="10" inputmode="numeric"></label>
+          </div>
+          <h3 style="margin-top:14px">Ingredientes por craft</h3>
+          <div class="ing-list" id="ing-list"></div>
+          <div class="row" style="margin-top:8px">
+            <select id="ing-family" style="flex:2;min-width:160px"></select>
+            <select id="ing-tier" style="flex:0 0 70px"><option>3</option><option>4</option><option selected>5</option><option>6</option><option>7</option><option>8</option></select>
+            <select id="ing-ench" style="flex:0 0 70px"><option value="0">.0</option><option value="1">.1</option><option value="2">.2</option><option value="3">.3</option><option value="4">.4</option></select>
+            <input id="ing-qty" type="number" min="1" step="1" value="1" placeholder="qtd" style="flex:0 0 80px" inputmode="numeric">
+            <button class="btn sm" type="button" id="ing-add">Adicionar</button>
+          </div>
+          <div class="row" style="margin-top:8px">
+            <input id="ing-custom" class="mono" placeholder="ou ID manual, ex.: T5_PLANKS_LEVEL1@1" style="flex:2;min-width:160px">
+            <input id="ing-custom-qty" type="number" min="1" step="1" value="1" style="flex:0 0 80px" inputmode="numeric">
+            <button class="btn sm" type="button" id="ing-add-custom">Adicionar ID</button>
+          </div>
+          <div class="row" style="margin-top:14px">
+            <button class="btn primary" type="submit">Salvar receita</button>
+            <button class="btn" type="button" id="it-cancel">Limpar</button>
+          </div>
+        </form>
+      </div>
+      <div class="card">
+        <div class="row between"><h2>Receitas cadastradas</h2><span class="muted" id="cat-count"></span></div>
+        <p class="hint">Os dados de cada receita vêm da estação de craft, na cidade com bônus: focus, taxa, retorno com e sem focus, peso. Receitas com dados faltando aparecem como incompletas no painel.</p>
+        <div class="list" id="cat-list"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- REGISTROS -->
+  <section class="view" id="view-registros">
+    <div class="grid two">
+      <div class="card">
+        <h2>Sessão de craft</h2>
+        <form id="craft-form" novalidate>
+          <div class="fields">
+            <label class="f"><span>Data</span><input type="date" id="cf-date"></label>
+            <label class="f wide"><span>Item</span><select id="cf-item"></select></label>
+            <label class="f"><span>Crafts</span><input type="number" id="cf-qty" min="1" step="1" value="1" inputmode="numeric"></label>
+            <label class="f"><span>Focus gasto (total)</span><input type="number" id="cf-focus" min="0" step="1" inputmode="numeric"></label>
+            <label class="f"><span>Custo real do material</span><input type="number" id="cf-mat" min="0" step="1" inputmode="numeric"></label>
+            <label class="f"><span>Taxas pagas (total)</span><input type="number" id="cf-fee" min="0" step="1" inputmode="numeric"></label>
+            <label class="f chk"><input type="checkbox" id="cf-bonus"> Tinha bônus diário</label>
+            <label class="f wide"><span>Obs.</span><input id="cf-notes"></label>
+          </div>
+          <div class="row" style="margin-top:12px"><button class="btn primary" type="submit">Registrar craft</button><span class="muted" id="cf-auto"></span></div>
+        </form>
+      </div>
+      <div class="card">
+        <h2>Venda</h2>
+        <form id="sale-form" novalidate>
+          <div class="fields">
+            <label class="f"><span>Data</span><input type="date" id="sf-date"></label>
+            <label class="f wide"><span>Item</span><select id="sf-item"></select></label>
+            <label class="f"><span>Qualidade</span><select id="sf-q"><option value="1">Normal</option><option value="2">Boa</option><option value="3">Excepcional</option><option value="4">Excelente</option><option value="5">Obra-prima</option></select></label>
+            <label class="f"><span>Quantidade</span><input type="number" id="sf-qty" min="1" step="1" value="1" inputmode="numeric"></label>
+            <label class="f"><span>Preço unitário</span><input type="number" id="sf-price" min="0" step="1" inputmode="numeric"></label>
+            <label class="f"><span>Local</span><select id="sf-loc"></select></label>
+            <label class="f"><span>Modo</span><select id="sf-mode"><option value="ordem">Ordem de venda</option><option value="instant">Venda instantânea</option></select></label>
+          </div>
+          <div class="row" style="margin-top:12px"><button class="btn primary" type="submit">Registrar venda</button><span class="muted" id="sf-auto"></span></div>
+        </form>
+      </div>
+      <div class="card">
+        <h2>Transporte para o BM</h2>
+        <form id="tr-form" novalidate>
+          <div class="fields">
+            <label class="f"><span>Data</span><input type="date" id="tf-date"></label>
+            <label class="f"><span>Hora de saída</span><input type="time" id="tf-time"></label>
+            <label class="f"><span>Montaria</span><select id="tf-mount"></select></label>
+            <label class="f"><span>Saiu de</span><select id="tf-from"></select></label>
+            <label class="f"><span>Valor da carga (prata)</span><input type="number" id="tf-value" min="0" step="1" inputmode="numeric"></label>
+            <label class="f"><span>Peso (kg)</span><input type="number" id="tf-kg" min="0" step="1" inputmode="decimal"></label>
+            <label class="f"><span>Resultado</span><select id="tf-result"><option value="ok">Chegou</option><option value="dead">Morreu (carga perdida)</option><option value="back">Voltou / abortou</option></select></label>
+            <label class="f wide"><span>Obs.</span><input id="tf-notes" placeholder="zona, quantos gankers, batedor..."></label>
+          </div>
+          <div class="row" style="margin-top:12px"><button class="btn primary" type="submit">Registrar viagem</button></div>
+        </form>
+      </div>
+      <div class="card">
+        <h2>Bônus diário de hoje</h2>
+        <p class="hint">Registre qual item do seu catálogo está com bônus hoje. Com algumas semanas de histórico dá para ver se existe ciclo.</p>
+        <div class="row">
+          <input type="date" id="bf-date" style="flex:0 0 150px">
+          <select id="bf-item" style="flex:1;min-width:160px"></select>
+          <button class="btn primary" type="button" id="bf-add">Registrar bônus</button>
+        </div>
+      </div>
+    </div>
+    <div class="card" style="margin-top:12px">
+      <div class="row between"><h2>Histórico</h2>
+        <div class="row">
+          <select id="log-kind"><option value="crafts">Crafts</option><option value="sales">Vendas</option><option value="transports">Transportes</option><option value="bonusLog">Bônus diário</option></select>
+        </div>
+      </div>
+      <div class="tbl-wrap"><table id="log-table"></table></div>
+    </div>
+  </section>
+
+  <!-- RESULTADOS -->
+  <section class="view" id="view-resultados">
+    <div class="stack">
+      <div class="row between">
+        <h2 style="margin:0">Resultados</h2>
+        <label class="f" style="min-width:150px"><span>Período</span>
+          <select id="res-range"><option value="7">Últimos 7 dias</option><option value="30" selected>Últimos 30 dias</option><option value="90">Últimos 90 dias</option><option value="all">Tudo</option></select></label>
+      </div>
+      <div class="grid kpi" id="res-kpis"></div>
+      <div class="grid two">
+        <div class="card">
+          <h2>Lucro líquido por dia</h2>
+          <div class="legend"><span><i style="background:var(--s1)"></i>Lucro do dia</span><span><i style="background:var(--neg)"></i>Prejuízo do dia</span></div>
+          <div id="chart-daily"></div>
+        </div>
+        <div class="card">
+          <h2>Acumulado contra a meta</h2>
+          <div class="legend"><span><i style="background:var(--s1)"></i>Acumulado</span><span><i style="background:var(--muted)"></i>Meta (linear)</span></div>
+          <div id="chart-cum"></div>
+        </div>
+      </div>
+      <div class="grid two">
+        <div class="card">
+          <h2>Vale o premium?</h2>
+          <div id="res-premium"></div>
+        </div>
+        <div class="card">
+          <h2>Risco realizado por montaria</h2>
+          <div class="tbl-wrap"><table id="res-mounts"></table></div>
+        </div>
+      </div>
+      <div class="grid two">
+        <div class="card">
+          <h2>Por item</h2>
+          <div class="tbl-wrap"><table id="res-items"></table></div>
+        </div>
+        <div class="card">
+          <h2>Histórico de bônus diário</h2>
+          <div class="tbl-wrap"><table id="res-bonus"></table></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CONFIG -->
+  <section class="view" id="view-config">
+    <div class="grid two">
+      <div class="card">
+        <h2>Operação</h2>
+        <form id="cfg-form" novalidate>
+          <div class="fields">
+            <label class="f chk"><input type="checkbox" id="cg-premium"> Premium ativo</label>
+            <label class="f"><span>Focus por dia</span><input type="number" id="cg-focus" min="0" step="100" inputmode="numeric"></label>
+            <label class="f"><span>Custo do premium (30 dias)</span><input type="number" id="cg-premcost" min="0" step="100000" inputmode="numeric"></label>
+            <label class="f"><span>Imposto de venda com premium (%)</span><input type="number" id="cg-taxp" min="0" step="any" inputmode="decimal"></label>
+            <label class="f"><span>Imposto de venda sem premium (%)</span><input type="number" id="cg-taxn" min="0" step="any" inputmode="decimal"></label>
+            <label class="f"><span>Taxa de setup de ordem (%)</span><input type="number" id="cg-orderfee" min="0" step="any" inputmode="decimal"></label>
+            <label class="f"><span>Capital de giro</span><input type="number" id="cg-capital" min="0" step="100000" inputmode="numeric"></label>
+            <label class="f"><span>Meta mensal líquida</span><input type="number" id="cg-meta" min="0" step="1000000" inputmode="numeric"></label>
+            <label class="f"><span>Teto de carga por viagem (% do capital)</span><input type="number" id="cg-cargo" min="1" max="100" step="1" inputmode="numeric"></label>
+            <label class="f"><span>Compra de material</span><select id="cg-buy"><option value="ordem">Ordem de compra (preço da maior ordem)</option><option value="instant">Compra instantânea (menor venda)</option></select></label>
+            <label class="f"><span>Venda na cidade</span><select id="cg-sell"><option value="ordem">Ordem de venda (menor venda, paga setup)</option><option value="instant">Venda instantânea (maior ordem de compra)</option></select></label>
+            <label class="f"><span>Qualidade usada no cálculo</span><select id="cg-quality"><option value="1">Normal</option><option value="2">Boa</option><option value="3">Excepcional</option><option value="4">Excelente</option><option value="5">Obra-prima</option></select></label>
+            <label class="f"><span>Servidor (AODP)</span><select id="cg-server"><option value="west">Américas (west)</option><option value="europe">Europa</option><option value="east">Ásia (east)</option></select></label>
+          </div>
+          <h3 style="margin-top:14px">Montarias</h3>
+          <div class="tbl-wrap"><table id="cg-mounts"></table></div>
+          <div class="row" style="margin-top:12px"><button class="btn primary" type="submit">Salvar configuração</button></div>
+        </form>
+      </div>
+      <div class="stack">
+        <div class="card">
+          <h2>Dados</h2>
+          <p class="hint">Tudo fica salvo neste navegador (localStorage). Exporte o JSON de tempos em tempos para guardar no repositório ou levar para outro aparelho.</p>
+          <div class="row">
+            <button class="btn" id="btn-export">Exportar JSON</button>
+            <label class="btn" for="file-import" style="cursor:pointer">Importar JSON</label>
+            <input type="file" id="file-import" accept="application/json" style="display:none">
+            <button class="btn danger" id="btn-wipe">Apagar tudo</button>
+          </div>
+          <p class="muted" id="data-meta" style="margin-top:8px"></p>
+        </div>
+        <div class="card">
+          <h2>Preços (AODP)</h2>
+          <p class="hint">Os preços vêm do Albion Online Data Project. Só existem dados para itens que alguém com o cliente do AODP viu no mercado recentemente; com o cliente rodando enquanto você joga, os itens do seu catálogo ficam sempre atualizados.</p>
+          <div class="row"><button class="btn primary" id="btn-prices">Atualizar preços agora</button><span class="muted" id="prices-meta"></span></div>
+          <p class="muted" id="prices-log" style="margin-top:8px;white-space:normal"></p>
+        </div>
+        <div class="card">
+          <h2>Como o cálculo funciona</h2>
+          <p class="hint">Custo por unidade = (material × (1 − retorno) + taxa da estação) ÷ unidades por craft. O retorno usado é o com focus (ou sem, se você desmarcar) mais o bônus diário quando ativo.</p>
+          <p class="hint">Saída "cidade" = preço na cidade de craft menos imposto (e setup, se for ordem). Saída "BM" = maior ordem de compra do Black Market menos imposto, ajustada pelo risco: lucro esperado = (1 − p) × receita − custo − p × (montaria ÷ unidades por viagem). A melhor das duas define o lucro do item, e "prêmio de risco" é a diferença entre BM ajustado e cidade.</p>
+          <p class="hint">Unidades por viagem = o menor entre capacidade da montaria ÷ peso e teto de carga ÷ preço do BM. Prata por focus divide o lucro pelo focus gasto por unidade. Lucro/dia com todo o focus assume que todo o focus diário vai para aquele item.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<nav class="bottom" id="tabs-bottom"></nav>
+<div class="tip" id="tip"></div>
+<div class="toast" id="toast"></div>
+
+<script>
+(function(){
+'use strict';
+const LS_KEY='albion_craft_ops_v1';
+const BM='Black Market';
+const CITIES=['Thetford','Lymhurst','Fort Sterling','Bridgewatch','Martlock','Caerleon','Brecilien'];
+const SERVERS={west:'https://west.albion-online-data.com',europe:'https://europe.albion-online-data.com',east:'https://east.albion-online-data.com'};
+const QNAMES={1:'Normal',2:'Boa',3:'Excepcional',4:'Excelente',5:'Obra-prima'};
+
+// ---------- catálogo de famílias (id AODP) ----------
+const FAMILIES=[
+ // recursos brutos
+ {g:'Matéria-prima',kind:'raw',id:'ORE',name:'Minério'},
+ {g:'Matéria-prima',kind:'raw',id:'FIBER',name:'Fibra'},
+ {g:'Matéria-prima',kind:'raw',id:'HIDE',name:'Pele'},
+ {g:'Matéria-prima',kind:'raw',id:'WOOD',name:'Madeira'},
+ {g:'Matéria-prima',kind:'raw',id:'ROCK',name:'Pedra'},
+ // refinados
+ {g:'Refinado',kind:'res',id:'METALBAR',name:'Barra de metal',city:'Thetford'},
+ {g:'Refinado',kind:'res',id:'CLOTH',name:'Tecido',city:'Lymhurst'},
+ {g:'Refinado',kind:'res',id:'LEATHER',name:'Couro',city:'Martlock'},
+ {g:'Refinado',kind:'res',id:'PLANKS',name:'Tábuas',city:'Fort Sterling'},
+ {g:'Refinado',kind:'res',id:'STONEBLOCK',name:'Bloco de pedra',city:'Bridgewatch'},
+ // Thetford
+ {g:'Cajados da natureza (Thetford)',kind:'eq',id:'MAIN_NATURESTAFF',name:'Cajado da Natureza',city:'Thetford'},
+ {g:'Cajados da natureza (Thetford)',kind:'eq',id:'2H_NATURESTAFF',name:'Grande Cajado da Natureza',city:'Thetford'},
+ {g:'Cajados da natureza (Thetford)',kind:'eq',id:'2H_WILDSTAFF',name:'Cajado Selvagem',city:'Thetford'},
+ {g:'Maças (Thetford)',kind:'eq',id:'MAIN_MACE',name:'Maça',city:'Thetford'},
+ {g:'Maças (Thetford)',kind:'eq',id:'2H_MACE',name:'Maça Pesada',city:'Thetford'},
+ {g:'Maças (Thetford)',kind:'eq',id:'2H_FLAIL',name:'Estrela da Manhã',city:'Thetford'},
+ {g:'Cajados de fogo (Thetford)',kind:'eq',id:'MAIN_FIRESTAFF',name:'Cajado de Fogo',city:'Thetford'},
+ {g:'Cajados de fogo (Thetford)',kind:'eq',id:'2H_FIRESTAFF',name:'Grande Cajado de Fogo',city:'Thetford'},
+ {g:'Cajados de fogo (Thetford)',kind:'eq',id:'2H_INFERNOSTAFF',name:'Cajado Infernal',city:'Thetford'},
+ {g:'Jaquetas de couro (Thetford)',kind:'eq',id:'ARMOR_LEATHER_SET1',name:'Jaqueta de Mercenário',city:'Thetford'},
+ {g:'Jaquetas de couro (Thetford)',kind:'eq',id:'ARMOR_LEATHER_SET2',name:'Jaqueta de Caçador',city:'Thetford'},
+ {g:'Jaquetas de couro (Thetford)',kind:'eq',id:'ARMOR_LEATHER_SET3',name:'Jaqueta de Assassino',city:'Thetford'},
+ {g:'Capuzes de tecido (Thetford)',kind:'eq',id:'HEAD_CLOTH_SET1',name:'Capuz de Erudito',city:'Thetford'},
+ {g:'Capuzes de tecido (Thetford)',kind:'eq',id:'HEAD_CLOTH_SET2',name:'Capuz de Clérigo',city:'Thetford'},
+ {g:'Capuzes de tecido (Thetford)',kind:'eq',id:'HEAD_CLOTH_SET3',name:'Capuz de Mago',city:'Thetford'},
+ // Lymhurst
+ {g:'Cajados arcanos (Lymhurst)',kind:'eq',id:'MAIN_ARCANESTAFF',name:'Cajado Arcano',city:'Lymhurst'},
+ {g:'Cajados arcanos (Lymhurst)',kind:'eq',id:'2H_ARCANESTAFF',name:'Grande Cajado Arcano',city:'Lymhurst'},
+ {g:'Cajados arcanos (Lymhurst)',kind:'eq',id:'2H_ENIGMATICSTAFF',name:'Cajado Enigmático',city:'Lymhurst'},
+ {g:'Capuzes de couro (Lymhurst)',kind:'eq',id:'HEAD_LEATHER_SET1',name:'Capuz de Mercenário',city:'Lymhurst'},
+ {g:'Capuzes de couro (Lymhurst)',kind:'eq',id:'HEAD_LEATHER_SET2',name:'Capuz de Caçador',city:'Lymhurst'},
+ {g:'Capuzes de couro (Lymhurst)',kind:'eq',id:'HEAD_LEATHER_SET3',name:'Capuz de Assassino',city:'Lymhurst'},
+ {g:'Sapatos de couro (Lymhurst)',kind:'eq',id:'SHOES_LEATHER_SET1',name:'Sapatos de Mercenário',city:'Lymhurst'},
+ {g:'Sapatos de couro (Lymhurst)',kind:'eq',id:'SHOES_LEATHER_SET2',name:'Sapatos de Caçador',city:'Lymhurst'},
+ {g:'Sapatos de couro (Lymhurst)',kind:'eq',id:'SHOES_LEATHER_SET3',name:'Sapatos de Assassino',city:'Lymhurst'},
+ {g:'Arcos (Lymhurst)',kind:'eq',id:'2H_BOW',name:'Arco',city:'Lymhurst'},
+ {g:'Arcos (Lymhurst)',kind:'eq',id:'2H_WARBOW',name:'Arco de Guerra',city:'Lymhurst'},
+ {g:'Arcos (Lymhurst)',kind:'eq',id:'2H_LONGBOW',name:'Arco Longo',city:'Lymhurst'},
+ {g:'Espadas (Lymhurst)',kind:'eq',id:'MAIN_SWORD',name:'Espada Larga',city:'Lymhurst'},
+ {g:'Espadas (Lymhurst)',kind:'eq',id:'2H_CLAYMORE',name:'Claymore',city:'Lymhurst'},
+ {g:'Espadas (Lymhurst)',kind:'eq',id:'2H_DUALSWORD',name:'Espadas Duplas',city:'Lymhurst'},
+ // Fort Sterling
+ {g:'Martelos (Fort Sterling)',kind:'eq',id:'MAIN_HAMMER',name:'Martelo',city:'Fort Sterling'},
+ {g:'Martelos (Fort Sterling)',kind:'eq',id:'2H_POLEHAMMER',name:'Martelo de Haste',city:'Fort Sterling'},
+ {g:'Martelos (Fort Sterling)',kind:'eq',id:'2H_HAMMER',name:'Grande Martelo',city:'Fort Sterling'},
+ {g:'Elmos de placa (Fort Sterling)',kind:'eq',id:'HEAD_PLATE_SET1',name:'Elmo de Soldado',city:'Fort Sterling'},
+ {g:'Elmos de placa (Fort Sterling)',kind:'eq',id:'HEAD_PLATE_SET2',name:'Elmo de Cavaleiro',city:'Fort Sterling'},
+ {g:'Elmos de placa (Fort Sterling)',kind:'eq',id:'HEAD_PLATE_SET3',name:'Elmo de Guardião',city:'Fort Sterling'},
+ {g:'Lanças (Fort Sterling)',kind:'eq',id:'MAIN_SPEAR',name:'Lança',city:'Fort Sterling'},
+ {g:'Lanças (Fort Sterling)',kind:'eq',id:'2H_SPEAR',name:'Pique',city:'Fort Sterling'},
+ {g:'Lanças (Fort Sterling)',kind:'eq',id:'2H_GLAIVE',name:'Glaive',city:'Fort Sterling'},
+ {g:'Túnicas de tecido (Fort Sterling)',kind:'eq',id:'ARMOR_CLOTH_SET1',name:'Túnica de Erudito',city:'Fort Sterling'},
+ {g:'Túnicas de tecido (Fort Sterling)',kind:'eq',id:'ARMOR_CLOTH_SET2',name:'Túnica de Clérigo',city:'Fort Sterling'},
+ {g:'Túnicas de tecido (Fort Sterling)',kind:'eq',id:'ARMOR_CLOTH_SET3',name:'Túnica de Mago',city:'Fort Sterling'},
+ // Bridgewatch
+ {g:'Armaduras de placa (Bridgewatch)',kind:'eq',id:'ARMOR_PLATE_SET1',name:'Armadura de Soldado',city:'Bridgewatch'},
+ {g:'Armaduras de placa (Bridgewatch)',kind:'eq',id:'ARMOR_PLATE_SET2',name:'Armadura de Cavaleiro',city:'Bridgewatch'},
+ {g:'Armaduras de placa (Bridgewatch)',kind:'eq',id:'ARMOR_PLATE_SET3',name:'Armadura de Guardião',city:'Bridgewatch'},
+ {g:'Bestas (Bridgewatch)',kind:'eq',id:'2H_CROSSBOW',name:'Besta',city:'Bridgewatch'},
+ {g:'Bestas (Bridgewatch)',kind:'eq',id:'2H_CROSSBOWLARGE',name:'Besta Pesada',city:'Bridgewatch'},
+ {g:'Bestas (Bridgewatch)',kind:'eq',id:'MAIN_1HCROSSBOW',name:'Besta Leve',city:'Bridgewatch'},
+ {g:'Sapatos de tecido (Bridgewatch)',kind:'eq',id:'SHOES_CLOTH_SET1',name:'Sandálias de Erudito',city:'Bridgewatch'},
+ {g:'Sapatos de tecido (Bridgewatch)',kind:'eq',id:'SHOES_CLOTH_SET2',name:'Sandálias de Clérigo',city:'Bridgewatch'},
+ {g:'Sapatos de tecido (Bridgewatch)',kind:'eq',id:'SHOES_CLOTH_SET3',name:'Sandálias de Mago',city:'Bridgewatch'},
+ // Martlock
+ {g:'Botas de placa (Martlock)',kind:'eq',id:'SHOES_PLATE_SET1',name:'Botas de Soldado',city:'Martlock'},
+ {g:'Botas de placa (Martlock)',kind:'eq',id:'SHOES_PLATE_SET2',name:'Botas de Cavaleiro',city:'Martlock'},
+ {g:'Botas de placa (Martlock)',kind:'eq',id:'SHOES_PLATE_SET3',name:'Botas de Guardião',city:'Martlock'},
+ {g:'Bastões (Martlock)',kind:'eq',id:'2H_QUARTERSTAFF',name:'Bastão',city:'Martlock'},
+ {g:'Bastões (Martlock)',kind:'eq',id:'2H_IRONCLADEDSTAFF',name:'Bastão de Ferro',city:'Martlock'},
+ {g:'Bastões (Martlock)',kind:'eq',id:'2H_DOUBLEBLADEDSTAFF',name:'Bastão de Lâmina Dupla',city:'Martlock'},
+ {g:'Machados (Martlock)',kind:'eq',id:'MAIN_AXE',name:'Machado de Batalha',city:'Martlock'},
+ {g:'Machados (Martlock)',kind:'eq',id:'2H_AXE',name:'Grande Machado',city:'Martlock'},
+ {g:'Machados (Martlock)',kind:'eq',id:'2H_HALBERD',name:'Alabarda',city:'Martlock'},
+ {g:'Escudos (Martlock)',kind:'eq',id:'OFF_SHIELD',name:'Escudo',city:'Martlock'},
+ {g:'Outro',kind:'custom',id:'',name:'ID manual'}
+];
+const RES_NAMES={
+ METALBAR:{4:'Barra de Aço',5:'Barra de Titânio',6:'Barra de Runita',7:'Barra de Meteorito',8:'Barra de Adamantita',3:'Barra de Cobre'},
+ CLOTH:{4:'Tecido Fino',5:'Tecido Ornamentado',6:'Tecido Luxuoso',7:'Tecido Opulento',8:'Tecido Barroco',3:'Tecido Simples'},
+ LEATHER:{4:'Couro Trabalhado',5:'Couro Curtido',6:'Couro Endurecido',7:'Couro Reforçado',8:'Couro Fortificado',3:'Couro Rústico'},
+ PLANKS:{4:'Tábuas de Pinho',5:'Tábuas de Cedro',6:'Tábuas de Carvalho Sangrento',7:'Tábuas de Casca-Cinza',8:'Tábuas de Madeira Branca',3:'Tábuas de Castanheira'},
+ STONEBLOCK:{4:'Bloco de Travertino',5:'Bloco de Granito',6:'Bloco de Ardósia',7:'Bloco de Basalto',8:'Bloco de Mármore',3:'Bloco de Calcário'}
+};
+function famById(id){return FAMILIES.find(f=>f.id===id)}
+function makeItemId(fam,tier,ench){
+  tier=+tier; ench=+ench||0;
+  if(fam.kind==='raw'||fam.kind==='res') return ench>0?`T${tier}_${fam.id}_LEVEL${ench}@${ench}`:`T${tier}_${fam.id}`;
+  return ench>0?`T${tier}_${fam.id}@${ench}`:`T${tier}_${fam.id}`;
+}
+function makeName(fam,tier,ench){
+  tier=+tier; ench=+ench||0; const e=ench?'.'+ench:'';
+  if(fam.kind==='res'&&RES_NAMES[fam.id]&&RES_NAMES[fam.id][tier]) return `${RES_NAMES[fam.id][tier]} T${tier}${e}`;
+  return `${fam.name} T${tier}${e}`;
+}
+function nameFromId(id){
+  const m=/^T(\d)_(.+?)(?:_LEVEL(\d))?(?:@(\d))?$/.exec(id||''); if(!m) return id;
+  const fam=famById(m[2]); const ench=+(m[4]||0);
+  return fam?makeName(fam,m[1],ench):id;
+}
+
+// ---------- estado ----------
+function uid(){return Math.random().toString(36).slice(2,10)}
+function today(){const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
+function refineItem(name,tier,fam,spec,city){
+  const raw={METALBAR:'ORE',CLOTH:'FIBER',LEATHER:'HIDE',PLANKS:'WOOD',STONEBLOCK:'ROCK'}[fam];
+  const rawQty={4:2,5:3,6:4,7:5,8:5}[tier];
+  return {id:uid(),kind:'refine',name,itemId:`T${tier}_${fam}`,city,tier,ench:0,spec,
+    ings:[{itemId:`T${tier}_${raw}`,name:nameFromId(`T${tier}_${raw}`),qty:rawQty},{itemId:`T${tier-1}_${fam}`,name:nameFromId(`T${tier-1}_${fam}`),qty:1}],
+    focus:0,fee:0,rrrF:0,rrrN:0,weight:0,out:1,useFocus:true,bonus:false,bonusPct:10};
+}
+function craftItem(famId,tier,spec){
+  const fam=famById(famId);
+  return {id:uid(),kind:'craft',name:makeName(fam,tier,0),itemId:makeItemId(fam,tier,0),city:fam.city,tier,ench:0,spec,ings:[],focus:0,fee:0,rrrF:0,rrrN:0,weight:0,out:1,useFocus:true,bonus:false,bonusPct:10};
+}
+function defaultState(){
+  return {
+    version:1,
+    config:{premium:true,focusPerDay:10000,premiumCost:30000000,taxPremium:4,taxNoPremium:8,orderFee:2.5,capital:30000000,metaMensal:60000000,cargoCapPct:12,buyMode:'ordem',sellMode:'ordem',quality:1,server:'west',
+      mounts:[{id:'veado',name:'Veado Gigante do Adepto (T4)',cap:265,value:133000,p:3},{id:'javali',name:'Javali Selvagem Selado (T5)',cap:905,value:0,p:5}]},
+    items:[
+      refineItem('Barra de Aço T4',4,'METALBAR',100,'Thetford'),
+      refineItem('Barra de Titânio T5',5,'METALBAR',69,'Thetford'),
+      refineItem('Tecido Fino T4',4,'CLOTH',97,'Lymhurst'),
+      refineItem('Tecido Ornamentado T5',5,'CLOTH',61,'Lymhurst'),
+      craftItem('2H_NATURESTAFF',5,55), craftItem('2H_WILDSTAFF',5,53), craftItem('MAIN_NATURESTAFF',5,42),
+      craftItem('2H_FLAIL',5,24), craftItem('2H_MACE',5,23),
+      craftItem('2H_ARCANESTAFF',5,35), craftItem('MAIN_ARCANESTAFF',5,40), craftItem('HEAD_LEATHER_SET1',5,31),
+      craftItem('2H_HAMMER',5,46), craftItem('2H_POLEHAMMER',5,42), craftItem('HEAD_PLATE_SET1',5,44)
+    ],
+    prices:{},pricesAt:null,crafts:[],sales:[],transports:[],bonusLog:[]
+  };
+}
+let S=load();
+function load(){
+  try{const raw=localStorage.getItem(LS_KEY); if(raw){const s=JSON.parse(raw); const d=defaultState(); s.config=Object.assign(d.config,s.config||{}); for(const k of ['items','crafts','sales','transports','bonusLog']) if(!Array.isArray(s[k])) s[k]=[]; s.prices=s.prices||{}; return s}}catch(e){console.warn('load',e)}
+  return defaultState();
+}
+function save(){try{localStorage.setItem(LS_KEY,JSON.stringify(S))}catch(e){toast('Não consegui salvar no navegador: '+e.message)}}
+
+// ---------- utilitários ----------
+const $=s=>document.querySelector(s);
+const $$=s=>Array.from(document.querySelectorAll(s));
+function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+function fmt(n,dec){ if(n==null||isNaN(n)) return '—'; const a=Math.abs(n); const sign=n<0?'-':''; if(a>=1e9) return sign+(a/1e9).toLocaleString('pt-BR',{maximumFractionDigits:2})+'B'; if(a>=1e6) return sign+(a/1e6).toLocaleString('pt-BR',{maximumFractionDigits:2})+'M'; if(a>=1e4) return sign+(a/1e3).toLocaleString('pt-BR',{maximumFractionDigits:1})+'k'; return sign+a.toLocaleString('pt-BR',{maximumFractionDigits:dec==null?0:dec}) }
+function fmtFull(n){return n==null||isNaN(n)?'—':Math.round(n).toLocaleString('pt-BR')}
+function pct(n,d){return n==null||isNaN(n)?'—':(n*100).toLocaleString('pt-BR',{maximumFractionDigits:d==null?1:d})+'%'}
+function cls(n){return n==null?'':n>0?'pos':n<0?'neg':''}
+function parseAodpDate(s){ if(!s||s.startsWith('0001')) return null; const d=new Date(s.endsWith('Z')?s:s+'Z'); return isNaN(d)?null:d }
+function ageStr(d){ if(!d) return 'sem dado'; const h=(Date.now()-d.getTime())/36e5; if(h<1) return 'há '+Math.round(h*60)+' min'; if(h<48) return 'há '+Math.round(h)+' h'; return 'há '+Math.round(h/24)+' d' }
+function ageChip(d){ if(!d) return '<span class="chip bad">sem preço</span>'; const h=(Date.now()-d.getTime())/36e5; const c=h<12?'ok':h<48?'warn':'bad'; return `<span class="chip ${c}">${ageStr(d)}</span>` }
+function older(a,b){ if(!a) return b; if(!b) return a; return a<b?a:b }
+function toast(m){const t=$('#toast'); t.textContent=m; t.classList.add('show'); clearTimeout(t._t); t._t=setTimeout(()=>t.classList.remove('show'),2600)}
+function curTax(){return (S.config.premium?S.config.taxPremium:S.config.taxNoPremium)/100}
+function mountById(id){return S.config.mounts.find(m=>m.id===id)}
+function itemById(id){return S.items.find(i=>i.id===id)}
+function dateInRange(d,range){ if(range==='all') return true; const lim=new Date(); lim.setHours(0,0,0,0); lim.setDate(lim.getDate()-(+range-1)); return new Date(d+'T00:00:00')>=lim }
+
+// ---------- preços ----------
+function px(itemId,city,q){ const c=S.prices[itemId]&&S.prices[itemId][city]; if(!c) return null; return c[q]||c[1]||null }
+function allItemIds(){ const set=new Set(); for(const it of S.items){ if(it.itemId) set.add(it.itemId); for(const g of it.ings||[]) if(g.itemId) set.add(g.itemId) } return Array.from(set) }
+async function fetchPrices(){
+  const ids=allItemIds(); if(!ids.length){toast('Nenhum item no catálogo');return}
+  const base=SERVERS[S.config.server]||SERVERS.west;
+  const locs=CITIES.concat([BM]).map(encodeURIComponent).join(',');
+  const btns=[$('#btn-prices'),$('#btn-prices-2')]; btns.forEach(b=>{b.disabled=true;b.textContent='Buscando…'});
+  const log=[]; let ok=0;
+  try{
+    for(let i=0;i<ids.length;i+=25){
+      const chunk=ids.slice(i,i+25);
+      const url=`${base}/api/v2/stats/prices/${chunk.join(',')}.json?locations=${locs}&qualities=1,2,3,4,5`;
+      const r=await fetch(url); if(!r.ok) throw new Error('HTTP '+r.status);
+      const rows=await r.json();
+      for(const row of rows){
+        const id=row.item_id, city=row.city, q=row.quality||1;
+        S.prices[id]=S.prices[id]||{}; S.prices[id][city]=S.prices[id][city]||{};
+        S.prices[id][city][q]={sell:row.sell_price_min||0,sellDate:row.sell_price_min_date,buy:row.buy_price_max||0,buyDate:row.buy_price_max_date};
+        if(row.sell_price_min||row.buy_price_max) ok++;
+      }
+    }
+    S.pricesAt=Date.now(); save();
+    log.push(`${ids.length} itens consultados, ${ok} combinações item×cidade com preço.`);
+    toast('Preços atualizados');
+  }catch(e){ log.push('Erro ao buscar preços: '+e.message); toast('Erro ao buscar preços') }
+  btns.forEach(b=>{b.disabled=false;b.textContent='Atualizar preços'});
+  $('#prices-log').textContent=log.join(' ');
+  renderAll();
+}
+
+// ---------- cálculo ----------
+function ingCost(item){
+  let total=0, missing=[], oldest=null, detail=[];
+  for(const ing of item.ings||[]){
+    const p=px(ing.itemId,item.city,1); let unit=0,d=null,mode='';
+    if(p){ if(S.config.buyMode==='ordem'){ unit=p.buy||p.sell; d=p.buy?p.buyDate:p.sellDate; mode=p.buy?'ordem':'instant'} else { unit=p.sell||p.buy; d=p.sell?p.sellDate:p.buyDate; mode=p.sell?'instant':'ordem'} }
+    if(!unit){ missing.push(ing.name||ing.itemId) } else { total+=unit*ing.qty; const dd=parseAodpDate(d); oldest=older(oldest,dd); detail.push({ing,unit,mode,date:dd}) }
+  }
+  return {total,missing,oldest,detail};
+}
+function revCity(item){
+  const p=px(item.itemId,item.city,S.config.quality); const tax=curTax(); if(!p) return null;
+  if(S.config.sellMode==='ordem'){ if(!p.sell) return null; return {gross:p.sell,net:p.sell*(1-tax-S.config.orderFee/100),date:parseAodpDate(p.sellDate),mode:'ordem'} }
+  if(!p.buy) return null; return {gross:p.buy,net:p.buy*(1-tax),date:parseAodpDate(p.buyDate),mode:'instant'};
+}
+function revBM(item){
+  const p=px(item.itemId,BM,S.config.quality); const tax=curTax(); if(!p||!p.buy) return null;
+  return {gross:p.buy,net:p.buy*(1-tax),date:parseAodpDate(p.buyDate),mode:'bm'};
+}
+function calc(item){
+  const ic=ingCost(item); const out=item.out||1;
+  const rrrPct=((item.useFocus?item.rrrF:item.rrrN)||0)+(item.bonus?(item.bonusPct||0):0);
+  const rrr=Math.min(0.9,rrrPct/100);
+  const matEff=ic.total*(1-rrr); const unitCost=(matEff+(item.fee||0))/out;
+  const rc=revCity(item); const rb=item.kind==='refine'?null:revBM(item);
+  const problems=[];
+  if(!(item.ings||[]).length) problems.push('sem ingredientes');
+  if(ic.missing.length) problems.push('sem preço: '+ic.missing.join(', '));
+  if(item.useFocus&&!(item.focus>0)) problems.push('focus por craft não informado');
+  if(!(item.rrrF>0)&&item.useFocus) problems.push('retorno com focus não informado');
+  if(!rc&&!rb) problems.push('sem preço de venda');
+  const profitCity=rc?rc.net-unitCost:null;
+  let bm=null;
+  if(rb){
+    if(!(item.weight>0)) problems.push('peso não informado (BM)');
+    else{
+      const cargoCap=S.config.capital*S.config.cargoCapPct/100;
+      for(const m of S.config.mounts){
+        if(!(m.cap>0)) continue;
+        const n=Math.max(1,Math.min(Math.floor(m.cap/item.weight),Math.floor(cargoCap/rb.gross)||1));
+        const p=(m.p||0)/100;
+        const profit=(1-p)*rb.net-unitCost-p*(m.value||0)/n;
+        if(!bm||profit>bm.profit) bm={profit,mount:m,n,raw:rb.net-unitCost,p};
+      }
+    }
+  }
+  let best=null,route=null;
+  if(profitCity!=null){best=profitCity;route='city'}
+  if(bm&&(best==null||bm.profit>best)){best=bm.profit;route='bm'}
+  const complete=problems.length===0 && best!=null && ic.total>0;
+  const focusPerUnit=item.useFocus&&item.focus>0?item.focus/out:null;
+  const perFocus=complete&&focusPerUnit?best/focusPerUnit:null;
+  const craftsPerDay=item.useFocus&&item.focus>0?Math.floor(S.config.focusPerDay/item.focus):null;
+  const daily=complete&&craftsPerDay!=null?craftsPerDay*out*best:null;
+  const perKg=complete&&bm&&item.weight>0?bm.profit/item.weight:null;
+  const perTrip=complete&&bm?bm.profit*bm.n:null;
+  const perCapital=complete&&unitCost>0?best/unitCost:null;
+  const margin=complete&&unitCost>0?best/unitCost:null;
+  const premium=complete&&bm&&profitCity!=null?bm.profit-profitCity:null;
+  let oldest=ic.oldest; if(route==='city'&&rc) oldest=older(oldest,rc.date); if(route==='bm'&&rb) oldest=older(oldest,rb.date);
+  const revUnit=route==='bm'?rb.net:(rc?rc.net:null);
+  return {item,ic,rrr,rrrPct,unitCost,matEff,rc,rb,profitCity,bm,best,route,complete,problems,perFocus,craftsPerDay,daily,perKg,perTrip,perCapital,margin,premium,oldest,revUnit,out};
+}
+
+// ---------- navegação ----------
+const TABS=[{id:'decisao',l:'Decisão',ic:'◎'},{id:'catalogo',l:'Catálogo',ic:'▤'},{id:'registros',l:'Registros',ic:'✎'},{id:'resultados',l:'Resultados',ic:'▥'},{id:'config',l:'Config',ic:'⚙'}];
+let currentTab=null;
+function buildTabs(){
+  $('#tabs-top').innerHTML=TABS.map(t=>`<button data-tab="${t.id}">${t.l}</button>`).join('');
+  $('#tabs-bottom').innerHTML=TABS.map(t=>`<button data-tab="${t.id}"><span class="ic">${t.ic}</span>${t.l}</button>`).join('');
+  document.addEventListener('click',e=>{const b=e.target.closest('button[data-tab]'); if(b) showTab(b.dataset.tab)});
+}
+function showTab(id){
+  currentTab=id; try{localStorage.setItem(LS_KEY+':tab',id)}catch(e){}
+  $$('section.view').forEach(s=>s.classList.toggle('active',s.id==='view-'+id));
+  $$('button[data-tab]').forEach(b=>b.classList.toggle('active',b.dataset.tab===id));
+  window.scrollTo({top:0});
+  if(id==='resultados') renderResults();
+}
+
+// ---------- header ----------
+function renderHeader(){
+  const c=S.config;
+  const pa=S.pricesAt?ageStr(new Date(S.pricesAt)):'nunca';
+  $('#hdr-status').innerHTML=`<span>Premium: <b>${c.premium?'ativo':'inativo'}</b></span><span>Focus/dia: <b>${fmtFull(c.focusPerDay)}</b></span><span>Capital: <b>${fmt(c.capital)}</b></span><span>Meta: <b>${fmt(c.metaMensal)}/mês</b></span><span>Preços: <b>${pa}</b></span>`;
+}
+
+// ---------- decisão ----------
+function tdc(v,base){return base+(v==null||v==='—'?' empty':'')}
+function renderDecision(){
+  const sortKey=$('#dec-sort').value, city=$('#dec-city').value, onlyBM=$('#dec-bm').checked, hide=$('#dec-hide').checked;
+  let rows=S.items.map(calc);
+  if(city) rows=rows.filter(r=>r.item.city===city);
+  if(onlyBM) rows=rows.filter(r=>r.bm);
+  if(hide) rows=rows.filter(r=>r.complete);
+  const key=r=>{const v=sortKey==='best'?r.best:r[sortKey]; return v==null?-Infinity:v};
+  rows.sort((a,b)=>{ if(a.complete!==b.complete) return a.complete?-1:1; return key(b)-key(a) });
+  const bestId=rows.find(r=>r.complete)?.item.id;
+  $('#dec-meta').textContent=`${rows.length} itens · imposto ${(curTax()*100).toLocaleString('pt-BR')}% · qualidade ${QNAMES[S.config.quality]}`;
+  const head=`<thead><tr><th>Item</th><th>Saída</th><th class="num">Custo/un</th><th class="num">Venda/un</th><th class="num">Lucro/un</th><th class="num">Margem s/ custo</th><th class="num">Prata/focus</th><th class="num">Lucro/dia</th><th class="num">Prata/kg</th><th class="num">Prata/viagem</th><th class="num">Prêmio risco</th><th>Preço</th><th>Bônus</th></tr></thead>`;
+  const body=rows.map(r=>{
+    const it=r.item;
+    const route=r.route==='bm'?`<span class="chip bm">BM · ${esc(r.bm.mount.name.split(' ')[0])} · ${r.bm.n}/viagem</span>`:r.route==='city'?`<span class="chip city">${esc(it.city)}</span>`:'<span class="chip">—</span>';
+    const prob=r.problems.length?`<span class="sub">${esc(r.problems.join(' · '))}</span>`:'';
+    return `<tr data-id="${it.id}" class="${r.complete?'':'dim'} ${it.id===bestId?'best':''}">
+      <td class="title" data-l="Item"><b>${esc(it.name)}</b><span class="sub">${esc(it.city)} · spec ${it.spec||0} · ${it.useFocus?'com focus':'sem focus'} · retorno ${r.rrrPct.toLocaleString('pt-BR')}%</span>${prob}</td>
+      <td data-l="Saída">${route}</td>
+      <td class="${tdc(r.complete?r.unitCost:null,'num')}" data-l="Custo/un">${fmt(r.complete?r.unitCost:null)}</td>
+      <td class="${tdc(r.complete?r.revUnit:null,'num')}" data-l="Venda/un">${fmt(r.complete?r.revUnit:null)}</td>
+      <td class="${tdc(r.complete?r.best:null,'num '+cls(r.best))}" data-l="Lucro/un">${fmt(r.complete?r.best:null)}</td>
+      <td class="${tdc(r.margin,'num '+cls(r.margin))}" data-l="Margem s/ custo">${pct(r.margin)}</td>
+      <td class="${tdc(r.perFocus,'num '+cls(r.perFocus))}" data-l="Prata/focus">${r.perFocus==null?'—':fmt(r.perFocus,1)}</td>
+      <td class="${tdc(r.daily,'num '+cls(r.daily))}" data-l="Lucro/dia (todo focus)">${r.daily==null?'—':fmt(r.daily)+(r.craftsPerDay!=null?` <span class="sub">${r.craftsPerDay} crafts</span>`:'')}</td>
+      <td class="${tdc(r.perKg,'num')}" data-l="Prata/kg">${fmt(r.perKg)}</td>
+      <td class="${tdc(r.perTrip,'num')}" data-l="Prata/viagem">${fmt(r.perTrip)}</td>
+      <td class="${tdc(r.premium,'num '+cls(r.premium))}" data-l="Prêmio de risco">${fmt(r.premium)}</td>
+      <td data-l="Idade do preço">${ageChip(r.oldest)}</td>
+      <td data-l="Bônus hoje"><label style="display:inline-flex;align-items:center;gap:6px"><input type="checkbox" data-bonus="${it.id}" ${it.bonus?'checked':''}> +${it.bonusPct||0}%</label></td>
+    </tr>`;
+  }).join('');
+  $('#dec-table').innerHTML=head+'<tbody>'+(body||'<tr><td colspan="13" class="muted">Nenhum item. Cadastre receitas no Catálogo.</td></tr>')+'</tbody>';
+}
+function renderDetail(id){
+  const it=itemById(id); if(!it){$('#dec-detail').style.display='none';return}
+  const r=calc(it);
+  const q=S.config.quality;
+  const cityRows=CITIES.concat([BM]).map(c=>{const p=px(it.itemId,c,q); if(!p) return `<tr><td>${esc(c)}</td><td class="num">—</td><td class="num">—</td><td>${ageChip(null)}</td></tr>`; return `<tr><td>${esc(c)}</td><td class="num">${fmtFull(p.sell||null)}</td><td class="num">${fmtFull(p.buy||null)}</td><td>${ageChip(parseAodpDate(p.buy?p.buyDate:p.sellDate))}</td></tr>`}).join('');
+  const bmQ=[1,2,3,4,5].map(qq=>{const p=px(it.itemId,BM,qq); return `<tr><td>${QNAMES[qq]}</td><td class="num">${p&&p.buy?fmtFull(p.buy):'—'}</td><td>${ageChip(p?parseAodpDate(p.buyDate):null)}</td></tr>`}).join('');
+  const ings=r.ic.detail.map(d=>`<tr><td>${esc(d.ing.name||d.ing.itemId)}<span class="sub mono">${esc(d.ing.itemId)}</span></td><td class="num">${d.ing.qty}</td><td class="num">${fmtFull(d.unit)}<span class="sub">${d.mode==='ordem'?'maior ordem de compra':'menor venda'}</span></td><td class="num">${fmtFull(d.unit*d.ing.qty)}</td><td>${ageChip(d.date)}</td></tr>`).join('')
+    + r.ic.missing.map(m=>`<tr class="dim"><td>${esc(m)}</td><td colspan="4">sem preço em ${esc(it.city)}</td></tr>`).join('');
+  const mounts=r.rb&&it.weight>0?S.config.mounts.map(m=>{const cargoCap=S.config.capital*S.config.cargoCapPct/100; const n=Math.max(1,Math.min(Math.floor(m.cap/it.weight),Math.floor(cargoCap/r.rb.gross)||1)); const p=(m.p||0)/100; const prof=(1-p)*r.rb.net-r.unitCost-p*(m.value||0)/n; return `<tr><td>${esc(m.name)}</td><td class="num">${n}</td><td class="num">${fmt(n*r.rb.gross)}</td><td class="num">${pct(p)}</td><td class="num ${cls(prof)}">${fmt(prof)}</td><td class="num ${cls(prof*n)}">${fmt(prof*n)}</td></tr>`}).join(''):'';
+  $('#dec-detail').style.display='block';
+  $('#dec-detail').innerHTML=`
+    <div class="row between"><h2 style="margin:0">${esc(it.name)} <span class="muted mono" style="font-weight:400">${esc(it.itemId)}</span></h2><div class="row"><button class="btn sm" data-edit="${it.id}">Editar receita</button><button class="btn sm" id="detail-close">Fechar</button></div></div>
+    <div class="grid two" style="margin-top:10px">
+      <div>
+        <h3>Custo do craft em ${esc(it.city)}</h3>
+        <div class="tbl-wrap"><table><thead><tr><th>Ingrediente</th><th class="num">Qtd</th><th class="num">Unit.</th><th class="num">Total</th><th>Preço</th></tr></thead><tbody>${ings||'<tr><td colspan="5" class="muted">sem ingredientes</td></tr>'}</tbody></table></div>
+        <p class="hint" style="margin-top:8px">Material bruto ${fmtFull(r.ic.total)} · retorno ${r.rrrPct.toLocaleString('pt-BR')}% → material efetivo ${fmtFull(r.matEff)} · taxa ${fmtFull(it.fee)} · <b>custo por unidade ${fmtFull(r.unitCost)}</b> (${r.out} un/craft, ${it.focus||0} focus/craft)</p>
+        <h3 style="margin-top:12px">Saídas</h3>
+        <p class="hint">Cidade (${esc(it.city)}): ${r.rc?`receita líquida ${fmtFull(r.rc.net)} → lucro <b class="${cls(r.profitCity)}">${fmtFull(r.profitCity)}</b> por unidade`:'sem preço de venda'}<br>
+        Black Market: ${r.rb?`ordem de compra ${fmtFull(r.rb.gross)}, líquida ${fmtFull(r.rb.net)}, lucro bruto ${fmtFull(r.rb.net-r.unitCost)} antes do risco`:(it.kind==='refine'?'não compra material refinado':'sem ordem de compra no BM')}</p>
+        ${mounts?`<div class="tbl-wrap"><table><thead><tr><th>Montaria</th><th class="num">Un/viagem</th><th class="num">Carga</th><th class="num">p</th><th class="num">Lucro esp./un</th><th class="num">Lucro esp./viagem</th></tr></thead><tbody>${mounts}</tbody></table></div>`:''}
+      </div>
+      <div>
+        <h3>Preço do produto por cidade (${QNAMES[q]})</h3>
+        <div class="tbl-wrap"><table><thead><tr><th>Local</th><th class="num">Menor venda</th><th class="num">Maior compra</th><th>Idade</th></tr></thead><tbody>${cityRows}</tbody></table></div>
+        ${it.kind!=='refine'?`<h3 style="margin-top:12px">Black Market por qualidade</h3><div class="tbl-wrap"><table><thead><tr><th>Qualidade</th><th class="num">Ordem de compra</th><th>Idade</th></tr></thead><tbody>${bmQ}</tbody></table></div>`:''}
+      </div>
+    </div>`;
+  $('#dec-detail').scrollIntoView({behavior:'smooth',block:'start'});
+}
+
+// ---------- catálogo ----------
+let editingIngs=[];
+function fillFamilySelects(){
+  const groups={}; for(const f of FAMILIES){(groups[f.g]=groups[f.g]||[]).push(f)}
+  const opts=Object.keys(groups).map(g=>`<optgroup label="${esc(g)}">`+groups[g].map(f=>`<option value="${f.id}">${esc(f.name)}</option>`).join('')+'</optgroup>').join('');
+  $('#it-family').innerHTML=opts; $('#ing-family').innerHTML=opts;
+  $('#it-city').innerHTML=CITIES.map(c=>`<option>${c}</option>`).join('');
+  $('#dec-city').innerHTML='<option value="">Todas</option>'+CITIES.map(c=>`<option>${c}</option>`).join('');
+  $('#sf-loc').innerHTML=CITIES.concat([BM]).map(c=>`<option>${c}</option>`).join('');
+  $('#tf-from').innerHTML=CITIES.filter(c=>c!=='Caerleon').map(c=>`<option>${c}</option>`).join('');
+}
+function syncItemFromFamily(){
+  const fam=famById($('#it-family').value); if(!fam||fam.kind==='custom') return;
+  const tier=$('#it-tier').value, ench=$('#it-ench').value;
+  $('#it-itemid').value=makeItemId(fam,tier,ench); $('#it-name').value=makeName(fam,tier,ench);
+  if(fam.city) $('#it-city').value=fam.city;
+  $('#it-kind').value=fam.kind==='res'?'refine':'craft';
+}
+function renderIngs(){
+  $('#ing-list').innerHTML=editingIngs.map((g,i)=>`<div class="ing-row"><div><div>${esc(g.name||nameFromId(g.itemId))}</div><div class="id mono">${esc(g.itemId)}</div></div><input type="number" min="0" step="any" value="${g.qty}" data-ingqty="${i}" inputmode="decimal"><button class="btn sm" type="button" data-ingdel="${i}">✕</button></div>`).join('')||'<span class="muted">Nenhum ingrediente ainda.</span>';
+}
+function fillItemForm(it){
+  $('#it-id').value=it?it.id:''; $('#item-form-title').textContent=it?'Editar receita':'Nova receita';
+  $('#it-kind').value=it?it.kind:'craft';
+  $('#it-name').value=it?it.name:''; $('#it-itemid').value=it?it.itemId:'';
+  $('#it-city').value=it?it.city:'Thetford'; $('#it-spec').value=it?it.spec:''; $('#it-focus').value=it&&it.focus?it.focus:''; $('#it-fee').value=it&&it.fee?it.fee:'';
+  $('#it-rrrf').value=it&&it.rrrF?it.rrrF:''; $('#it-rrrn').value=it&&it.rrrN?it.rrrN:''; $('#it-weight').value=it&&it.weight?it.weight:''; $('#it-out').value=it?it.out||1:1;
+  $('#it-usefocus').checked=it?!!it.useFocus:true; $('#it-bonuspct').value=it?it.bonusPct??10:10;
+  if(it){ $('#it-tier').value=it.tier||5; $('#it-ench').value=it.ench||0; const m=/^T\d_(.+?)(?:_LEVEL\d)?(?:@\d)?$/.exec(it.itemId||''); const fam=m&&famById(m[1]); $('#it-family').value=fam?fam.id:''; }
+  if(!it){ $('#it-family').value='2H_NATURESTAFF'; $('#it-tier').value='5'; $('#it-ench').value='0'; syncItemFromFamily(); }
+  editingIngs=it?JSON.parse(JSON.stringify(it.ings||[])):[]; renderIngs();
+}
+function readItemForm(){
+  const id=$('#it-id').value||uid();
+  const prev=itemById(id);
+  return {id,kind:$('#it-kind').value,name:$('#it-name').value.trim(),itemId:$('#it-itemid').value.trim().toUpperCase(),city:$('#it-city').value,tier:+$('#it-tier').value,ench:+$('#it-ench').value,spec:+$('#it-spec').value||0,
+    ings:editingIngs.map(g=>({itemId:g.itemId,name:g.name||nameFromId(g.itemId),qty:+g.qty||1})),focus:+$('#it-focus').value||0,fee:+$('#it-fee').value||0,rrrF:+$('#it-rrrf').value||0,rrrN:+$('#it-rrrn').value||0,weight:+$('#it-weight').value||0,out:+$('#it-out').value||1,
+    useFocus:$('#it-usefocus').checked,bonus:prev?prev.bonus:false,bonusPct:+$('#it-bonuspct').value||0};
+}
+function renderCatalog(){
+  $('#cat-count').textContent=S.items.length+' receitas';
+  const byCity={}; for(const it of S.items){(byCity[it.city]=byCity[it.city]||[]).push(it)}
+  $('#cat-list').innerHTML=Object.keys(byCity).map(c=>`<h3 style="margin-top:6px">${esc(c)}</h3>`+byCity[c].map(it=>{const r=calc(it); return `<div class="item-card"><div><div class="t">${esc(it.name)} <span class="muted mono" style="font-weight:400">${esc(it.itemId)}</span></div><div class="m">${it.kind==='refine'?'refino':'craft'} · spec ${it.spec||0} · ${(it.ings||[]).length} ingredientes · focus ${it.focus||0} · taxa ${fmtFull(it.fee)} · retorno ${it.rrrF||0}%/${it.rrrN||0}% · ${it.weight||0} kg ${r.complete?'<span class="chip ok">completo</span>':'<span class="chip warn">incompleto: '+esc(r.problems.join('; '))+'</span>'}</div></div><div class="row" style="flex-wrap:nowrap"><button class="btn sm" data-edit="${it.id}">Editar</button><button class="btn sm" data-dup="${it.id}">Duplicar</button><button class="btn sm danger" data-del="${it.id}">✕</button></div></div>`}).join('')).join('')||'<span class="muted">Nenhuma receita.</span>';
+  fillItemSelects();
+}
+function fillItemSelects(){
+  const opts=S.items.map(it=>`<option value="${it.id}">${esc(it.name)} · ${esc(it.city)}</option>`).join('');
+  for(const id of ['cf-item','sf-item','bf-item']){const el=$('#'+id); const v=el.value; el.innerHTML=opts; if(v) el.value=v}
+  $('#tf-mount').innerHTML=S.config.mounts.map(m=>`<option value="${m.id}">${esc(m.name)}</option>`).join('');
+}
+
+// ---------- registros ----------
+function craftAuto(){
+  const it=itemById($('#cf-item').value); const qty=+$('#cf-qty').value||1; if(!it){$('#cf-auto').textContent='';return}
+  const r=calc(it);
+  if(!$('#cf-focus').dataset.touched) $('#cf-focus').value=it.useFocus?it.focus*qty:0;
+  if(!$('#cf-fee').dataset.touched) $('#cf-fee').value=Math.round((it.fee||0)*qty);
+  if(!$('#cf-mat').dataset.touched&&r.ic.total>0) $('#cf-mat').value=Math.round(r.matEff*qty);
+  $('#cf-bonus').checked=!!it.bonus;
+  $('#cf-auto').textContent=r.ic.total>0?`Sugestão pelo painel: material efetivo ${fmtFull(r.matEff*qty)} para ${qty} craft(s), ${qty*(it.out||1)} unidades.`:'Sem preço para sugerir o custo; informe o valor real.';
+}
+function saleAuto(){
+  const it=itemById($('#sf-item').value); if(!it) return;
+  const loc=$('#sf-loc').value, q=+$('#sf-q').value; const p=px(it.itemId,loc,q);
+  if(p&&!$('#sf-price').dataset.touched){ $('#sf-price').value=loc===BM?(p.buy||''):($('#sf-mode').value==='ordem'?(p.sell||''):(p.buy||'')) }
+  const price=+$('#sf-price').value||0, qty=+$('#sf-qty').value||1; const net=saleNet(price,qty,$('#sf-mode').value,loc);
+  $('#sf-auto').textContent=price?`Líquido após impostos: ${fmtFull(net)}`:'';
+}
+function saleNet(price,qty,mode,loc){ const tax=curTax(); const fee=(mode==='ordem'&&loc!==BM)?S.config.orderFee/100:0; return price*qty*(1-tax-fee) }
+function renderLog(){
+  const kind=$('#log-kind').value; let rows='',head='';
+  const del=(k,id)=>`<button class="btn sm danger" data-logdel="${k}:${id}">✕</button>`;
+  if(kind==='crafts'){ head='<tr><th>Data</th><th>Item</th><th class="num">Crafts</th><th class="num">Focus</th><th class="num">Material</th><th class="num">Taxas</th><th>Bônus</th><th>Obs.</th><th></th></tr>';
+    rows=S.crafts.slice().sort((a,b)=>b.date.localeCompare(a.date)).map(c=>`<tr><td>${c.date}</td><td>${esc(c.itemName)}</td><td class="num">${c.qty}</td><td class="num">${fmtFull(c.focus)}</td><td class="num">${fmtFull(c.mat)}</td><td class="num">${fmtFull(c.fee)}</td><td>${c.bonus?'sim':''}</td><td>${esc(c.notes)}</td><td>${del('crafts',c.id)}</td></tr>`).join('') }
+  else if(kind==='sales'){ head='<tr><th>Data</th><th>Item</th><th>Qualidade</th><th class="num">Qtd</th><th class="num">Preço</th><th>Local</th><th>Modo</th><th class="num">Líquido</th><th></th></tr>';
+    rows=S.sales.slice().sort((a,b)=>b.date.localeCompare(a.date)).map(s=>`<tr><td>${s.date}</td><td>${esc(s.itemName)}</td><td>${QNAMES[s.q]||s.q}</td><td class="num">${s.qty}</td><td class="num">${fmtFull(s.price)}</td><td>${esc(s.loc)}</td><td>${s.mode==='ordem'?'ordem':'instant.'}</td><td class="num">${fmtFull(s.net)}</td><td>${del('sales',s.id)}</td></tr>`).join('') }
+  else if(kind==='transports'){ head='<tr><th>Data</th><th>Hora</th><th>Montaria</th><th>De</th><th class="num">Carga</th><th class="num">kg</th><th>Resultado</th><th class="num">Perda</th><th>Obs.</th><th></th></tr>';
+    rows=S.transports.slice().sort((a,b)=>(b.date+b.time).localeCompare(a.date+a.time)).map(t=>`<tr><td>${t.date}</td><td>${t.time||''}</td><td>${esc(t.mountName)}</td><td>${esc(t.from)}</td><td class="num">${fmtFull(t.value)}</td><td class="num">${t.kg||''}</td><td>${t.result==='ok'?'<span class="chip ok">chegou</span>':t.result==='dead'?'<span class="chip bad">morreu</span>':'<span class="chip warn">voltou</span>'}</td><td class="num neg">${t.loss?fmtFull(t.loss):''}</td><td>${esc(t.notes)}</td><td>${del('transports',t.id)}</td></tr>`).join('') }
+  else { head='<tr><th>Data</th><th>Item com bônus</th><th></th></tr>';
+    rows=S.bonusLog.slice().sort((a,b)=>b.date.localeCompare(a.date)).map(b=>`<tr><td>${b.date}</td><td>${esc(b.itemName)}</td><td>${del('bonusLog',b.id)}</td></tr>`).join('') }
+  $('#log-table').innerHTML='<thead>'+head+'</thead><tbody>'+(rows||'<tr><td colspan="10" class="muted">Nada registrado ainda.</td></tr>')+'</tbody>';
+}
+
+// ---------- resultados ----------
+function renderResults(){
+  const range=$('#res-range').value;
+  const crafts=S.crafts.filter(c=>dateInRange(c.date,range)), sales=S.sales.filter(s=>dateInRange(s.date,range)), trans=S.transports.filter(t=>dateInRange(t.date,range));
+  const byDay={}; const add=(d,k,v)=>{byDay[d]=byDay[d]||{cost:0,rev:0,loss:0,focus:0}; byDay[d][k]+=v};
+  for(const c of crafts){add(c.date,'cost',(c.mat||0)+(c.fee||0)); add(c.date,'focus',c.focus||0)}
+  for(const s of sales) add(s.date,'rev',s.net||0);
+  for(const t of trans) if(t.loss) add(t.date,'loss',t.loss);
+  const days=Object.keys(byDay).sort();
+  const totRev=sales.reduce((a,s)=>a+(s.net||0),0), totCost=crafts.reduce((a,c)=>a+(c.mat||0)+(c.fee||0),0), totLoss=trans.reduce((a,t)=>a+(t.loss||0),0), totFocus=crafts.reduce((a,c)=>a+(c.focus||0),0);
+  const net=totRev-totCost-totLoss;
+  let nDays; if(range==='all'){ nDays=days.length?Math.max(1,Math.round((new Date(days[days.length-1])-new Date(days[0]))/864e5)+1):0 } else nDays=+range;
+  const perDay=nDays?net/nDays:0; const metaDay=S.config.metaMensal/30;
+  // premium
+  let matSaved=0; for(const c of crafts){ const it=itemById(c.itemId); if(!it||!c.focus) continue; const rrrUsed=Math.min(.9,((it.rrrF||0)+(c.bonus?(it.bonusPct||0):0))/100); const base=(c.mat||0)/(1-rrrUsed); matSaved+=base*Math.max(0,((it.rrrF||0)-(it.rrrN||0))/100) }
+  const taxSaved=sales.reduce((a,s)=>a+(s.price*s.qty)*((S.config.taxNoPremium-S.config.taxPremium)/100),0);
+  const premiumDay=nDays?(matSaved+taxSaved)/nDays:0; const premiumCostDay=S.config.premiumCost/30;
+  // estoque (aprox.)
+  let stock=0; for(const it of S.items){ const made=S.crafts.filter(c=>c.itemId===it.id).reduce((a,c)=>a+c.qty*(it.out||1),0); const sold=S.sales.filter(s=>s.itemId===it.id).reduce((a,s)=>a+s.qty,0); const spent=S.crafts.filter(c=>c.itemId===it.id).reduce((a,c)=>a+(c.mat||0)+(c.fee||0),0); if(made>0&&made>sold) stock+=spent/made*(made-sold) }
+  const k=(l,v,sub,c)=>`<div class="card kpi"><div class="label">${l}</div><div class="value ${c||''}">${v}</div>${sub?`<div class="sub">${sub}</div>`:''}</div>`;
+  $('#res-kpis').innerHTML=k('Lucro líquido no período',fmt(net),`${fmt(totRev)} vendas − ${fmt(totCost)} craft − ${fmt(totLoss)} gank`,cls(net))
+    +k('Média por dia',fmt(perDay),`meta ${fmt(metaDay)}/dia · ${nDays?pct(perDay/metaDay,0):'—'} da meta`,perDay>=metaDay?'pos':cls(perDay))
+    +k('Projeção mensal',fmt(perDay*30),`meta ${fmt(S.config.metaMensal)}`,perDay*30>=S.config.metaMensal?'pos':cls(perDay))
+    +k('Prata por focus (real)',totFocus?fmt(net/totFocus,1):'—',`${fmtFull(totFocus)} focus gastos`,totFocus?cls(net):'')
+    +k('Perdido em gank',fmt(totLoss),`${trans.filter(t=>t.result==='dead').length} morte(s) em ${trans.length} viagem(ns)`,totLoss>0?'neg':'')
+    +k('Capital preso em estoque',fmt(stock),'estimativa pelo custo de craft não vendido','');
+  // premium
+  $('#res-premium').innerHTML=`<div class="grid kpi">${k('Premium gera por dia',fmt(premiumDay),`${fmt(matSaved)} em material poupado + ${fmt(taxSaved)} de imposto`,premiumDay>=premiumCostDay?'pos':'neg')}${k('Premium custa por dia',fmt(premiumCostDay),`${fmt(S.config.premiumCost)} ÷ 30`,'')}</div><p class="hint" style="margin-top:8px">${nDays&&crafts.length?(premiumDay>=premiumCostDay?`Com os registros do período, o premium se paga: sobra ${fmt(premiumDay-premiumCostDay)} por dia. Isso ignora o que você nem conseguiria craftar sem focus, então é uma estimativa conservadora.`:`Com os registros do período, o premium ainda não se paga: faltam ${fmt(premiumCostDay-premiumDay)} por dia. Lembre que sem focus o retorno cai para o valor "sem focus" de cada receita.`):'Registre sessões de craft e vendas para o comparativo aparecer.'}</p>`;
+  // mounts
+  const mrows=S.config.mounts.map(m=>{const ts=S.transports.filter(t=>t.mountId===m.id); const d=ts.filter(t=>t.result==='dead').length; const real=ts.length?d/ts.length:null; return `<tr><td>${esc(m.name)}</td><td class="num">${ts.length}</td><td class="num">${d}</td><td class="num">${pct((m.p||0)/100)}</td><td class="num">${real==null?'—':pct(real)}</td><td class="num">${fmt(ts.reduce((a,t)=>a+(t.loss||0),0))}</td></tr>`}).join('');
+  $('#res-mounts').innerHTML=`<thead><tr><th>Montaria</th><th class="num">Viagens</th><th class="num">Mortes</th><th class="num">p configurado</th><th class="num">p real</th><th class="num">Perda</th></tr></thead><tbody>${mrows}</tbody>`;
+  // by item
+  const irows=S.items.map(it=>{const cs=crafts.filter(c=>c.itemId===it.id), ss=sales.filter(s=>s.itemId===it.id); if(!cs.length&&!ss.length) return ''; const cost=cs.reduce((a,c)=>a+(c.mat||0)+(c.fee||0),0), rev=ss.reduce((a,s)=>a+(s.net||0),0), f=cs.reduce((a,c)=>a+(c.focus||0),0), made=cs.reduce((a,c)=>a+c.qty*(it.out||1),0), sold=ss.reduce((a,s)=>a+s.qty,0); return `<tr><td>${esc(it.name)}</td><td class="num">${made}</td><td class="num">${sold}</td><td class="num">${fmt(cost)}</td><td class="num">${fmt(rev)}</td><td class="num ${cls(rev-cost)}">${fmt(rev-cost)}</td><td class="num">${f?fmt((rev-cost)/f,1):'—'}</td></tr>`}).join('');
+  $('#res-items').innerHTML=`<thead><tr><th>Item</th><th class="num">Feitas</th><th class="num">Vendidas</th><th class="num">Custo</th><th class="num">Vendas</th><th class="num">Resultado</th><th class="num">Prata/focus</th></tr></thead><tbody>${irows||'<tr><td colspan="7" class="muted">Sem registros no período.</td></tr>'}</tbody>`;
+  // bonus history
+  const bl=S.bonusLog.slice().sort((a,b)=>b.date.localeCompare(a.date)).slice(0,60);
+  const wd=['dom','seg','ter','qua','qui','sex','sáb'];
+  $('#res-bonus').innerHTML=`<thead><tr><th>Data</th><th>Dia</th><th>Item</th></tr></thead><tbody>${bl.map(b=>`<tr><td>${b.date}</td><td>${wd[new Date(b.date+'T12:00:00').getDay()]}</td><td>${esc(b.itemName)}</td></tr>`).join('')||'<tr><td colspan="3" class="muted">Nenhum bônus registrado.</td></tr>'}</tbody>`;
+  // charts
+  const series=buildDailySeries(byDay,range);
+  $('#chart-daily').innerHTML=barChart(series);
+  $('#chart-cum').innerHTML=cumChart(series,metaDay);
+}
+function buildDailySeries(byDay,range){
+  const out=[]; const n=range==='all'?null:+range;
+  if(n){ const d=new Date(); d.setHours(0,0,0,0); for(let i=n-1;i>=0;i--){ const x=new Date(d); x.setDate(d.getDate()-i); const key=x.getFullYear()+'-'+String(x.getMonth()+1).padStart(2,'0')+'-'+String(x.getDate()).padStart(2,'0'); const v=byDay[key]; out.push({date:key,net:v?v.rev-v.cost-v.loss:0}) } }
+  else { for(const key of Object.keys(byDay).sort()){ const v=byDay[key]; out.push({date:key,net:v.rev-v.cost-v.loss}) } }
+  return out;
+}
+function niceMax(v){ if(v<=0) return 1; const p=Math.pow(10,Math.floor(Math.log10(v))); const m=v/p; const s=m<=1?1:m<=2?2:m<=5?5:10; return s*p }
+function barChart(series){
+  const W=640,H=220,L=48,R=8,T=12,B=28; const iw=W-L-R, ih=H-T-B;
+  if(!series.length) return '<p class="muted">Sem dados.</p>';
+  const maxAbs=niceMax(Math.max(...series.map(s=>Math.abs(s.net)),1));
+  const hasNeg=series.some(s=>s.net<0);
+  const y0=hasNeg?T+ih/2:T+ih; const scale=(hasNeg?ih/2:ih)/maxAbs;
+  const bw=Math.max(2,iw/series.length-2);
+  const bars=series.map((s,i)=>{const x=L+i*(iw/series.length)+1; const h=Math.abs(s.net)*scale; const y=s.net>=0?y0-h:y0; const fill=s.net>=0?'var(--s1)':'var(--neg)'; return `<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${bw.toFixed(1)}" height="${Math.max(h,s.net?1:0).toFixed(1)}" rx="2" fill="${fill}" data-tip="${s.date}: ${fmtFull(s.net)}"><title>${s.date}: ${fmtFull(s.net)}</title></rect>`}).join('');
+  const ticks=[maxAbs,maxAbs/2,0].concat(hasNeg?[-maxAbs/2,-maxAbs]:[]);
+  const grid=ticks.map(t=>{const y=y0-t*scale; return `<line x1="${L}" x2="${W-R}" y1="${y}" y2="${y}"/><text x="${L-6}" y="${y+4}" text-anchor="end">${fmt(t)}</text>`}).join('');
+  const step=Math.ceil(series.length/6); const xl=series.map((s,i)=>i%step===0?`<text x="${(L+i*(iw/series.length)+bw/2).toFixed(1)}" y="${H-8}" text-anchor="middle">${s.date.slice(5)}</text>`:'').join('');
+  return `<svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="Lucro líquido por dia"><g class="grid">${grid}</g><line class="axis" x1="${L}" x2="${W-R}" y1="${y0}" y2="${y0}"/>${bars}${xl}</svg>`;
+}
+function cumChart(series,metaDay){
+  const W=640,H=220,L=48,R=8,T=12,B=28; const iw=W-L-R, ih=H-T-B;
+  if(!series.length) return '<p class="muted">Sem dados.</p>';
+  let acc=0; const cum=series.map(s=>acc+=s.net); const meta=series.map((s,i)=>metaDay*(i+1));
+  const maxV=niceMax(Math.max(...cum,...meta,1)); const minV=Math.min(0,...cum); const span=maxV-minV||1;
+  const y=v=>T+ih-(v-minV)/span*ih; const x=i=>L+(series.length===1?iw/2:i*iw/(series.length-1));
+  const path=a=>a.map((v,i)=>(i?'L':'M')+x(i).toFixed(1)+' '+y(v).toFixed(1)).join(' ');
+  const ticks=[maxV,maxV/2,0].concat(minV<0?[minV]:[]);
+  const grid=ticks.map(t=>`<line x1="${L}" x2="${W-R}" y1="${y(t)}" y2="${y(t)}"/><text x="${L-6}" y="${y(t)+4}" text-anchor="end">${fmt(t)}</text>`).join('');
+  const step=Math.ceil(series.length/6); const xl=series.map((s,i)=>i%step===0?`<text x="${x(i).toFixed(1)}" y="${H-8}" text-anchor="middle">${s.date.slice(5)}</text>`:'').join('');
+  const pts=series.map((s,i)=>`<circle cx="${x(i).toFixed(1)}" cy="${y(cum[i]).toFixed(1)}" r="7" fill="transparent" data-tip="${s.date}: acumulado ${fmtFull(cum[i])} · meta ${fmtFull(meta[i])}"></circle>`).join('');
+  const last=series.length-1;
+  return `<svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="Acumulado contra a meta"><g class="grid">${grid}</g><path d="${path(meta)}" fill="none" stroke="var(--muted)" stroke-width="1.5" stroke-dasharray="4 4"/><path d="${path(cum)}" fill="none" stroke="var(--s1)" stroke-width="2"/><circle cx="${x(last).toFixed(1)}" cy="${y(cum[last]).toFixed(1)}" r="4" fill="var(--s1)" stroke="var(--surface)" stroke-width="2"/><text x="${Math.min(x(last),W-R-40).toFixed(1)}" y="${(y(cum[last])-8).toFixed(1)}" text-anchor="end" style="fill:var(--ink);font-weight:600">${fmt(cum[last])}</text>${pts}${xl}</svg>`;
+}
+// tooltip
+(function(){const tip=$('#tip'); document.addEventListener('mousemove',e=>{const t=e.target.closest&&e.target.closest('[data-tip]'); if(t){tip.textContent=t.dataset.tip; tip.style.display='block'; tip.style.left=Math.min(e.clientX+12,window.innerWidth-250)+'px'; tip.style.top=(e.clientY+12)+'px'} else tip.style.display='none'})})();
+
+// ---------- config ----------
+function renderConfig(){
+  const c=S.config;
+  $('#cg-premium').checked=!!c.premium; $('#cg-focus').value=c.focusPerDay; $('#cg-premcost').value=c.premiumCost; $('#cg-taxp').value=c.taxPremium; $('#cg-taxn').value=c.taxNoPremium; $('#cg-orderfee').value=c.orderFee;
+  $('#cg-capital').value=c.capital; $('#cg-meta').value=c.metaMensal; $('#cg-cargo').value=c.cargoCapPct; $('#cg-buy').value=c.buyMode; $('#cg-sell').value=c.sellMode; $('#cg-quality').value=c.quality; $('#cg-server').value=c.server;
+  $('#cg-mounts').innerHTML='<thead><tr><th>Montaria</th><th>Capacidade (kg)</th><th>Valor (prata)</th><th>p morte/viagem (%)</th></tr></thead><tbody>'+c.mounts.map((m,i)=>`<tr><td><input data-m="name:${i}" value="${esc(m.name)}"></td><td><input type="number" data-m="cap:${i}" value="${m.cap}" inputmode="numeric"></td><td><input type="number" data-m="value:${i}" value="${m.value}" inputmode="numeric"></td><td><input type="number" step="any" data-m="p:${i}" value="${m.p}" inputmode="decimal"></td></tr>`).join('')+'</tbody>';
+  const size=(()=>{try{return (localStorage.getItem(LS_KEY)||'').length}catch(e){return 0}})();
+  $('#data-meta').textContent=`${S.items.length} receitas · ${S.crafts.length} crafts · ${S.sales.length} vendas · ${S.transports.length} viagens · ${(size/1024).toFixed(1)} kB salvos`;
+  $('#prices-meta').textContent=S.pricesAt?'última atualização '+ageStr(new Date(S.pricesAt)):'nunca atualizado';
+}
+function readConfig(){
+  const c=S.config;
+  c.premium=$('#cg-premium').checked; c.focusPerDay=+$('#cg-focus').value||0; c.premiumCost=+$('#cg-premcost').value||0; c.taxPremium=+$('#cg-taxp').value||0; c.taxNoPremium=+$('#cg-taxn').value||0; c.orderFee=+$('#cg-orderfee').value||0;
+  c.capital=+$('#cg-capital').value||0; c.metaMensal=+$('#cg-meta').value||0; c.cargoCapPct=+$('#cg-cargo').value||10; c.buyMode=$('#cg-buy').value; c.sellMode=$('#cg-sell').value; c.quality=+$('#cg-quality').value||1; c.server=$('#cg-server').value;
+  $$('#cg-mounts input[data-m]').forEach(inp=>{const [k,i]=inp.dataset.m.split(':'); const m=c.mounts[+i]; if(!m) return; m[k]=k==='name'?inp.value:(+inp.value||0)});
+}
+
+// ---------- render all ----------
+function renderAll(){ renderHeader(); renderDecision(); renderCatalog(); renderLog(); renderConfig(); if(currentTab==='resultados') renderResults(); }
+
+// ---------- eventos ----------
+function bind(){
+  buildTabs(); fillFamilySelects();
+  ['cf-date','sf-date','tf-date','bf-date'].forEach(id=>$('#'+id).value=today());
+  $('#tf-time').value=new Date().toTimeString().slice(0,5);
+  // decisão
+  ['dec-sort','dec-city','dec-bm','dec-hide'].forEach(id=>$('#'+id).addEventListener('change',renderDecision));
+  $('#dec-table').addEventListener('click',e=>{
+    const cb=e.target.closest('input[data-bonus]');
+    if(cb){ const it=itemById(cb.dataset.bonus); it.bonus=cb.checked; if(cb.checked&&!S.bonusLog.some(b=>b.date===today()&&b.itemId===it.id)) S.bonusLog.push({id:uid(),date:today(),itemId:it.id,itemName:it.name}); save(); renderDecision(); renderLog(); return }
+    if(e.target.closest('label')) return;
+    const tr=e.target.closest('tr[data-id]'); if(tr) renderDetail(tr.dataset.id);
+  });
+  document.addEventListener('click',e=>{
+    if(e.target.id==='detail-close'){$('#dec-detail').style.display='none';return}
+    const ed=e.target.closest('[data-edit]'); if(ed){ fillItemForm(itemById(ed.dataset.edit)); showTab('catalogo'); return }
+    const dp=e.target.closest('[data-dup]'); if(dp){ const it=JSON.parse(JSON.stringify(itemById(dp.dataset.dup))); it.id=uid(); it.name+=' (cópia)'; S.items.push(it); save(); renderAll(); fillItemForm(it); return }
+    const dl=e.target.closest('[data-del]'); if(dl){ if(dl.dataset.confirm){ S.items=S.items.filter(i=>i.id!==dl.dataset.del); save(); renderAll(); toast('Receita removida') } else { dl.dataset.confirm='1'; dl.textContent='confirmar?'; setTimeout(()=>{delete dl.dataset.confirm; dl.textContent='✕'},2500) } return }
+    const ld=e.target.closest('[data-logdel]'); if(ld){ const [k,id]=ld.dataset.logdel.split(':'); if(ld.dataset.confirm){ S[k]=S[k].filter(x=>x.id!==id); save(); renderLog(); if(currentTab==='resultados') renderResults() } else { ld.dataset.confirm='1'; ld.textContent='confirmar?'; setTimeout(()=>{delete ld.dataset.confirm; ld.textContent='✕'},2500) } return }
+  });
+  $('#btn-prices').addEventListener('click',fetchPrices); $('#btn-prices-2').addEventListener('click',fetchPrices);
+  // catálogo
+  ['it-family','it-tier','it-ench'].forEach(id=>$('#'+id).addEventListener('change',syncItemFromFamily));
+  $('#ing-add').addEventListener('click',()=>{const fam=famById($('#ing-family').value); if(!fam||fam.kind==='custom'){toast('Escolha uma família ou use ID manual');return} const t=$('#ing-tier').value,en=$('#ing-ench').value; editingIngs.push({itemId:makeItemId(fam,t,en),name:makeName(fam,t,en),qty:+$('#ing-qty').value||1}); renderIngs()});
+  $('#ing-add-custom').addEventListener('click',()=>{const id=$('#ing-custom').value.trim().toUpperCase(); if(!id){toast('Informe o ID');return} editingIngs.push({itemId:id,name:nameFromId(id),qty:+$('#ing-custom-qty').value||1}); $('#ing-custom').value=''; renderIngs()});
+  $('#ing-list').addEventListener('click',e=>{const b=e.target.closest('[data-ingdel]'); if(b){editingIngs.splice(+b.dataset.ingdel,1); renderIngs()}});
+  $('#ing-list').addEventListener('input',e=>{const i=e.target.dataset.ingqty; if(i!=null) editingIngs[+i].qty=+e.target.value||1});
+  $('#item-form').addEventListener('submit',e=>{e.preventDefault(); const it=readItemForm(); if(!it.name||!it.itemId){toast('Nome e ID são obrigatórios');return} const idx=S.items.findIndex(i=>i.id===it.id); if(idx>=0) S.items[idx]=it; else S.items.push(it); save(); renderAll(); fillItemForm(null); toast('Receita salva'); if(!S.prices[it.itemId]) $('#prices-log').textContent='Novo item sem preço: atualize os preços.'});
+  $('#it-cancel').addEventListener('click',()=>fillItemForm(null));
+  // registros
+  ['cf-item','cf-qty'].forEach(id=>$('#'+id).addEventListener('change',()=>{['cf-focus','cf-fee','cf-mat'].forEach(i=>delete $('#'+i).dataset.touched); craftAuto()}));
+  ['cf-focus','cf-fee','cf-mat'].forEach(id=>$('#'+id).addEventListener('input',e=>e.target.dataset.touched='1'));
+  $('#craft-form').addEventListener('submit',e=>{e.preventDefault(); const it=itemById($('#cf-item').value); if(!it){toast('Escolha um item');return} S.crafts.push({id:uid(),date:$('#cf-date').value||today(),itemId:it.id,itemName:it.name,qty:+$('#cf-qty').value||1,focus:+$('#cf-focus').value||0,mat:+$('#cf-mat').value||0,fee:+$('#cf-fee').value||0,bonus:$('#cf-bonus').checked,notes:$('#cf-notes').value}); save(); ['cf-focus','cf-fee','cf-mat'].forEach(i=>delete $('#'+i).dataset.touched); $('#cf-notes').value=''; craftAuto(); renderLog(); renderConfig(); toast('Craft registrado')});
+  ['sf-item','sf-loc','sf-q','sf-mode'].forEach(id=>$('#'+id).addEventListener('change',()=>{delete $('#sf-price').dataset.touched; saleAuto()}));
+  $('#sf-price').addEventListener('input',e=>{e.target.dataset.touched='1'; saleAuto()}); $('#sf-qty').addEventListener('input',saleAuto);
+  $('#sale-form').addEventListener('submit',e=>{e.preventDefault(); const it=itemById($('#sf-item').value); if(!it){toast('Escolha um item');return} const price=+$('#sf-price').value||0, qty=+$('#sf-qty').value||1, loc=$('#sf-loc').value, mode=$('#sf-mode').value; S.sales.push({id:uid(),date:$('#sf-date').value||today(),itemId:it.id,itemName:it.name,q:+$('#sf-q').value,qty,price,loc,mode,net:saleNet(price,qty,mode,loc)}); save(); delete $('#sf-price').dataset.touched; saleAuto(); renderLog(); renderConfig(); toast('Venda registrada')});
+  $('#tr-form').addEventListener('submit',e=>{e.preventDefault(); const m=mountById($('#tf-mount').value); const result=$('#tf-result').value; const value=+$('#tf-value').value||0; const loss=result==='dead'?value+(m?m.value||0:0):0; S.transports.push({id:uid(),date:$('#tf-date').value||today(),time:$('#tf-time').value,mountId:m?m.id:'',mountName:m?m.name:'',from:$('#tf-from').value,value,kg:+$('#tf-kg').value||0,result,loss,notes:$('#tf-notes').value}); save(); $('#tf-value').value=''; $('#tf-kg').value=''; $('#tf-notes').value=''; renderLog(); renderConfig(); toast(result==='dead'?'Viagem registrada com perda de '+fmt(loss):'Viagem registrada')});
+  $('#bf-add').addEventListener('click',()=>{const it=itemById($('#bf-item').value); if(!it) return; const d=$('#bf-date').value||today(); if(S.bonusLog.some(b=>b.date===d&&b.itemId===it.id)){toast('Já registrado');return} S.bonusLog.push({id:uid(),date:d,itemId:it.id,itemName:it.name}); if(d===today()){it.bonus=true} save(); renderLog(); renderDecision(); toast('Bônus registrado')});
+  $('#log-kind').addEventListener('change',renderLog);
+  $('#res-range').addEventListener('change',renderResults);
+  // config
+  $('#cfg-form').addEventListener('submit',e=>{e.preventDefault(); readConfig(); save(); renderAll(); toast('Configuração salva')});
+  $('#btn-export').addEventListener('click',()=>{const blob=new Blob([JSON.stringify(S,null,2)],{type:'application/json'}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='albion-craft-ops-'+today()+'.json'; document.body.appendChild(a); a.click(); setTimeout(()=>{URL.revokeObjectURL(a.href); a.remove()},500)});
+  $('#file-import').addEventListener('change',e=>{const f=e.target.files[0]; if(!f) return; const rd=new FileReader(); rd.onload=()=>{try{const s=JSON.parse(rd.result); if(!s||!Array.isArray(s.items)) throw new Error('formato inválido'); S=s; S.config=Object.assign(defaultState().config,S.config||{}); save(); S=load(); renderAll(); toast('Dados importados')}catch(err){toast('Falha ao importar: '+err.message)} e.target.value=''}; rd.readAsText(f)});
+  $('#btn-wipe').addEventListener('click',e=>{const b=e.currentTarget; if(b.dataset.confirm){ try{localStorage.removeItem(LS_KEY)}catch(x){} S=defaultState(); save(); renderAll(); fillItemForm(null); b.textContent='Apagar tudo'; delete b.dataset.confirm; toast('Dados apagados') } else { b.dataset.confirm='1'; b.textContent='Confirmar: apagar tudo?'; setTimeout(()=>{delete b.dataset.confirm; b.textContent='Apagar tudo'},3000) }});
+  // limpar bônus de dias anteriores ao abrir
+  const lastOpen=(()=>{try{return localStorage.getItem(LS_KEY+':day')}catch(e){return null}})();
+  if(lastOpen&&lastOpen!==today()){ let changed=false; for(const it of S.items){ if(it.bonus){it.bonus=false;changed=true} } if(changed){save(); toast('Bônus diário de ontem desmarcado')} }
+  try{localStorage.setItem(LS_KEY+':day',today())}catch(e){}
+}
+
+bind();
+renderAll();
+fillItemForm(null);
+craftAuto(); saleAuto();
+let startTab='decisao'; try{startTab=localStorage.getItem(LS_KEY+':tab')||'decisao'}catch(e){}
+showTab(TABS.some(t=>t.id===startTab)?startTab:'decisao');
+})();
+</script>
+</body>
+</html>
