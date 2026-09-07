@@ -112,7 +112,7 @@
   <div class="faq">
     <h3>Perguntas que aparecem aqui</h3>
     <details><summary>Por que "não" é stopword se ele inverte o sentido?</summary><p>Porque as listas de stopwords foram feitas para recuperação por assunto, e "não" aparece em quase todo documento: como termo de busca, não discrimina nada. Você pode criar uma configuração sem ele na lista, mas isso não faz a busca entender negação; só faz "não" virar um termo obrigatório, o que costuma piorar. Negação é problema do modelo de linguagem, com o trecho inteiro no prompt.</p><p class="why">Stopword é uma decisão estatística, não semântica.</p></details>
-    <details><summary>Acentos atrapalham?</summary><p>Na configuração <code>'portuguese'</code> padrão, "licitação" e "licitacao" viram radicais diferentes. Como o usuário digita de qualquer jeito e PDFs perdem acentos, o projeto usa a extensão <code>unaccent</code> numa configuração própria (capítulo 5) que remove acentos antes do stemmer, nos dois lados. O guia já faz isso no navegador.</p><p class="why">Normalize os dois lados; o que difere entre eles vira erro silencioso.</p></details>
+    <details><summary>Acentos atrapalham?</summary><p>Atrapalham dos dois lados, e a solução óbvia tem um custo que quase ninguém menciona. Na configuração <code>'portuguese'</code>, "licitacao" digitado sem acento não casa com "licitação" no texto da lei. A receita usual é pôr o <code>unaccent</code> antes do stemmer — só que o stemmer português <em>depende do acento</em> para reconhecer o sufixo <code>-ção</code>: sem ele, "licitação" vira <code>licitaca</code> e "licitações" vira <code>licitaco</code>, e singular e plural deixam de casar. O projeto indexa as duas configurações em colunas separadas e busca nas duas (capítulo 5).</p><p class="why">Normalizar os dois lados é obrigatório; qual normalização usar é uma medição, não um hábito.</p></details>
     <details><summary>Como o parser trata "R$ 100.000,00" e "§ 2º"?</summary><p>De um jeito que você precisa conferir com <code>ts_debug</code>: o parser reconhece números, decimais e até "versões" (1.2.3) como tipos de token diferentes, e o cifrão e o parágrafo podem ser descartados como pontuação. Para buscar por esses identificadores com precisão, o projeto mantém colunas próprias (<code>dispositivo</code>, <code>norma</code>) com índice B-tree ou <code>pg_trgm</code>, e não depende do tsvector para eles.</p><p class="why">Identificadores estruturados merecem coluna própria.</p></details>
     <details><summary>O que são as posições e para que servem?</summary><p>Cada lexema guarda as posições (1, 2, 3…) em que ocorreu, contando também as stopwords descartadas. Servem para o operador de frase (<code>&lt;-&gt;</code> exige posições consecutivas), para o <code>ts_rank_cd</code> (proximidade entre termos) e para o <code>ts_headline</code> (destacar o trecho). Sem posições (função <code>strip</code>), o tsvector é menor mas perde isso.</p><p class="why">Posições custam espaço e compram frase e proximidade.</p></details>
   </div>
@@ -198,7 +198,21 @@
 
   <p>Sem índice, <code>WHERE tsv @@ tsquery</code> é uma varredura: o banco lê cada tsvector e testa. O índice <strong>GIN</strong> (<em>Generalized Inverted Index</em>) inverte a relação: em vez de "trecho → lexemas", guarda "lexema → lista de trechos que o contêm" (a <em>lista de postagens</em>). Uma consulta por "engenharia &amp; dispensa" abre as duas listas, cruza, e só toca nos trechos que estão nas duas. É a mesma estrutura de todo buscador de texto, e é exata: não há recall a perder, só desempenho a ganhar.</p>
   <p>No projeto, o tsvector é uma <strong>coluna gerada</strong> (<code>GENERATED ALWAYS AS (…) STORED</code>): calculada pelo banco a cada inserção, com a configuração fixa no DDL, o que garante que todo trecho passa pela mesma normalização e que ninguém esquece de atualizá-la. O GIN vai sobre essa coluna. Duas observações operacionais: o GIN é lento para atualizar um a um (ele agrupa as atualizações numa lista pendente, <code>fastupdate</code>, e as incorpora depois; em cargas grandes, é mais rápido carregar e criar o índice ao final); e o <code>EXPLAIN</code> de uma consulta que usa GIN mostra <code>Bitmap Index Scan</code> seguido de <code>Bitmap Heap Scan</code>, não <code>Index Scan</code> simples.</p>
-  <p>A configuração de busca do projeto é própria, criada a partir da <code>'portuguese'</code> com o <code>unaccent</code> na frente do stemmer, para que "licitacao" e "licitação" produzam o mesmo radical nos dois lados. A alternativa (<code>'simple'</code>, sem stemmer nem stopwords) tem o seu lugar: para a coluna de identificadores (<code>dispositivo</code>), onde "art. 75" deve casar exatamente, uma configuração simples ou um índice <code>pg_trgm</code> é melhor que a radicalização.</p>
+  <p>A configuração de busca merece um parágrafo próprio, porque a receita mais divulgada tem um efeito colateral em português. Ela cria uma configuração a partir da <code>'portuguese'</code> com o <code>unaccent</code> <strong>na frente</strong> do stemmer, para que "licitacao" e "licitação" produzam o mesmo radical. Funciona para o acento — e quebra a radicalização, porque o stemmer português usa o acento para identificar o sufixo <code>-ção</code>. Com o <code>unaccent</code> antes dele, "licitação" vira <code>licitaca</code> e "licitações" vira <code>licitaco</code>: singular e plural param de casar, no sufixo mais comum do vocabulário jurídico. O mesmo acontece com <code>-ável</code>/<code>-áveis</code>.</p>
+  <table class="uptbl">
+    <thead><tr><th>palavra</th><th><code>'portuguese'</code></th><th><code>pt_unaccent</code></th></tr></thead>
+    <tbody>
+      <tr><td>licitação</td><td><code>licit</code></td><td><code>licitaca</code></td></tr>
+      <tr><td>licitações</td><td><code>licit</code></td><td><code>licitaco</code></td></tr>
+      <tr><td>dispensável</td><td><code>dispens</code></td><td><code>dispensavel</code></td></tr>
+      <tr><td>dispensáveis</td><td><code>dispens</code></td><td><code>dispensav</code></td></tr>
+      <tr><td>órgão / órgãos</td><td><code>órgã</code> (com acento)</td><td><code>orga</code></td></tr>
+      <tr><td>serviço / serviços</td><td><code>servic</code></td><td><code>servic</code></td></tr>
+    </tbody>
+  </table>
+  <p class="mini">Saída real de <code>to_tsvector</code> no PostgreSQL 16. As duas primeiras linhas são o problema: com <code>pt_unaccent</code>, uma consulta no singular não encontra o dispositivo no plural.</p>
+  <p>Nenhuma das duas configurações resolve sozinha: a <code>'portuguese'</code> radicaliza bem e exige acento na consulta; a <code>pt_unaccent</code> aceita a consulta sem acento e radicaliza pior. Como elas falham em lugares diferentes — o mesmo argumento do capítulo 1, agora dentro da busca lexical —, o projeto <strong>indexa as duas</strong>: duas colunas geradas, dois índices GIN, e a consulta pergunta às duas com <code>OR</code>. O planejador resolve isso com um <code>BitmapOr</code> sobre os dois índices. Num corpus de 20 mil dispositivos, a receita antiga encontrava 4.000 trechos para "licitações" e outros 4.002 para "licitação"; a nova encontra os 8.002 nos dois casos.</p>
+  <p>O que sobra sem cobertura é a consulta digitada <em>sem acento e em outro número</em> ("licitacoes" contra um texto que diz "licitação"): nem a coluna com acento nem a sem acento casam. Esse resto fica com a busca vetorial e com o <code>pg_trgm</code> — que é a mesma divisão de trabalho da página inteira. A alternativa <code>'simple'</code> (sem stemmer nem stopwords) tem o seu lugar: para a coluna de identificadores (<code>dispositivo</code>), onde "art. 75" deve casar exatamente, ela ou o <code>pg_trgm</code> são melhores que a radicalização.</p>
 
   <div class="lab">
     <header><h4>Experimento · O índice invertido do corpus</h4><span class="badge toy">roda no navegador</span></header>
@@ -387,29 +401,38 @@ art17</textarea></div>
   <div class="ch-head"><span class="n">Capítulo 10</span><h2>No projeto, checklist e autoavaliação</h2><label class="donebox"><input type="checkbox" data-done> Capítulo concluído</label></div>
 
   <h3>No projeto</h3>
-  <p>A tabela <code>rag.trecho_normativo</code> tem uma coluna gerada <code>tsv</code> com o tsvector do dispositivo (peso A) e do conteúdo (peso D), produzida por uma configuração própria <code>pt_unaccent</code> (a <code>'portuguese'</code> com <code>unaccent</code> antes do stemmer), e um índice GIN sobre ela. A coluna <code>dispositivo</code> tem um índice <code>pg_trgm</code> para busca exata e tolerante de identificadores. A consulta híbrida roda inteira no banco: duas CTEs de 50 candidatos (vetorial com <code>ef_search</code> = 100 e varredura iterativa; lexical com <code>websearch_to_tsquery</code> em modo "ou" e <code>ts_rank_cd</code> com normalização 32), fusão por RRF com K = 60 via <code>FULL OUTER JOIN</code>, e <code>LIMIT 12</code>. O ia-worker recebe os 12 com as posições em cada lista (para o log e para o analista ver "por que este trecho"), e o reranker fica atrás de uma flag. O recall@k das três buscas é medido pelo Ex. 7 sobre o conjunto de avaliação e registrado por versão da base.</p>
+  <p>A tabela <code>rag.trecho_normativo</code> tem duas colunas geradas com o tsvector do dispositivo (peso A) e do conteúdo (peso D): <code>tsv</code> pela configuração <code>'portuguese'</code> e <code>tsv_una</code> pela <code>pt_unaccent</code> (a <code>'portuguese'</code> com <code>unaccent</code> antes do stemmer), cada uma com o seu índice GIN, pelas razões do capítulo 5. A coluna <code>dispositivo</code> tem um índice <code>pg_trgm</code> para busca exata e tolerante de identificadores. A consulta híbrida roda inteira no banco: duas CTEs de 50 candidatos (vetorial com <code>ef_search</code> = 100 e varredura iterativa; lexical com <code>websearch_to_tsquery</code> em modo "ou" e <code>ts_rank_cd</code> com normalização 32), fusão por RRF com K = 60 via <code>FULL OUTER JOIN</code>, e <code>LIMIT 12</code>. O ia-worker recebe os 12 com as posições em cada lista (para o log e para o analista ver "por que este trecho"), e o reranker fica atrás de uma flag. O recall@k das três buscas é medido pelo Ex. 7 sobre o conjunto de avaliação e registrado por versão da base.</p>
   <p>O Ex. 4 (VIN-8) é escrever essa consulta sobre a tabela do Ex. 3, com os candidatos e o K parametrizados, e medir as três buscas nas perguntas do conjunto, como o capítulo 9 fez aqui.</p>
 
   <h3>Código de referência</h3>
-<pre><code class="language-sql">-- configuração de busca: português + unaccent (uma vez por banco)
+<pre><code class="language-sql">-- duas configurações: a 'portuguese' radicaliza melhor, a pt_unaccent aceita
+-- consulta sem acento. Elas falham em lugares diferentes, então indexamos as duas.
 CREATE EXTENSION IF NOT EXISTS unaccent;
 CREATE EXTENSION IF NOT EXISTS pg_trgm;
 CREATE TEXT SEARCH CONFIGURATION pt_unaccent (COPY = portuguese);
 ALTER TEXT SEARCH CONFIGURATION pt_unaccent
   ALTER MAPPING FOR hword, hword_part, word WITH unaccent, portuguese_stem;
 
--- coluna gerada com pesos (A = dispositivo, D = conteúdo) e índices
+-- duas colunas geradas com pesos (A = dispositivo, D = conteúdo), um GIN em cada
 ALTER TABLE rag.trecho_normativo ADD COLUMN tsv tsvector
+  GENERATED ALWAYS AS (
+    setweight(to_tsvector('portuguese', coalesce(dispositivo, '')), 'A') ||
+    setweight(to_tsvector('portuguese', coalesce(conteudo, '')), 'D')
+  ) STORED;
+ALTER TABLE rag.trecho_normativo ADD COLUMN tsv_una tsvector
   GENERATED ALWAYS AS (
     setweight(to_tsvector('pt_unaccent', coalesce(dispositivo, '')), 'A') ||
     setweight(to_tsvector('pt_unaccent', coalesce(conteudo, '')), 'D')
   ) STORED;
-CREATE INDEX trecho_tsv_gin ON rag.trecho_normativo USING gin (tsv);
-CREATE INDEX trecho_disp_trgm ON rag.trecho_normativo USING gin (dispositivo gin_trgm_ops);
+CREATE INDEX trecho_tsv_gin     ON rag.trecho_normativo USING gin (tsv);
+CREATE INDEX trecho_tsv_una_gin ON rag.trecho_normativo USING gin (tsv_una);
+CREATE INDEX trecho_disp_trgm   ON rag.trecho_normativo USING gin (dispositivo gin_trgm_ops);
 ANALYZE rag.trecho_normativo;
 
--- conferir a normalização token a token
-SELECT * FROM ts_debug('pt_unaccent', 'Art. 75, inc. I — obras e serviços de engenharia');</code></pre>
+-- conferir a normalização token a token, nas duas configurações
+SELECT * FROM ts_debug('portuguese',  'Art. 75 — licitações dispensáveis');
+SELECT * FROM ts_debug('pt_unaccent', 'Art. 75 — licitações dispensáveis');</code></pre>
+  <p class="mini">Uma coluna só bastaria se o português não usasse acento para formar sufixo. Como usa, cada coluna cobre o que a outra perde, e o <code>EXPLAIN</code> mostra um <code>BitmapOr</code> sobre os dois índices. O custo é um índice GIN a mais — pequeno perto dos vetores da página 3.</p>
 
 <pre><code class="language-sql">-- busca híbrida: 50 + 50 candidatos, RRF com K = 60, 12 finais
 -- parâmetros: %(qv)s vetor da consulta, %(q)s texto, %(modelo)s, %(data)s data do documento
@@ -427,15 +450,18 @@ WITH vet AS (
     LIMIT 50
   ) v
 ),
+consulta AS (
+  -- modo "ou": qualquer termo casa; a ordenação decide. Uma tsquery por configuração.
+  SELECT tsquery(replace(websearch_to_tsquery('portuguese',  %(q)s)::text, '&', '|')) AS qp,
+         tsquery(replace(websearch_to_tsquery('pt_unaccent', %(q)s)::text, '&', '|')) AS qu
+),
 lex AS (
   SELECT id, ROW_NUMBER() OVER (ORDER BY nota DESC) AS pos
   FROM (
-    SELECT id, ts_rank_cd(tsv, q, 32) AS nota
-    FROM rag.trecho_normativo,
-         -- modo "ou": qualquer termo casa; a ordenação decide
-         replace(websearch_to_tsquery('pt_unaccent', %(q)s)::text, '&', '|')::tsquery AS q
-    WHERE tsv @@ q
-      AND vigencia_inicio <= %(data)s::date AND (vigencia_fim IS NULL OR vigencia_fim > %(data)s::date)
+    SELECT t.id, greatest(ts_rank_cd(t.tsv, c.qp, 32), ts_rank_cd(t.tsv_una, c.qu, 32)) AS nota
+    FROM rag.trecho_normativo t, consulta c
+    WHERE (t.tsv @@ c.qp OR t.tsv_una @@ c.qu)
+      AND t.vigencia_inicio <= %(data)s::date AND (t.vigencia_fim IS NULL OR t.vigencia_fim > %(data)s::date)
     ORDER BY nota DESC
     LIMIT 50
   ) l
@@ -448,13 +474,13 @@ JOIN rag.trecho_normativo t USING (id)
 ORDER BY rrf DESC
 LIMIT 12;
 COMMIT;</code></pre>
-  <p class="mini">A troca de <code>&amp;</code> por <code>|</code> no texto da tsquery, com o <code>::tsquery</code> em vez de <code>to_tsquery</code> (para não radicalizar duas vezes), é o jeito mais simples de obter o modo "ou" a partir do <code>websearch_to_tsquery</code>; preserva aspas (frases) e exclusões. Na CTE vetorial, o alias <code>dist</code> no <code>ORDER BY</code> resolve para o operador e o índice continua sendo usado; confira com <code>EXPLAIN</code>.</p>
+  <p class="mini">Dois detalhes da CTE lexical. A troca de <code>&amp;</code> por <code>|</code> no texto da tsquery é o jeito mais simples de obter o modo "ou" a partir do <code>websearch_to_tsquery</code>, e preserva aspas (frases) e exclusões; ela precisa voltar a ser tsquery pela função <code>tsquery(...)</code>, e não por um <code>::tsquery</code> — um cast não é uma chamada de função e o <code>FROM</code> não o aceita. E <code>greatest</code> em vez de somar as duas notas: quando as duas colunas casam, somar contaria o mesmo trecho duas vezes. Na CTE vetorial, o alias <code>dist</code> no <code>ORDER BY</code> resolve para o operador e o índice continua sendo usado; confira com <code>EXPLAIN</code>.</p>
 
 <pre><code class="language-python"># hibrida.py — chama a consulta acima e registra as posições (Ex. 4)
 import psycopg
 from embutir import embutir            # do Ex. 3: RETRIEVAL_QUERY, 768 dims, normalizado
 
-SQL_HIBRIDA = open("sql/hibrida.sql").read()   # a consulta do capítulo 10
+SQL_HIBRIDA = open("sql/hibrida.sql").read()   # a consulta do capítulo 10 (duas configurações)
 
 def buscar(conn, pergunta: str, data_documento: str, modelo="gemini-embedding-001", k=12):
     [qv] = embutir([pergunta], "RETRIEVAL_QUERY")
@@ -483,7 +509,7 @@ def recall_at_k(conn, avaliacao: list[dict], k=12) -> dict:
     <li><input type="checkbox" id="ck4-2"><label for="ck4-2">Escrevo tsquery de termos, frase, prefixo, exclusão e "ou", e sei quando usar websearch_to_tsquery.</label></li>
     <li><input type="checkbox" id="ck4-3"><label for="ck4-3">Explico ts_rank, ts_rank_cd, pesos A–D e normalização, e por que nenhum deles é BM25.</label></li>
     <li><input type="checkbox" id="ck4-4"><label for="ck4-4">Escrevo a fórmula do BM25 e o que k1, b e idf fazem.</label></li>
-    <li><input type="checkbox" id="ck4-5"><label for="ck4-5">Crio a coluna gerada, a configuração com unaccent e o GIN; reconheço o Bitmap Index Scan.</label></li>
+    <li><input type="checkbox" id="ck4-5"><label for="ck4-5">Crio as duas colunas geradas, a configuração com unaccent e os GIN; reconheço o Bitmap Index Scan.</label></li>
     <li><input type="checkbox" id="ck4-6"><label for="ck4-6">Explico o RRF, K e por que ele usa posições; sei os três números da híbrida do projeto.</label></li>
     <li><input type="checkbox" id="ck4-7"><label for="ck4-7">Digo o que um reranker vê que as buscas não veem e quando ligá-lo.</label></li>
     <li><input type="checkbox" id="ck4-8"><label for="ck4-8">Meço recall@k das três buscas e leio o padrão de erro de cada uma.</label></li>

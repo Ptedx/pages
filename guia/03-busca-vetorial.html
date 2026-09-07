@@ -339,7 +339,7 @@ Execution Time: 2.40 ms</code></pre>
 <section class="chapter" id="c8" data-ch="p3-c8">
   <div class="ch-head"><span class="n">Capítulo 8</span><h2>Medir: recall do índice, latência e memória</h2><label class="donebox"><input type="checkbox" data-done> Capítulo concluído</label></div>
 
-  <p>Três medidas descrevem um índice em produção, e o Ex. 3 pede as três. <strong>Recall do índice</strong>: para um conjunto de consultas (as perguntas do conjunto de avaliação servem), rode a busca exata (com <code>SET enable_indexscan = off</code> ou <code>LOCAL</code> na transação) e a busca com índice, e compare as listas. <strong>Latência</strong>: não a média, mas o p50 e o p95 do <code>EXPLAIN ANALYZE</code> ou do cliente, com o índice quente (segunda execução em diante). <strong>Memória</strong>: <code>pg_relation_size('trecho_emb_hnsw')</code> depois de construir; se for maior que a memória disponível para cache, cada consulta vai ao disco e a latência sobe uma ordem de grandeza.</p>
+  <p>Três medidas descrevem um índice em produção, e o Ex. 3 pede as três. <strong>Recall do índice</strong>: para um conjunto de consultas (as perguntas do conjunto de avaliação servem), rode a busca exata (com <code>SET enable_indexscan = off</code> ou <code>LOCAL</code> na transação) e a busca com índice, e compare as listas. <strong>Latência</strong>: não a média, mas o p50 e o p95 do <code>EXPLAIN ANALYZE</code> ou do cliente, com o índice quente (segunda execução em diante). <strong>Memória</strong>: <code>pg_relation_size('rag.trecho_emb_hnsw')</code> depois de construir; se for maior que a memória disponível para cache, cada consulta vai ao disco e a latência sobe uma ordem de grandeza.</p>
   <p>O protocolo, que vira um script no Ex. 3: carregar os trechos; construir o índice com <code>maintenance_work_mem</code> suficiente (o pgvector avisa quando não é); para cada consulta do conjunto, rodar exata e aproximada e registrar recall@k e tempos; repetir para dois ou três valores de <code>ef_search</code>; escolher o menor ef que atinge o recall alvo. Guarde o resultado com a data e a versão do índice: quando a base crescer ou o modelo mudar, é o número de referência.</p>
 
 <pre><code class="language-python"># medir_indice.py — recall do índice e latência, contra a busca exata (Ex. 3)
@@ -476,7 +476,7 @@ COMMIT;
 
 -- conferir: índice usado, linhas = 50, buffers em cache
 EXPLAIN (ANALYZE, BUFFERS) SELECT … ;
-SELECT pg_size_pretty(pg_relation_size('trecho_emb_hnsw'));</code></pre>
+SELECT pg_size_pretty(pg_relation_size('rag.trecho_emb_hnsw'));</code></pre>
 
   <h3>Checklist de domínio</h3>
   <p>Marque só o que você faria sem consultar a página.</p>
