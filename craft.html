@@ -82,7 +82,7 @@ button.btn.primary{background:var(--accent);color:var(--accent-ink);border-color
 button.btn.danger{color:var(--crit);border-color:var(--crit)}
 button.btn.sm{padding:5px 9px;font-size:12.5px;font-weight:600}
 button.btn:disabled{opacity:.5;cursor:default}
-.chip{display:inline-flex;align-items:center;gap:4px;font-size:11.5px;padding:2px 8px;border-radius:999px;background:var(--surface2);color:var(--ink2);border:1px solid var(--border);white-space:nowrap}
+.chip{margin:1px 3px 1px 0;display:inline-flex;align-items:center;gap:4px;font-size:11.5px;padding:2px 8px;border-radius:999px;background:var(--surface2);color:var(--ink2);border:1px solid var(--border);white-space:nowrap}
 .chip.ok{color:var(--goodtext);border-color:var(--good)} .chip.warn{color:#8a5a00;border-color:var(--warn)} .chip.bad{color:var(--crit);border-color:var(--crit)}
 :root[data-theme="dark"] .chip.warn{color:var(--warn)}
 @media (prefers-color-scheme:dark){ :root:not([data-theme="light"]) .chip.warn{color:var(--warn)} }
@@ -195,7 +195,7 @@ details summary{cursor:pointer;font-weight:600;color:var(--ink2)}
           <h2 style="margin:0">Painel de decisão</h2>
           <span class="muted" id="dec-meta"></span>
         </div>
-        <p class="hint">Clique no item para ver os preços por cidade. Marque "bônus" no item que está com bônus diário hoje: o retorno extra entra no cálculo e o dia fica registrado no histórico.</p>
+        <p class="hint">Os preços vêm do Albion Online Data Project e valem para todo o servidor Américas — não é preciso ter nada instalado. O que falta é dado que ninguém subiu ainda para aquele item naquela cidade. Clique no item para ver os preços por cidade. Marque "bônus" no item que está com bônus diário hoje: o retorno extra entra no cálculo e o dia fica registrado no histórico.</p>
         <div class="tbl-wrap"><table class="cards" id="dec-table"></table></div>
       </div>
       <div class="card" id="dec-detail" style="display:none"></div>
@@ -389,6 +389,7 @@ details summary{cursor:pointer;font-weight:600;color:var(--ink2)}
             <label class="f"><span>Compra de material</span><select id="cg-buy"><option value="ordem">Ordem de compra (preço da maior ordem)</option><option value="instant">Compra instantânea (menor venda)</option></select></label>
             <label class="f"><span>Venda na cidade</span><select id="cg-sell"><option value="ordem">Ordem de venda (menor venda, paga setup)</option><option value="instant">Venda instantânea (maior ordem de compra)</option></select></label>
             <label class="f"><span>Qualidade usada no cálculo</span><select id="cg-quality"><option value="1">Normal</option><option value="2">Boa</option><option value="3">Excepcional</option><option value="4">Excelente</option><option value="5">Obra-prima</option></select></label>
+            <label class="f chk"><input type="checkbox" id="cg-fallback"> Usar preço de outra cidade quando faltar dado</label>
             <label class="f"><span>Servidor (AODP)</span><select id="cg-server"><option value="west">Américas (west)</option><option value="europe">Europa</option><option value="east">Ásia (east)</option></select></label>
           </div>
           <h3 style="margin-top:14px">Montarias</h3>
@@ -410,7 +411,7 @@ details summary{cursor:pointer;font-weight:600;color:var(--ink2)}
         </div>
         <div class="card">
           <h2>Preços (AODP)</h2>
-          <p class="hint">Os preços vêm do Albion Online Data Project. Só existem dados para itens que alguém com o cliente do AODP viu no mercado recentemente; com o cliente rodando enquanto você joga, os itens do seu catálogo ficam sempre atualizados.</p>
+          <p class="hint">Os preços vêm do Albion Online Data Project, um banco público alimentado por todos os jogadores que rodam o cliente dele. Você não precisa instalar nada para <b>ler</b> — o que aparece aqui é o que a comunidade já subiu do servidor Américas. Instalar o cliente serve para <b>manter fresco</b> exatamente os itens que você acompanha: itens pouco vistos, ou preços de cidades onde ninguém do seu nicho passa, simplesmente não existem no banco até alguém abrir aquele mercado.</p><p class="hint">Quando falta o preço na cidade de craft, a opção "usar preço de outra cidade" preenche com a cidade que tiver o dado mais recente, marcando a linha como referência. Serve para não travar a conta, mas o número real é o da sua cidade.</p>
           <div class="row"><button class="btn primary" id="btn-prices">Atualizar preços agora</button><span class="muted" id="prices-meta"></span></div>
           <p class="muted" id="prices-log" style="margin-top:8px;white-space:normal"></p>
         </div>
@@ -561,7 +562,7 @@ function craftItem(famId,tier,spec){
 function defaultState(){
   return {
     version:1,
-    config:{premium:true,focusPerDay:10000,premiumCost:30000000,taxPremium:4,taxNoPremium:8,orderFee:2.5,capital:30000000,metaMensal:60000000,cargoCapPct:12,buyMode:'ordem',sellMode:'ordem',quality:1,server:'west',
+    config:{premium:true,focusPerDay:10000,premiumCost:30000000,taxPremium:4,taxNoPremium:8,orderFee:2.5,capital:30000000,metaMensal:60000000,cargoCapPct:12,buyMode:'ordem',sellMode:'ordem',quality:1,server:'west',fallback:true,
       mounts:[{id:'veado',name:'Veado Gigante do Adepto (T4)',cap:265,value:133000,p:3},{id:'javali',name:'Javali Selvagem Selado (T5)',cap:905,value:0,p:5}]},
     items:[
       refineItem('Barra de Aço T4',4,'METALBAR',100,'Thetford'),
@@ -592,8 +593,8 @@ function fmtFull(n){return n==null||isNaN(n)?'—':Math.round(n).toLocaleString(
 function pct(n,d){return n==null||isNaN(n)?'—':(n*100).toLocaleString('pt-BR',{maximumFractionDigits:d==null?1:d})+'%'}
 function cls(n){return n==null?'':n>0?'pos':n<0?'neg':''}
 function parseAodpDate(s){ if(!s||s.startsWith('0001')) return null; const d=new Date(s.endsWith('Z')?s:s+'Z'); return isNaN(d)?null:d }
-function ageStr(d){ if(!d) return 'sem dado'; const h=(Date.now()-d.getTime())/36e5; if(h<1) return 'há '+Math.round(h*60)+' min'; if(h<48) return 'há '+Math.round(h)+' h'; return 'há '+Math.round(h/24)+' d' }
-function ageChip(d){ if(!d) return '<span class="chip bad">sem preço</span>'; const h=(Date.now()-d.getTime())/36e5; const c=h<12?'ok':h<48?'warn':'bad'; return `<span class="chip ${c}">${ageStr(d)}</span>` }
+function ageStr(d){ if(!d) return 'sem dado'; const h=Math.max(0,(Date.now()-d.getTime())/36e5); if(h<0.02) return 'agora'; if(h<1) return 'há '+Math.round(h*60)+' min'; if(h<48) return 'há '+Math.round(h)+' h'; return 'há '+Math.round(h/24)+' d' }
+function ageChip(d){ if(!d) return '<span class="chip bad">sem preço</span>'; const h=Math.max(0,(Date.now()-d.getTime())/36e5); const c=h<12?'ok':h<48?'warn':'bad'; return `<span class="chip ${c}">${ageStr(d)}</span>` }
 function older(a,b){ if(!a) return b; if(!b) return a; return a<b?a:b }
 function toast(m){const t=$('#toast'); t.textContent=m; t.classList.add('show'); clearTimeout(t._t); t._t=setTimeout(()=>t.classList.remove('show'),2600)}
 function curTax(){return (S.config.premium?S.config.taxPremium:S.config.taxNoPremium)/100}
@@ -603,13 +604,24 @@ function dateInRange(d,range){ if(range==='all') return true; const lim=new Date
 
 // ---------- preços ----------
 function px(itemId,city,q){ const c=S.prices[itemId]&&S.prices[itemId][city]; if(!c) return null; return c[q]||c[1]||null }
+// preço na cidade pedida; se faltar e o fallback estiver ligado, usa a cidade com o dado mais recente
+function priceFor(itemId,city,q,need){
+  const val=p=>need==='buy'?p.buy:p.sell, dat=p=>need==='buy'?p.buyDate:p.sellDate;
+  const d=px(itemId,city,q);
+  if(d&&val(d)) return {p:d,from:city,fb:false,date:parseAodpDate(dat(d))};
+  if(!S.config.fallback) return null;
+  let best=null;
+  for(const c of CITIES){ if(c===city) continue; const pp=px(itemId,c,q); if(!pp||!val(pp)) continue; const dd=parseAodpDate(dat(pp)); if(!best||(dd&&(!best.date||dd>best.date))) best={p:pp,from:c,fb:true,date:dd} }
+  return best;
+}
+function anyProductDate(itemId,q){ let best=null; for(const c of CITIES.concat([BM])){ const p=px(itemId,c,q); if(!p) continue; for(const dt of [p.sellDate,p.buyDate]){ const d=parseAodpDate(dt); if(d&&(!best||d>best)) best=d } } return best }
 function allItemIds(){ const set=new Set(); for(const it of S.items){ if(it.itemId) set.add(it.itemId); for(const g of it.ings||[]) if(g.itemId) set.add(g.itemId) } return Array.from(set) }
 async function fetchPrices(){
   const ids=allItemIds(); if(!ids.length){toast('Nenhum item no catálogo');return}
   const base=SERVERS[S.config.server]||SERVERS.west;
   const locs=CITIES.concat([BM]).map(encodeURIComponent).join(',');
   const btns=[$('#btn-prices'),$('#btn-prices-2')]; btns.forEach(b=>{b.disabled=true;b.textContent='Buscando…'});
-  const log=[]; let ok=0;
+  const log=[]; let ok=0; const withData=new Set();
   try{
     for(let i=0;i<ids.length;i+=25){
       const chunk=ids.slice(i,i+25);
@@ -620,12 +632,14 @@ async function fetchPrices(){
         const id=row.item_id, city=row.city, q=row.quality||1;
         S.prices[id]=S.prices[id]||{}; S.prices[id][city]=S.prices[id][city]||{};
         S.prices[id][city][q]={sell:row.sell_price_min||0,sellDate:row.sell_price_min_date,buy:row.buy_price_max||0,buyDate:row.buy_price_max_date};
-        if(row.sell_price_min||row.buy_price_max) ok++;
+        if(row.sell_price_min||row.buy_price_max){ ok++; withData.add(id) }
       }
     }
     S.pricesAt=Date.now(); save();
-    log.push(`${ids.length} itens consultados, ${ok} combinações item×cidade com preço.`);
-    toast('Preços atualizados');
+    const none=ids.filter(id=>!withData.has(id));
+    log.push(`${ids.length} IDs consultados · ${withData.size} com preço em alguma cidade · ${ok} combinações item×cidade×qualidade.`);
+    if(none.length) log.push(`Sem preço em lugar nenhum (ninguém viu esses itens no mercado recentemente, ou o ID está errado): ${none.join(', ')}.`);
+    toast(`Preços atualizados: ${withData.size}/${ids.length} IDs com dado`);
   }catch(e){ log.push('Erro ao buscar preços: '+e.message); toast('Erro ao buscar preços') }
   btns.forEach(b=>{b.disabled=false;b.textContent='Atualizar preços'});
   $('#prices-log').textContent=log.join(' ');
@@ -634,39 +648,48 @@ async function fetchPrices(){
 
 // ---------- cálculo ----------
 function ingCost(item){
-  let total=0, missing=[], oldest=null, detail=[];
+  let total=0, missing=[], oldest=null, detail=[], fb=false;
+  const need=S.config.buyMode==='ordem'?'buy':'sell';
   for(const ing of item.ings||[]){
-    const p=px(ing.itemId,item.city,1); let unit=0,d=null,mode='';
-    if(p){ if(S.config.buyMode==='ordem'){ unit=p.buy||p.sell; d=p.buy?p.buyDate:p.sellDate; mode=p.buy?'ordem':'instant'} else { unit=p.sell||p.buy; d=p.sell?p.sellDate:p.buyDate; mode=p.sell?'instant':'ordem'} }
-    if(!unit){ missing.push(ing.name||ing.itemId) } else { total+=unit*ing.qty; const dd=parseAodpDate(d); oldest=older(oldest,dd); detail.push({ing,unit,mode,date:dd}) }
+    let r=priceFor(ing.itemId,item.city,1,need);
+    let mode=need==='buy'?'ordem':'instant';
+    if(!r){ r=priceFor(ing.itemId,item.city,1,need==='buy'?'sell':'buy'); mode=need==='buy'?'instant':'ordem' }
+    if(!r){ missing.push(ing.name||ing.itemId); continue }
+    const unit=mode==='ordem'?r.p.buy:r.p.sell;
+    total+=unit*ing.qty; oldest=older(oldest,r.date); if(r.fb) fb=true;
+    detail.push({ing,unit,mode,date:r.date,from:r.from,fb:r.fb});
   }
-  return {total,missing,oldest,detail};
+  return {total,missing,oldest,detail,fb};
 }
 function revCity(item){
-  const p=px(item.itemId,item.city,S.config.quality); const tax=curTax(); if(!p) return null;
-  if(S.config.sellMode==='ordem'){ if(!p.sell) return null; return {gross:p.sell,net:p.sell*(1-tax-S.config.orderFee/100),date:parseAodpDate(p.sellDate),mode:'ordem'} }
-  if(!p.buy) return null; return {gross:p.buy,net:p.buy*(1-tax),date:parseAodpDate(p.buyDate),mode:'instant'};
+  const tax=curTax(); const q=S.config.quality;
+  if(S.config.sellMode==='ordem'){ const r=priceFor(item.itemId,item.city,q,'sell'); if(!r) return null; return {gross:r.p.sell,net:r.p.sell*(1-tax-S.config.orderFee/100),date:r.date,mode:'ordem',from:r.from,fb:r.fb} }
+  const r=priceFor(item.itemId,item.city,q,'buy'); if(!r) return null; return {gross:r.p.buy,net:r.p.buy*(1-tax),date:r.date,mode:'instant',from:r.from,fb:r.fb};
 }
 function revBM(item){
   const p=px(item.itemId,BM,S.config.quality); const tax=curTax(); if(!p||!p.buy) return null;
-  return {gross:p.buy,net:p.buy*(1-tax),date:parseAodpDate(p.buyDate),mode:'bm'};
+  return {gross:p.buy,net:p.buy*(1-tax),date:parseAodpDate(p.buyDate),mode:'bm',from:BM,fb:false};
 }
 function calc(item){
   const ic=ingCost(item); const out=item.out||1;
   const rrrPct=((item.useFocus?item.rrrF:item.rrrN)||0)+(item.bonus?(item.bonusPct||0):0);
   const rrr=Math.min(0.9,rrrPct/100);
-  const matEff=ic.total*(1-rrr); const unitCost=(matEff+(item.fee||0))/out;
+  const matEff=ic.total*(1-rrr); const unitCostRaw=(matEff+(item.fee||0))/out;
   const rc=revCity(item); const rb=item.kind==='refine'?null:revBM(item);
+  const hasIngs=(item.ings||[]).length>0;
+  const hasCost=hasIngs&&ic.total>0&&ic.missing.length===0;
+  const hasRev=!!(rc||rb);
+  const unitCost=hasCost?unitCostRaw:null;
   const problems=[];
-  if(!(item.ings||[]).length) problems.push('sem ingredientes');
-  if(ic.missing.length) problems.push('sem preço: '+ic.missing.join(', '));
+  if(!hasIngs) problems.push('sem ingredientes cadastrados');
+  else if(ic.missing.length) problems.push('sem preço: '+ic.missing.join(', '));
   if(item.useFocus&&!(item.focus>0)) problems.push('focus por craft não informado');
   if(!(item.rrrF>0)&&item.useFocus) problems.push('retorno com focus não informado');
-  if(!rc&&!rb) problems.push('sem preço de venda');
-  const profitCity=rc?rc.net-unitCost:null;
+  if(!hasRev) problems.push('sem preço de venda em lugar nenhum');
+  const profitCity=(hasCost&&rc)?rc.net-unitCost:null;
   let bm=null;
-  if(rb){
-    if(!(item.weight>0)) problems.push('peso não informado (BM)');
+  if(rb&&hasCost){
+    if(!(item.weight>0)) problems.push('peso não informado (necessário para o BM)');
     else{
       const cargoCap=S.config.capital*S.config.cargoCapPct/100;
       for(const m of S.config.mounts){
@@ -681,19 +704,23 @@ function calc(item){
   let best=null,route=null;
   if(profitCity!=null){best=profitCity;route='city'}
   if(bm&&(best==null||bm.profit>best)){best=bm.profit;route='bm'}
-  const complete=problems.length===0 && best!=null && ic.total>0;
+  if(route==null&&hasRev) route=(rb&&(!rc||rb.net>rc.net))?'bm':'city';
+  const complete=best!=null&&!problems.length;
   const focusPerUnit=item.useFocus&&item.focus>0?item.focus/out:null;
-  const perFocus=complete&&focusPerUnit?best/focusPerUnit:null;
+  const perFocus=best!=null&&focusPerUnit?best/focusPerUnit:null;
   const craftsPerDay=item.useFocus&&item.focus>0?Math.floor(S.config.focusPerDay/item.focus):null;
-  const daily=complete&&craftsPerDay!=null?craftsPerDay*out*best:null;
-  const perKg=complete&&bm&&item.weight>0?bm.profit/item.weight:null;
-  const perTrip=complete&&bm?bm.profit*bm.n:null;
-  const perCapital=complete&&unitCost>0?best/unitCost:null;
-  const margin=complete&&unitCost>0?best/unitCost:null;
-  const premium=complete&&bm&&profitCity!=null?bm.profit-profitCity:null;
-  let oldest=ic.oldest; if(route==='city'&&rc) oldest=older(oldest,rc.date); if(route==='bm'&&rb) oldest=older(oldest,rb.date);
-  const revUnit=route==='bm'?rb.net:(rc?rc.net:null);
-  return {item,ic,rrr,rrrPct,unitCost,matEff,rc,rb,profitCity,bm,best,route,complete,problems,perFocus,craftsPerDay,daily,perKg,perTrip,perCapital,margin,premium,oldest,revUnit,out};
+  const daily=best!=null&&craftsPerDay!=null?craftsPerDay*out*best:null;
+  const perKg=bm&&item.weight>0?bm.profit/item.weight:null;
+  const perTrip=bm?bm.profit*bm.n:null;
+  const perCapital=best!=null&&unitCost>0?best/unitCost:null;
+  const margin=best!=null&&unitCost>0?best/unitCost:null;
+  const premium=bm&&profitCity!=null?bm.profit-profitCity:null;
+  const revUnit=route==='bm'&&rb?rb.net:(rc?rc.net:(rb?rb.net:null));
+  const prodDate=route==='bm'&&rb?rb.date:(rc?rc.date:(rb?rb.date:anyProductDate(item.itemId,S.config.quality)));
+  const prodMissing=!hasRev;
+  const usedFb=ic.fb||!!(rc&&rc.fb);
+  let oldest=ic.oldest; oldest=older(oldest,prodDate);
+  return {item,ic,rrr,rrrPct,unitCost,matEff,rc,rb,profitCity,bm,best,route,complete,hasCost,hasRev,hasIngs,problems,perFocus,craftsPerDay,daily,perKg,perTrip,perCapital,margin,premium,oldest,prodDate,prodMissing,usedFb,revUnit,out};
 }
 
 // ---------- navegação ----------
@@ -723,32 +750,37 @@ function renderHeader(){
 function tdc(v,base){return base+(v==null||v==='—'?' empty':'')}
 function renderDecision(){
   const sortKey=$('#dec-sort').value, city=$('#dec-city').value, onlyBM=$('#dec-bm').checked, hide=$('#dec-hide').checked;
-  let rows=S.items.map(calc);
+  let all=S.items.map(calc);
+  let rows=all.slice();
   if(city) rows=rows.filter(r=>r.item.city===city);
   if(onlyBM) rows=rows.filter(r=>r.bm);
   if(hide) rows=rows.filter(r=>r.complete);
   const key=r=>{const v=sortKey==='best'?r.best:r[sortKey]; return v==null?-Infinity:v};
   rows.sort((a,b)=>{ if(a.complete!==b.complete) return a.complete?-1:1; return key(b)-key(a) });
   const bestId=rows.find(r=>r.complete)?.item.id;
-  $('#dec-meta').textContent=`${rows.length} itens · imposto ${(curTax()*100).toLocaleString('pt-BR')}% · qualidade ${QNAMES[S.config.quality]}`;
+  const withPrice=all.filter(r=>!r.prodMissing).length, ready=all.filter(r=>r.complete).length;
+  $('#dec-meta').innerHTML=`${rows.length} itens · <b>${withPrice}/${all.length}</b> com preço do produto · <b>${ready}</b> com conta fechada · imposto ${(curTax()*100).toLocaleString('pt-BR')}% · qualidade ${QNAMES[S.config.quality]}`;
   const head=`<thead><tr><th>Item</th><th>Saída</th><th class="num">Custo/un</th><th class="num">Venda/un</th><th class="num">Lucro/un</th><th class="num">Margem s/ custo</th><th class="num">Prata/focus</th><th class="num">Lucro/dia</th><th class="num">Prata/kg</th><th class="num">Prata/viagem</th><th class="num">Prêmio risco</th><th>Preço</th><th>Bônus</th></tr></thead>`;
   const body=rows.map(r=>{
     const it=r.item;
-    const route=r.route==='bm'?`<span class="chip bm">BM · ${esc(r.bm.mount.name.split(' ')[0])} · ${r.bm.n}/viagem</span>`:r.route==='city'?`<span class="chip city">${esc(it.city)}</span>`:'<span class="chip">—</span>';
+    const route=r.route==='bm'&&r.bm?`<span class="chip bm">BM · ${esc(r.bm.mount.name.split(' ')[0])} · ${r.bm.n}/viagem</span>`:r.route==='bm'?'<span class="chip bm">BM</span>':r.route==='city'?`<span class="chip city">${esc(r.rc&&r.rc.fb?r.rc.from+' (ref.)':it.city)}</span>`:'<span class="chip">—</span>';
     const prob=r.problems.length?`<span class="sub">${esc(r.problems.join(' · '))}</span>`:'';
+    const priceChips=(r.prodMissing?'<span class="chip bad">produto sem preço</span>':ageChip(r.prodDate))
+      +(r.ic.missing.length?`<span class="chip warn">${r.ic.missing.length} ingr. sem preço</span>`:'')
+      +(r.usedFb?'<span class="chip warn">ref. outra cidade</span>':'');
     return `<tr data-id="${it.id}" class="${r.complete?'':'dim'} ${it.id===bestId?'best':''}">
       <td class="title" data-l="Item"><b>${esc(it.name)}</b><span class="sub">${esc(it.city)} · spec ${it.spec||0} · ${it.useFocus?'com focus':'sem focus'} · retorno ${r.rrrPct.toLocaleString('pt-BR')}%</span>${prob}</td>
       <td data-l="Saída">${route}</td>
-      <td class="${tdc(r.complete?r.unitCost:null,'num')}" data-l="Custo/un">${fmt(r.complete?r.unitCost:null)}</td>
-      <td class="${tdc(r.complete?r.revUnit:null,'num')}" data-l="Venda/un">${fmt(r.complete?r.revUnit:null)}</td>
-      <td class="${tdc(r.complete?r.best:null,'num '+cls(r.best))}" data-l="Lucro/un">${fmt(r.complete?r.best:null)}</td>
+      <td class="${tdc(r.unitCost,'num')}" data-l="Custo/un">${fmt(r.unitCost)}</td>
+      <td class="${tdc(r.revUnit,'num')}" data-l="Venda/un">${fmt(r.revUnit)}</td>
+      <td class="${tdc(r.best,'num '+cls(r.best))}" data-l="Lucro/un">${fmt(r.best)}</td>
       <td class="${tdc(r.margin,'num '+cls(r.margin))}" data-l="Margem s/ custo">${pct(r.margin)}</td>
       <td class="${tdc(r.perFocus,'num '+cls(r.perFocus))}" data-l="Prata/focus">${r.perFocus==null?'—':fmt(r.perFocus,1)}</td>
       <td class="${tdc(r.daily,'num '+cls(r.daily))}" data-l="Lucro/dia (todo focus)">${r.daily==null?'—':fmt(r.daily)+(r.craftsPerDay!=null?` <span class="sub">${r.craftsPerDay} crafts</span>`:'')}</td>
       <td class="${tdc(r.perKg,'num')}" data-l="Prata/kg">${fmt(r.perKg)}</td>
       <td class="${tdc(r.perTrip,'num')}" data-l="Prata/viagem">${fmt(r.perTrip)}</td>
       <td class="${tdc(r.premium,'num '+cls(r.premium))}" data-l="Prêmio de risco">${fmt(r.premium)}</td>
-      <td data-l="Idade do preço">${ageChip(r.oldest)}</td>
+      <td data-l="Preço">${priceChips}</td>
       <td data-l="Bônus hoje"><label style="display:inline-flex;align-items:center;gap:6px"><input type="checkbox" data-bonus="${it.id}" ${it.bonus?'checked':''}> +${it.bonusPct||0}%</label></td>
     </tr>`;
   }).join('');
@@ -760,7 +792,7 @@ function renderDetail(id){
   const q=S.config.quality;
   const cityRows=CITIES.concat([BM]).map(c=>{const p=px(it.itemId,c,q); if(!p) return `<tr><td>${esc(c)}</td><td class="num">—</td><td class="num">—</td><td>${ageChip(null)}</td></tr>`; return `<tr><td>${esc(c)}</td><td class="num">${fmtFull(p.sell||null)}</td><td class="num">${fmtFull(p.buy||null)}</td><td>${ageChip(parseAodpDate(p.buy?p.buyDate:p.sellDate))}</td></tr>`}).join('');
   const bmQ=[1,2,3,4,5].map(qq=>{const p=px(it.itemId,BM,qq); return `<tr><td>${QNAMES[qq]}</td><td class="num">${p&&p.buy?fmtFull(p.buy):'—'}</td><td>${ageChip(p?parseAodpDate(p.buyDate):null)}</td></tr>`}).join('');
-  const ings=r.ic.detail.map(d=>`<tr><td>${esc(d.ing.name||d.ing.itemId)}<span class="sub mono">${esc(d.ing.itemId)}</span></td><td class="num">${d.ing.qty}</td><td class="num">${fmtFull(d.unit)}<span class="sub">${d.mode==='ordem'?'maior ordem de compra':'menor venda'}</span></td><td class="num">${fmtFull(d.unit*d.ing.qty)}</td><td>${ageChip(d.date)}</td></tr>`).join('')
+  const ings=r.ic.detail.map(d=>`<tr><td>${esc(d.ing.name||d.ing.itemId)}<span class="sub mono">${esc(d.ing.itemId)}</span></td><td class="num">${d.ing.qty}</td><td class="num">${fmtFull(d.unit)}<span class="sub">${d.mode==='ordem'?'maior ordem de compra':'menor venda'}${d.fb?' · preço de '+esc(d.from):''}</span></td><td class="num">${fmtFull(d.unit*d.ing.qty)}</td><td>${ageChip(d.date)}</td></tr>`).join('')
     + r.ic.missing.map(m=>`<tr class="dim"><td>${esc(m)}</td><td colspan="4">sem preço em ${esc(it.city)}</td></tr>`).join('');
   const mounts=r.rb&&it.weight>0?S.config.mounts.map(m=>{const cargoCap=S.config.capital*S.config.cargoCapPct/100; const n=Math.max(1,Math.min(Math.floor(m.cap/it.weight),Math.floor(cargoCap/r.rb.gross)||1)); const p=(m.p||0)/100; const prof=(1-p)*r.rb.net-r.unitCost-p*(m.value||0)/n; return `<tr><td>${esc(m.name)}</td><td class="num">${n}</td><td class="num">${fmt(n*r.rb.gross)}</td><td class="num">${pct(p)}</td><td class="num ${cls(prof)}">${fmt(prof)}</td><td class="num ${cls(prof*n)}">${fmt(prof*n)}</td></tr>`}).join(''):'';
   $('#dec-detail').style.display='block';
@@ -772,7 +804,7 @@ function renderDetail(id){
         <div class="tbl-wrap"><table><thead><tr><th>Ingrediente</th><th class="num">Qtd</th><th class="num">Unit.</th><th class="num">Total</th><th>Preço</th></tr></thead><tbody>${ings||'<tr><td colspan="5" class="muted">sem ingredientes</td></tr>'}</tbody></table></div>
         <p class="hint" style="margin-top:8px">Material bruto ${fmtFull(r.ic.total)} · retorno ${r.rrrPct.toLocaleString('pt-BR')}% → material efetivo ${fmtFull(r.matEff)} · taxa ${fmtFull(it.fee)} · <b>custo por unidade ${fmtFull(r.unitCost)}</b> (${r.out} un/craft, ${it.focus||0} focus/craft)</p>
         <h3 style="margin-top:12px">Saídas</h3>
-        <p class="hint">Cidade (${esc(it.city)}): ${r.rc?`receita líquida ${fmtFull(r.rc.net)} → lucro <b class="${cls(r.profitCity)}">${fmtFull(r.profitCity)}</b> por unidade`:'sem preço de venda'}<br>
+        <p class="hint">Cidade (${esc(it.city)}): ${r.rc?`receita líquida ${fmtFull(r.rc.net)}${r.rc.fb?' <span class="chip warn">preço de '+esc(r.rc.from)+'</span>':''} → lucro <b class="${cls(r.profitCity)}">${r.profitCity==null?'falta o custo':fmtFull(r.profitCity)}</b> por unidade`:'sem preço de venda'}<br>
         Black Market: ${r.rb?`ordem de compra ${fmtFull(r.rb.gross)}, líquida ${fmtFull(r.rb.net)}, lucro bruto ${fmtFull(r.rb.net-r.unitCost)} antes do risco`:(it.kind==='refine'?'não compra material refinado':'sem ordem de compra no BM')}</p>
         ${mounts?`<div class="tbl-wrap"><table><thead><tr><th>Montaria</th><th class="num">Un/viagem</th><th class="num">Carga</th><th class="num">p</th><th class="num">Lucro esp./un</th><th class="num">Lucro esp./viagem</th></tr></thead><tbody>${mounts}</tbody></table></div>`:''}
       </div>
@@ -952,7 +984,7 @@ function cumChart(series,metaDay){
 function renderConfig(){
   const c=S.config;
   $('#cg-premium').checked=!!c.premium; $('#cg-focus').value=c.focusPerDay; $('#cg-premcost').value=c.premiumCost; $('#cg-taxp').value=c.taxPremium; $('#cg-taxn').value=c.taxNoPremium; $('#cg-orderfee').value=c.orderFee;
-  $('#cg-capital').value=c.capital; $('#cg-meta').value=c.metaMensal; $('#cg-cargo').value=c.cargoCapPct; $('#cg-buy').value=c.buyMode; $('#cg-sell').value=c.sellMode; $('#cg-quality').value=c.quality; $('#cg-server').value=c.server;
+  $('#cg-capital').value=c.capital; $('#cg-meta').value=c.metaMensal; $('#cg-cargo').value=c.cargoCapPct; $('#cg-buy').value=c.buyMode; $('#cg-sell').value=c.sellMode; $('#cg-quality').value=c.quality; $('#cg-server').value=c.server; $('#cg-fallback').checked=c.fallback!==false;
   $('#cg-mounts').innerHTML='<thead><tr><th>Montaria</th><th>Capacidade (kg)</th><th>Valor (prata)</th><th>p morte/viagem (%)</th></tr></thead><tbody>'+c.mounts.map((m,i)=>`<tr><td><input data-m="name:${i}" value="${esc(m.name)}"></td><td><input type="number" data-m="cap:${i}" value="${m.cap}" inputmode="numeric"></td><td><input type="number" data-m="value:${i}" value="${m.value}" inputmode="numeric"></td><td><input type="number" step="any" data-m="p:${i}" value="${m.p}" inputmode="decimal"></td></tr>`).join('')+'</tbody>';
   const size=(()=>{try{return (localStorage.getItem(LS_KEY)||'').length}catch(e){return 0}})();
   $('#data-meta').textContent=`${S.items.length} receitas · ${S.crafts.length} crafts · ${S.sales.length} vendas · ${S.transports.length} viagens · ${(size/1024).toFixed(1)} kB salvos`;
@@ -961,7 +993,7 @@ function renderConfig(){
 function readConfig(){
   const c=S.config;
   c.premium=$('#cg-premium').checked; c.focusPerDay=+$('#cg-focus').value||0; c.premiumCost=+$('#cg-premcost').value||0; c.taxPremium=+$('#cg-taxp').value||0; c.taxNoPremium=+$('#cg-taxn').value||0; c.orderFee=+$('#cg-orderfee').value||0;
-  c.capital=+$('#cg-capital').value||0; c.metaMensal=+$('#cg-meta').value||0; c.cargoCapPct=+$('#cg-cargo').value||10; c.buyMode=$('#cg-buy').value; c.sellMode=$('#cg-sell').value; c.quality=+$('#cg-quality').value||1; c.server=$('#cg-server').value;
+  c.capital=+$('#cg-capital').value||0; c.metaMensal=+$('#cg-meta').value||0; c.cargoCapPct=+$('#cg-cargo').value||10; c.buyMode=$('#cg-buy').value; c.sellMode=$('#cg-sell').value; c.quality=+$('#cg-quality').value||1; c.server=$('#cg-server').value; c.fallback=$('#cg-fallback').checked;
   $$('#cg-mounts input[data-m]').forEach(inp=>{const [k,i]=inp.dataset.m.split(':'); const m=c.mounts[+i]; if(!m) return; m[k]=k==='name'?inp.value:(+inp.value||0)});
 }
 
